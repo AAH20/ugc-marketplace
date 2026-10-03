@@ -8,8 +8,9 @@ from typing import Any
 
 from deepagents import create_deep_agent
 
-from ugc_marketplace.config.logging_config import get_logger
+from ugc_marketplace.agents.fraud_detection.types import Anomaly, Pattern, RiskScore, Transaction
 from ugc_marketplace.config import get_settings
+from ugc_marketplace.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -45,7 +46,7 @@ class RiskScorerAgent:
 
         agent = create_deep_agent(
             tools=tools,
-            instructions=(
+            system_prompt=(
                 "You are a fraud risk scoring specialist. Compute overall risk "
                 "scores by aggregating signals from transaction analysis, account "
                 "history, and behavioral patterns. Provide a score between 0 and 1 "
@@ -56,10 +57,10 @@ class RiskScorerAgent:
 
     async def score(
         self,
-        transaction: "Transaction",
-        patterns: list["Pattern"] | None = None,
-        anomalies: list["Anomaly"] | None = None,
-    ) -> "RiskScore":
+        transaction: Transaction,
+        patterns: list[Pattern] | None = None,
+        anomalies: list[Anomaly] | None = None,
+    ) -> RiskScore:
         """Score risk for a transaction.
 
         Args:
@@ -96,15 +97,18 @@ class RiskScorerAgent:
         except Exception as exc:
             self._error_count += 1
             logger.error("Risk scoring failed", error=str(exc))
-            from ugc_marketplace.models.schemas import RiskScore, RiskFactor
+            from ugc_marketplace.models.schemas import RiskFactor, RiskScore
+
             return RiskScore(
                 score_id=str(uuid.uuid4()),
                 transaction_id=transaction.transaction_id,
                 overall_score=0.5,
-                factors=[RiskFactor(name="error", contribution=0.5, description=str(exc))],
+                factors=[
+                    RiskFactor(name="error", contribution=0.5, description=str(exc))
+                ],
             )
 
-    def _parse_risk_score(self, result: Any, transaction: "Transaction") -> "RiskScore":
+    def _parse_risk_score(self, result: Any, transaction: Transaction) -> RiskScore:
         """Parse agent output into RiskScore.
 
         Args:
@@ -114,7 +118,7 @@ class RiskScorerAgent:
         Returns:
             Parsed risk score.
         """
-        from ugc_marketplace.models.schemas import RiskScore, RiskFactor
+        from ugc_marketplace.models.schemas import RiskFactor, RiskScore
 
         if isinstance(result, dict):
             return RiskScore(
@@ -137,7 +141,7 @@ class RiskScorerAgent:
         )
 
     @staticmethod
-    async def _compute_base_risk(transaction: "Transaction") -> dict[str, Any]:
+    async def _compute_base_risk(transaction: Transaction) -> dict[str, Any]:
         """Compute base risk for a transaction.
 
         Args:
@@ -161,7 +165,7 @@ class RiskScorerAgent:
         return {"history_adjustment": 0.0}
 
     @staticmethod
-    async def _adjust_for_behavior(transaction: "Transaction") -> dict[str, Any]:
+    async def _adjust_for_behavior(transaction: Transaction) -> dict[str, Any]:
         """Adjust risk based on behavioral patterns.
 
         Args:

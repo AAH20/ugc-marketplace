@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, status
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
@@ -10,6 +12,7 @@ router = APIRouter(prefix="/marketplace", tags=["marketplace"])
 def get_listing_agent() -> Any:
     """Get or create ListingManagerAgent singleton."""
     from ugc_marketplace.agents.content_marketplace import ListingManagerAgent
+
     if not hasattr(get_listing_agent, "_instance"):
         get_listing_agent._instance = ListingManagerAgent()
     return get_listing_agent._instance
@@ -18,6 +21,7 @@ def get_listing_agent() -> Any:
 def get_transaction_agent() -> Any:
     """Get or create TransactionProcessorAgent singleton."""
     from ugc_marketplace.agents.content_marketplace import TransactionProcessorAgent
+
     if not hasattr(get_transaction_agent, "_instance"):
         get_transaction_agent._instance = TransactionProcessorAgent()
     return get_transaction_agent._instance
@@ -26,6 +30,7 @@ def get_transaction_agent() -> Any:
 def get_trust_agent() -> Any:
     """Get or create TrustScorerAgent singleton."""
     from ugc_marketplace.agents.content_marketplace import TrustScorerAgent
+
     if not hasattr(get_trust_agent, "_instance"):
         get_trust_agent._instance = TrustScorerAgent()
     return get_trust_agent._instance
@@ -34,6 +39,7 @@ def get_trust_agent() -> Any:
 def get_pricing_agent() -> Any:
     """Get or create PricingOptimizerAgent singleton."""
     from ugc_marketplace.agents.content_marketplace import PricingOptimizerAgent
+
     if not hasattr(get_pricing_agent, "_instance"):
         get_pricing_agent._instance = PricingOptimizerAgent()
     return get_pricing_agent._instance
@@ -42,6 +48,7 @@ def get_pricing_agent() -> Any:
 def get_analytics_agent() -> Any:
     """Get or create MarketplaceAnalyticsAgent singleton."""
     from ugc_marketplace.agents.content_marketplace import MarketplaceAnalyticsAgent
+
     if not hasattr(get_analytics_agent, "_instance"):
         get_analytics_agent._instance = MarketplaceAnalyticsAgent()
     return get_analytics_agent._instance

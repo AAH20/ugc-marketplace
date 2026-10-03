@@ -43,7 +43,9 @@ async def test_revenue_optimizer_agent() -> None:
 async def test_subscription_agent() -> None:
     """Test subscription agent."""
     agent = SubscriptionAgent()
-    sub = await agent.create_subscription("creator_1", "user_1", "tier_1", Decimal("10.00"))
+    sub = await agent.create_subscription(
+        "creator_1", "user_1", "tier_1", Decimal("10.00")
+    )
     assert sub["status"] == "active"
 
 

@@ -9,6 +9,7 @@ from typing import Any
 from langchain.agents import create_agent
 
 from ugc_marketplace.agents.rights_management.base import BaseAgent
+from ugc_marketplace.agents.rights_management.types import UsageRecord
 
 
 class UsageTrackerAgent(BaseAgent[dict[str, Any], "UsageRecord"]):
@@ -40,7 +41,7 @@ class UsageTrackerAgent(BaseAgent[dict[str, Any], "UsageRecord"]):
         )
         return agent
 
-    async def execute(self, input_data: dict[str, Any]) -> "UsageRecord":
+    async def execute(self, input_data: dict[str, Any]) -> UsageRecord:
         """Execute usage tracking.
 
         Args:
@@ -67,7 +68,9 @@ class UsageTrackerAgent(BaseAgent[dict[str, Any], "UsageRecord"]):
         return await self.execute(input_data)
 
     @staticmethod
-    async def _record_usage(content_id: str, usage_data: dict[str, Any]) -> dict[str, Any]:
+    async def _record_usage(
+        content_id: str, usage_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Record content usage.
 
         Args:
@@ -77,7 +80,11 @@ class UsageTrackerAgent(BaseAgent[dict[str, Any], "UsageRecord"]):
         Returns:
             Usage record.
         """
-        return {"content_id": content_id, "usage": usage_data, "recorded_at": UTC.now().isoformat()}
+        return {
+            "content_id": content_id,
+            "usage": usage_data,
+            "recorded_at": UTC.now().isoformat(),
+        }
 
     @staticmethod
     async def _check_usage_limits(content_id: str) -> dict[str, Any]:

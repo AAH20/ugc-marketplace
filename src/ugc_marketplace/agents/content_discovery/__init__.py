@@ -1,6 +1,6 @@
 """Agent implementations for content discovery."""
 
-from ugc_marketplace.agents.content_discovery.base import BaseAgent, AgentExecutionError
+from ugc_marketplace.agents.content_discovery.base import AgentExecutionError, BaseAgent
 from ugc_marketplace.agents.content_discovery.personalization import PersonalizationAgent
 from ugc_marketplace.agents.content_discovery.recommendation import RecommendationAgent
 from ugc_marketplace.agents.content_discovery.search_explainer import SearchExplainerAgent

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC
 from typing import Any
 
 from langchain.agents import create_agent
 
 from ugc_marketplace.agents.rights_management.base import BaseAgent
+from ugc_marketplace.agents.rights_management.types import RightsValidation, RightsValidationRequest
 
 
 class RightsValidatorAgent(BaseAgent["RightsValidationRequest", "RightsValidation"]):
@@ -40,7 +40,7 @@ class RightsValidatorAgent(BaseAgent["RightsValidationRequest", "RightsValidatio
         )
         return agent
 
-    async def execute(self, input_data: "RightsValidationRequest") -> "RightsValidation":
+    async def execute(self, input_data: RightsValidationRequest) -> RightsValidation:
         """Execute rights validation.
 
         Args:

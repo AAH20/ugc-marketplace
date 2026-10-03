@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC
 from typing import Any
 
 from langchain.agents import create_agent
 
 from ugc_marketplace.agents.rights_management.base import BaseAgent
+from ugc_marketplace.agents.rights_management.types import TakedownRequest
 
 
 class TakedownAgent(BaseAgent[dict[str, Any], "TakedownRequest"]):
@@ -40,7 +40,7 @@ class TakedownAgent(BaseAgent[dict[str, Any], "TakedownRequest"]):
         )
         return agent
 
-    async def execute(self, input_data: dict[str, Any]) -> "TakedownRequest":
+    async def execute(self, input_data: dict[str, Any]) -> TakedownRequest:
         """Execute takedown processing.
 
         Args:
@@ -67,7 +67,9 @@ class TakedownAgent(BaseAgent[dict[str, Any], "TakedownRequest"]):
         return await self.execute(input_data)
 
     @staticmethod
-    async def _validate_takedown_request(request_data: dict[str, Any]) -> dict[str, Any]:
+    async def _validate_takedown_request(
+        request_data: dict[str, Any],
+    ) -> dict[str, Any]:
         """Validate a takedown request.
 
         Args:
@@ -91,7 +93,9 @@ class TakedownAgent(BaseAgent[dict[str, Any], "TakedownRequest"]):
         return {"content_id": content_id, "removed": True}
 
     @staticmethod
-    async def _notify_stakeholders(content_id: str, request_data: dict[str, Any]) -> dict[str, Any]:
+    async def _notify_stakeholders(
+        content_id: str, request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Notify stakeholders of takedown.
 
         Args:

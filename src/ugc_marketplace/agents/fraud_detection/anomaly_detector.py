@@ -8,6 +8,7 @@ from typing import Any
 
 from deepagents import create_deep_agent
 
+from ugc_marketplace.agents.fraud_detection.types import Anomaly, Transaction
 from ugc_marketplace.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -46,7 +47,7 @@ class AnomalyDetectorAgent:
 
         agent = create_deep_agent(
             tools=tools,
-            instructions=(
+            system_prompt=(
                 "You are a fraud anomaly detection specialist. Analyze transactions "
                 "to identify statistical outliers and behavioral anomalies. Compare "
                 "against account baselines for amount, frequency, time, location, "
@@ -56,7 +57,7 @@ class AnomalyDetectorAgent:
         )
         return agent
 
-    async def detect(self, transaction: "Transaction") -> list["Anomaly"]:
+    async def detect(self, transaction: Transaction) -> list[Anomaly]:
         """Detect anomalies in a transaction.
 
         Args:
@@ -96,7 +97,7 @@ class AnomalyDetectorAgent:
             logger.error("Anomaly detection failed", error=str(exc))
             return []
 
-    def _parse_anomalies(self, result: Any) -> list["Anomaly"]:
+    def _parse_anomalies(self, result: Any) -> list[Anomaly]:
         """Parse agent output into Anomaly objects.
 
         Args:
@@ -126,7 +127,7 @@ class AnomalyDetectorAgent:
         return anomalies
 
     @staticmethod
-    async def _check_amount_anomaly(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_amount_anomaly(transaction: Transaction) -> dict[str, Any]:
         """Check for amount-based anomalies.
 
         Args:
@@ -150,7 +151,7 @@ class AnomalyDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_frequency_anomaly(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_frequency_anomaly(transaction: Transaction) -> dict[str, Any]:
         """Check for frequency-based anomalies.
 
         Args:
@@ -162,7 +163,7 @@ class AnomalyDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_time_anomaly(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_time_anomaly(transaction: Transaction) -> dict[str, Any]:
         """Check for time-based anomalies.
 
         Args:
@@ -174,7 +175,7 @@ class AnomalyDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_location_anomaly(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_location_anomaly(transaction: Transaction) -> dict[str, Any]:
         """Check for location-based anomalies.
 
         Args:
@@ -186,7 +187,7 @@ class AnomalyDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_device_anomaly(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_device_anomaly(transaction: Transaction) -> dict[str, Any]:
         """Check for device-based anomalies.
 
         Args:

@@ -9,6 +9,7 @@ from typing import Any
 from langchain_core.language_models import BaseLanguageModel
 
 from ugc_marketplace.agents.quality_scoring.base import AgentResult, BaseScoringAgent
+from ugc_marketplace.agents.quality_scoring.types import DimensionScore
 from ugc_marketplace.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,9 @@ class EngagementScorerAgent(BaseScoringAgent["DimensionScore"]):
         self.settings = get_settings()
         self._llm: BaseLanguageModel | None = None
 
-    async def score(self, content: str, context: dict[str, Any] | None = None) -> AgentResult["DimensionScore"]:
+    async def score(
+        self, content: str, context: dict[str, Any] | None = None
+    ) -> AgentResult[DimensionScore]:
         """Score content engagement potential.
 
         Args:
@@ -52,7 +55,7 @@ class EngagementScorerAgent(BaseScoringAgent["DimensionScore"]):
                 reasoning="Failed to calculate engagement score.",
             )
 
-    def _calculate_engagement_score(self, content: str) -> "DimensionScore":
+    def _calculate_engagement_score(self, content: str) -> DimensionScore:
         """Calculate engagement score for content.
 
         Args:
@@ -65,8 +68,20 @@ class EngagementScorerAgent(BaseScoringAgent["DimensionScore"]):
 
         word_count = len(content.split())
         has_question = "?" in content
-        has_cta = bool(re.search(r"\b(click|subscribe|follow|share|comment|like)\b", content, re.IGNORECASE))
-        has_emotion = bool(re.search(r"\b(amazing|incredible|shocking|surprising|exciting)\b", content, re.IGNORECASE))
+        has_cta = bool(
+            re.search(
+                r"\b(click|subscribe|follow|share|comment|like)\b",
+                content,
+                re.IGNORECASE,
+            )
+        )
+        has_emotion = bool(
+            re.search(
+                r"\b(amazing|incredible|shocking|surprising|exciting)\b",
+                content,
+                re.IGNORECASE,
+            )
+        )
 
         score_value = 0.5
         if has_question:

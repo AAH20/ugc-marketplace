@@ -23,7 +23,9 @@ from ugc_marketplace.models.schemas import (
 logger = get_logger(__name__)
 router = APIRouter()
 
-_agents: dict[ContentType, TextModerationAgent | ImageModerationAgent | VideoModerationAgent] = {}
+_agents: dict[
+    ContentType, TextModerationAgent | ImageModerationAgent | VideoModerationAgent
+] = {}
 
 
 def _get_agent(

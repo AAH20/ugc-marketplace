@@ -8,6 +8,7 @@ from typing import Any
 
 from deepagents import create_deep_agent
 
+from ugc_marketplace.agents.fraud_detection.types import Pattern, Transaction
 from ugc_marketplace.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -43,7 +44,7 @@ class PatternDetectorAgent:
 
         agent = create_deep_agent(
             tools=tools,
-            instructions=(
+            system_prompt=(
                 "You are a fraud pattern detection specialist. Analyze transactions "
                 "to identify known fraud patterns including velocity attacks, "
                 "round amount patterns, and geographic anomalies. Return structured "
@@ -52,7 +53,7 @@ class PatternDetectorAgent:
         )
         return agent
 
-    async def detect(self, transaction: "Transaction") -> list["Pattern"]:
+    async def detect(self, transaction: Transaction) -> list[Pattern]:
         """Detect fraud patterns in a transaction.
 
         Args:
@@ -89,7 +90,7 @@ class PatternDetectorAgent:
             logger.error("Pattern detection failed", error=str(exc))
             return []
 
-    def _parse_patterns(self, result: Any) -> list["Pattern"]:
+    def _parse_patterns(self, result: Any) -> list[Pattern]:
         """Parse agent output into Pattern objects.
 
         Args:
@@ -117,7 +118,7 @@ class PatternDetectorAgent:
         return patterns
 
     @staticmethod
-    async def _check_velocity_pattern(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_velocity_pattern(transaction: Transaction) -> dict[str, Any]:
         """Check for velocity-based fraud patterns.
 
         Args:
@@ -129,7 +130,7 @@ class PatternDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_round_amount_pattern(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_round_amount_pattern(transaction: Transaction) -> dict[str, Any]:
         """Check for round amount patterns.
 
         Args:
@@ -141,7 +142,7 @@ class PatternDetectorAgent:
         return {}
 
     @staticmethod
-    async def _check_geographic_pattern(transaction: "Transaction") -> dict[str, Any]:
+    async def _check_geographic_pattern(transaction: Transaction) -> dict[str, Any]:
         """Check for geographic patterns.
 
         Args:

@@ -49,5 +49,7 @@ async def test_readability_scorer_agent() -> None:
 async def test_seo_scorer_agent() -> None:
     """Test SEO scorer agent."""
     agent = SEOScorerAgent()
-    result = await agent.score("# SEO Title\n\nContent with keywords for SEO optimization.")
+    result = await agent.score(
+        "# SEO Title\n\nContent with keywords for SEO optimization."
+    )
     assert result.success is True

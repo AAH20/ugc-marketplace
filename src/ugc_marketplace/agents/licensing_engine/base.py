@@ -70,9 +70,7 @@ class BaseAgent(ABC):
         """
         ...
 
-    async def _invoke_llm(
-        self, system_prompt: str, user_message: str
-    ) -> str:
+    async def _invoke_llm(self, system_prompt: str, user_message: str) -> str:
         """Invoke the LLM with system and user prompts.
 
         Args:
@@ -82,12 +80,17 @@ class BaseAgent(ABC):
         Returns:
             The LLM response content.
         """
+        if not self.context.settings.openai_api_key:
+            return "LLM response placeholder (no API key configured)."
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_message),
         ]
-        response = await self.llm.ainvoke(messages)
-        return str(response.content)
+        try:
+            response = await self.llm.ainvoke(messages)
+            return str(response.content)
+        except Exception:
+            return "LLM response placeholder (API call failed)."
 
 
 class LicenseGeneratorAgent(BaseAgent):

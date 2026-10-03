@@ -8,9 +8,15 @@ from typing import Any
 from langchain.agents import create_agent
 
 from ugc_marketplace.agents.rights_management.base import BaseAgent
+from ugc_marketplace.agents.rights_management.types import (
+    LicenseDetectionRequest,
+    LicenseDetectionResult,
+)
 
 
-class LicenseDetectorAgent(BaseAgent["LicenseDetectionRequest", "LicenseDetectionResult"]):
+class LicenseDetectorAgent(
+    BaseAgent["LicenseDetectionRequest", "LicenseDetectionResult"]
+):
     """Agent that detects and validates content licenses.
 
     Analyzes content to determine licensing status, detect
@@ -39,7 +45,9 @@ class LicenseDetectorAgent(BaseAgent["LicenseDetectionRequest", "LicenseDetectio
         )
         return agent
 
-    async def execute(self, input_data: "LicenseDetectionRequest") -> "LicenseDetectionResult":
+    async def execute(
+        self, input_data: LicenseDetectionRequest
+    ) -> LicenseDetectionResult:
         """Execute license detection.
 
         Args:

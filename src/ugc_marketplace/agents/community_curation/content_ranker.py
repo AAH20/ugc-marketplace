@@ -9,7 +9,11 @@ from typing import Any
 import structlog
 
 from ugc_marketplace.agents.community_curation.base import BaseCurationAgent
-from ugc_marketplace.config import get_settings
+from ugc_marketplace.agents.community_curation.types import (
+    ContentItem,
+    RankedContent,
+    create_deep_agent,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -43,7 +47,7 @@ class ContentRankerAgent(BaseCurationAgent[list["ContentItem"], list["RankedCont
         )
         return agent
 
-    async def execute(self, input_data: list["ContentItem"]) -> list["RankedContent"]:
+    async def execute(self, input_data: list[ContentItem]) -> list[RankedContent]:
         """Execute content ranking.
 
         Args:
@@ -73,7 +77,7 @@ class ContentRankerAgent(BaseCurationAgent[list["ContentItem"], list["RankedCont
         logger.info("Content ranking completed", items_ranked=len(ranked))
         return ranked
 
-    def _calculate_rank_score(self, item: "ContentItem") -> float:
+    def _calculate_rank_score(self, item: ContentItem) -> float:
         """Calculate ranking score for a content item.
 
         Args:
