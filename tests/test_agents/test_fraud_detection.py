@@ -1549,7 +1549,7 @@ class TestGetFraudScore:
     def test_get_fraud_score_with_normal_checkout(self):
         """get_fraud_score should be low for normal checkout patterns."""
         context = {
-            "checkout_attempts_24d": 2,
+            "checkout_attempts_24h": 2,
             "checkout_successes_24h": 2,
             "checkout_failure_rate": 0.0,
         }
@@ -3669,4 +3669,5 @@ class TestGetFraudScore:
             "credential_extension_value_container_encoding_anomaly": False,
             "credential_extension_value_container_encoding_spoofing_detected": False,
         }
-        score =</longcat_think>
+        score = get_fraud_score({}, context=context)
+        assert score < 0.3
