@@ -1,129 +1,171 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: ["CD"]
-    branches: [main]
-    types: [completed]
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment to deploy to"
-        required: true
-        default: "staging"
-        type: choice
-        options:
-          - staging
-          - production
-      image_tag:
-        description: "Image tag to deploy (leave empty for latest)"
-        required: false
-        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '20'
 
 concurrency:
-  group: deploy-${{ github.event.inputs.environment || 'production' }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
-  deploy:
-    name: Deploy to ${{ github.event.inputs.environment || 'Production' }}
+  build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.event.inputs.environment || 'production' }}
-      url: ${{ steps.deploy.outputs.service_url }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig \
-            --name ${{ secrets.EKS_CLUSTER_NAME }} \
-            --region ${{ secrets.AWS_REGION }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=,format=short
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Install kubectl & kustomize
-        run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-          sudo mv kustomize /usr/local/bin/
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-
-      - name: Determine image tag
-        id: image
-        run: |
-          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
-            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=sha-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Deploy to Kubernetes
-        id: deploy
-        env:
-          IMAGE_TAG: ${{ steps.image.outputs.tag }}
-          ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
-        run: |
-          cd k8s/overlays/${ENVIRONMENT}
-
-          # Update image tag in kustomization
-          kustomize edit set image ugc-marketplace=ghcr.io/${{ github.repository }}:${IMAGE_TAG}
-
-          # Apply manifests
-          kustomize build . | kubectl apply -f -
-
-          # Wait for rollout
-          kubectl rollout status deployment/ugc-marketplace -n ugc-marketplace --timeout=300s
-
-          # Get service URL
-          SERVICE_URL=$(kubectl get ingress ugc-marketplace -n ugc-marketplace -o jsonpath='{.spec.rules[0].host}')
-          echo "service_url=https://${SERVICE_URL}" >> $GITHUB_OUTPUT
-
-      - name: Verify deployment
-        run: |
-          echo "Running post-deployment verification..."
-          # Add health check verification here
-          # curl -sf https://${{ steps.deploy.outputs.service_url }}/api/v1/health
-
-      - name: Rollback on failure
-        if: failure()
-        run: |
-          echo "Deployment failed, rolling back..."
-          kubectl rollout undo deployment/ugc-marketplace -n ugc-marketplace
-          kubectl rollout status deployment/ugc-marketplace -n ugc-marketplace --timeout=300s
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
+    needs: build
     environment:
       name: staging
+      url: https://staging.ugc-marketplace.example.com
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Update kubeconfig
+      - name: Deploy to Staging
         run: |
-          aws eks update-kubeconfig \
-            --name ${{ secrets.EKS_CLUSTER_NAME }} \
-            --region ${{ secrets.AWS_REGION }}
+          echo "Deploying image ${{ needs.build.outputs.image_tag }} to staging"
+          # Update ECS service or Kubernetes deployment
+          aws ecs update-service \
+            --cluster ugc-marketplace-staging \
+            --service ugc-marketplace-staging-service \
+            --force-new-deployment
 
-      - name: Deploy to staging
+      - name: Wait for staging deployment
         run: |
-          cd k8s/overlays/development
-          kustomize edit set image ugc-marketplace=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
-          kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/ugc-marketplace -n ugc-marketplace --timeout=300s
+          echo "Waiting for staging deployment to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ugc-marketplace-staging \
+            --services ugc-marketplace-staging-service
+
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging..."
+          npm run test:smoke -- --env staging
+        env:
+          STAGING_URL: https://staging.ugc-marketplace.example.com
+          TEST_API_KEY: ${{ secrets.STAGING_TEST_API_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: test-results/
+          retention-days: 7
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: smoke-tests
+    environment:
+      name: production
+      url: https://ugc-marketplace.example.com
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to Production
+        run: |
+          echo "Deploying image ${{ needs.build.outputs.image_tag }} to production"
+          aws ecs update-service \
+            --cluster ugc-marketplace-production \
+            --service ugc-marketplace-production-service \
+            --force-new-deployment
+
+      - name: Wait for production deployment
+        run: |
+          echo "Waiting for production deployment to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ugc-marketplace-production \
+            --services ugc-marketplace-production-service
+
+      - name: Verify production health
+        run: |
+          echo "Running production health check..."
+          curl -sf https://ugc-marketplace.example.com/health || exit 1
