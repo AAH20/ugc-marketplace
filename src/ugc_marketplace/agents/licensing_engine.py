@@ -502,7 +502,7 @@ def _demo() -> None:
         royalty_percentage=5.0,
     )
 
-    license_obj = create_license("content_001", terms)
+    license_obj = _create_license_impl("content_001", terms)
     print(f"\n[CREATED] License ID: {license_obj.license_id}")
     print(f"  Content: {license_obj.content_id}")
     print(f"  Type: {license_obj.terms.license_type.value}")
@@ -510,18 +510,18 @@ def _demo() -> None:
     print(f"  Hash: {license_obj.license_hash[:16]}...")
 
     # Validate a permitted usage
-    report = validate_license(license_obj.license_id, UsageType.DOWNLOAD)
+    report = _validate_license_impl(license_obj.license_id, UsageType.DOWNLOAD)
     print(f"\n[VALIDATE] {UsageType.DOWNLOAD.value} -> {report.result.value}")
     print(f"  Message: {report.message}")
     print(f"  Details: {report.details}")
 
     # Validate a non-permitted usage
-    report2 = validate_license(license_obj.license_id, UsageType.REDISTRIBUTE)
+    report2 = _validate_license_impl(license_obj.license_id, UsageType.REDISTRIBUTE)
     print(f"\n[VALIDATE] {UsageType.REDISTRIBUTE.value} -> {report2.result.value}")
     print(f"  Message: {report2.message}")
 
     # Validate a non-existent license
-    report3 = validate_license("LIC-NONEXISTENT", UsageType.VIEW)
+    report3 = _validate_license_impl("LIC-NONEXISTENT", UsageType.VIEW)
     print(f"\n[VALIDATE] non-existent -> {report3.result.value}")
     print(f"  Message: {report3.message}")
 

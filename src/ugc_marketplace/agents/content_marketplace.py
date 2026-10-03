@@ -923,8 +923,8 @@ def search_marketplace(
     return agent.search_marketplace(query, filters)
 
 
-def get_marketplace_stats() -> MarketplaceStats:
-    """Convenience function to get marketplace statistics.
+def _get_marketplace_stats_dataclass() -> MarketplaceStats:
+    """Convenience function to get marketplace statistics as dataclass.
 
     Creates a default ContentMarketplaceAgent and returns stats.
 
@@ -933,6 +933,52 @@ def get_marketplace_stats() -> MarketplaceStats:
     """
     agent = ContentMarketplaceAgent()
     return agent.get_marketplace_stats()
+
+
+def get_marketplace_stats() -> dict[str, Any]:
+    """Get marketplace statistics.
+
+    Returns:
+        A dictionary containing marketplace metrics such as
+        ``total_items``, ``total_transactions``, ``total_volume``,
+        ``average_price``, and ``active_sellers``.
+
+    Raises:
+        RuntimeError: If the marketplace backend is unreachable.
+    """
+    try:
+        agent = ContentMarketplaceAgent()
+        stats = agent.get_marketplace_stats()
+        result: dict[str, Any] = {
+            "total_items": stats.total_items,
+            "total_creators": stats.total_creators,
+            "total_sales": stats.total_sales,
+            "total_revenue": stats.total_revenue,
+            "average_item_price": stats.average_item_price,
+            "average_item_rating": stats.average_item_rating,
+            "active_items": stats.active_items,
+            "verified_creators": stats.verified_creators,
+            "new_items_last_30_days": stats.new_items_last_30_days,
+            "sales_last_30_days": stats.sales_last_30_days,
+            "revenue_last_30_days": stats.revenue_last_30_days,
+            "top_categories": [
+                {
+                    "category": c.category.value,
+                    "item_count": c.item_count,
+                    "total_sales": c.total_sales,
+                    "average_price": c.average_price,
+                    "average_rating": c.average_rating,
+                }
+                for c in stats.top_categories
+            ],
+            "content_type_distribution": stats.content_type_distribution,
+            "price_range": stats.price_range,
+        }
+        logger.info("Retrieved marketplace stats")
+        return result
+    except Exception as exc:
+        logger.error("Failed to get marketplace stats: %s", exc)
+        raise RuntimeError(f"Failed to get marketplace stats: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
