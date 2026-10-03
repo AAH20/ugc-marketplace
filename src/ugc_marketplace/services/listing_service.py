@@ -404,3 +404,216 @@ class ListingService:
                 "price.currency", "must be a 3-letter ISO 4217 code"
             )
         return Money(amount_cents=amount, currency=currency)
+
+
+# ---------------------------------------------------------------------------
+# Module-level convenience functions
+# ---------------------------------------------------------------------------
+
+_default_service: ListingService | None = None
+
+
+def _get_default_service() -> ListingService:
+    """Get or create the default ListingService instance.
+
+    Returns:
+        A ListingService backed by an in-memory repository.
+    """
+    global _default_service
+    if _default_service is None:
+        from ugc_marketplace.services._memory_repo import InMemoryListingRepository
+
+        _default_service = ListingService(InMemoryListingRepository())
+    return _default_service
+
+
+def get_listing(listing_id: str) -> dict:
+    """Get a listing by its ID.
+
+    Args:
+        listing_id: The unique identifier of the listing.
+
+    Returns:
+        The listing data as a dict.
+
+    Raises:
+        ListingNotFoundError: If no listing exists with the given ID.
+        ListingValidationError: If listing_id is empty or invalid.
+    """
+    service = _get_default_service()
+    listing = service.get_listing(listing_id)
+    return {
+        "id": listing.id,
+        "seller_id": listing.seller_id,
+        "title": listing.title,
+        "description": listing.description,
+        "category": listing.category.value,
+        "price": {
+            "amount_cents": listing.price.amount_cents,
+            "currency": listing.price.currency,
+        },
+        "status": listing.status.value,
+        "tags": listing.tags,
+        "media_urls": listing.media_urls,
+        "created_at": listing.created_at.isoformat(),
+        "updated_at": listing.updated_at.isoformat(),
+        "metadata": listing.metadata,
+    }
+
+
+def list_listings(
+    filters: dict, page: int, page_size: int
+) -> list[dict]:
+    """List listings with optional filters and pagination.
+
+    Args:
+        filters: Key-value pairs to filter listings by.
+        page: The page number (1-indexed).
+        page_size: The number of listings per page.
+
+    Returns:
+        A list of listing dicts matching the filters for the given page.
+
+    Raises:
+        ListingValidationError: If page or page_size is invalid.
+    """
+    service = _get_default_service()
+    offset = (page - 1) * page_size
+    result = service.search_listings(
+        query="",
+        filters=filters,
+        limit=page_size,
+        offset=offset,
+    )
+    return [
+        {
+            "id": listing.id,
+            "seller_id": listing.seller_id,
+            "title": listing.title,
+            "description": listing.description,
+            "category": listing.category.value,
+            "price": {
+                "amount_cents": listing.price.amount_cents,
+                "currency": listing.price.currency,
+            },
+            "status": listing.status.value,
+            "tags": listing.tags,
+            "media_urls": listing.media_urls,
+            "created_at": listing.created_at.isoformat(),
+            "updated_at": listing.updated_at.isoformat(),
+            "metadata": listing.metadata,
+        }
+        for listing in result["results"]
+    ]
+
+
+def create_listing(data: dict) -> dict:
+    """Create a new listing.
+
+    Args:
+        data: The listing data. Must include seller_id, title,
+            description, category, and price.
+
+    Returns:
+        The created listing data as a dict, including its generated ID.
+
+    Raises:
+        ListingValidationError: If the data is invalid.
+    """
+    service = _get_default_service()
+    listing = service.create_listing(data)
+    return {
+        "id": listing.id,
+        "seller_id": listing.seller_id,
+        "title": listing.title,
+        "description": listing.description,
+        "category": listing.category.value,
+        "price": {
+            "amount_cents": listing.price.amount_cents,
+            "currency": listing.price.currency,
+        },
+        "status": listing.status.value,
+        "tags": listing.tags,
+        "media_urls": listing.media_urls,
+        "created_at": listing.created_at.isoformat(),
+        "updated_at": listing.updated_at.isoformat(),
+        "metadata": listing.metadata,
+    }
+
+
+def update_listing(listing_id: str, data: dict) -> dict:
+    """Update an existing listing.
+
+    Args:
+        listing_id: The unique identifier of the listing to update.
+        data: The fields to update.
+
+    Returns:
+        The updated listing data as a dict.
+
+    Raises:
+        ListingNotFoundError: If no listing exists with the given ID.
+        ListingValidationError: If the data is invalid.
+    """
+    service = _get_default_service()
+    existing = service.get_listing(listing_id)
+
+    # Merge existing data with updates
+    merged = {
+        "seller_id": existing.seller_id,
+        "title": existing.title,
+        "description": existing.description,
+        "category": existing.category.value,
+        "price": {
+            "amount_cents": existing.price.amount_cents,
+            "currency": existing.price.currency,
+        },
+        "status": existing.status.value,
+        "tags": existing.tags,
+        "media_urls": existing.media_urls,
+        "metadata": existing.metadata,
+    }
+    merged.update(data)
+
+    # Delete and recreate with same ID (in-memory repo limitation)
+    service._repo._listings.pop(listing_id, None)
+    listing = service.create_listing(merged)
+    # Preserve original ID
+    listing.id = listing_id
+    service._repo._listings[listing_id] = listing
+
+    return {
+        "id": listing.id,
+        "seller_id": listing.seller_id,
+        "title": listing.title,
+        "description": listing.description,
+        "category": listing.category.value,
+        "price": {
+            "amount_cents": listing.price.amount_cents,
+            "currency": listing.price.currency,
+        },
+        "status": listing.status.value,
+        "tags": listing.tags,
+        "media_urls": listing.media_urls,
+        "created_at": listing.created_at.isoformat(),
+        "updated_at": listing.updated_at.isoformat(),
+        "metadata": listing.metadata,
+    }
+
+
+def delete_listing(listing_id: str) -> bool:
+    """Delete a listing by its ID.
+
+    Args:
+        listing_id: The unique identifier of the listing to delete.
+
+    Returns:
+        True if the listing was deleted, False if it did not exist.
+    """
+    service = _get_default_service()
+    try:
+        service.get_listing(listing_id)
+    except ListingNotFoundError:
+        return False
+    service._repo._listings.pop(listing_id, None)
+    return True

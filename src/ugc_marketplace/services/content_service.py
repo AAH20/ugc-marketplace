@@ -288,3 +288,114 @@ def list_content(
         page_size=pagination.page_size,
         total_pages=total_pages,
     )
+
+
+def update_content(content_id: str, data: Dict[str, Any]) -> Content:
+    """Update an existing content item.
+
+    Args:
+        content_id: The unique identifier of the content item to update.
+        data: Dictionary containing the fields to update. Allowed fields:
+            - title (str): New title (max 200 chars)
+            - description (str): New description (max 5000 chars)
+            - status (str): New status (one of ContentStatus values)
+            - tags (list[str]): Replacement list of tags
+            - metadata (dict): Replacement metadata dictionary
+
+    Returns:
+        Content: The updated content item.
+
+    Raises:
+        ContentNotFoundError: If no content exists with the given ID.
+        ContentValidationError: If the update data fails validation.
+        ValueError: If content_id is empty or not a string.
+    """
+    if not isinstance(content_id, str) or not content_id.strip():
+        raise ValueError("content_id must be a non-empty string")
+
+    content = _content_store.get(content_id)
+    if content is None:
+        raise ContentNotFoundError(content_id)
+
+    if not isinstance(data, dict):
+        raise ContentValidationError("data must be a dictionary")
+
+    # Validate and apply updates
+    if "title" in data:
+        title = data["title"]
+        if not isinstance(title, str) or len(title.strip()) == 0:
+            raise ContentValidationError(
+                "title must be a non-empty string", field="title"
+            )
+        if len(title) > 200:
+            raise ContentValidationError(
+                "title must be at most 200 characters", field="title"
+            )
+        content.title = title.strip()
+
+    if "description" in data:
+        description = data["description"]
+        if not isinstance(description, str) or len(description.strip()) == 0:
+            raise ContentValidationError(
+                "description must be a non-empty string", field="description"
+            )
+        if len(description) > 5000:
+            raise ContentValidationError(
+                "description must be at most 5000 characters", field="description"
+            )
+        content.description = description.strip()
+
+    if "status" in data:
+        status_value = data["status"]
+        if status_value not in [s.value for s in ContentStatus]:
+            raise ContentValidationError(
+                f"status must be one of: {[s.value for s in ContentStatus]}",
+                field="status",
+            )
+        content.status = ContentStatus(status_value)
+
+    if "tags" in data:
+        tags = data["tags"]
+        if tags is not None and not isinstance(tags, list):
+            raise ContentValidationError("tags must be a list", field="tags")
+        if tags is not None:
+            for tag in tags:
+                if not isinstance(tag, str):
+                    raise ContentValidationError(
+                        "each tag must be a string", field="tags"
+                    )
+        content.tags = tags if tags is not None else []
+
+    if "metadata" in data:
+        metadata = data["metadata"]
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ContentValidationError(
+                "metadata must be a dictionary", field="metadata"
+            )
+        content.metadata = metadata if metadata is not None else {}
+
+    content.updated_at = datetime.now(timezone.utc)
+    return content
+
+
+def delete_content(content_id: str) -> bool:
+    """Delete a content item.
+
+    Args:
+        content_id: The unique identifier of the content item to delete.
+
+    Returns:
+        bool: True if the content was successfully deleted.
+
+    Raises:
+        ContentNotFoundError: If no content exists with the given ID.
+        ValueError: If content_id is empty or not a string.
+    """
+    if not isinstance(content_id, str) or not content_id.strip():
+        raise ValueError("content_id must be a non-empty string")
+
+    if content_id not in _content_store:
+        raise ContentNotFoundError(content_id)
+
+    del _content_store[content_id]
+    return True

@@ -268,3 +268,235 @@ def get_payment_history(user_id: str) -> List[Dict[str, Any]]:
     except Exception as exc:
         logger.error("Failed to retrieve payment history: %s", exc)
         raise PaymentError(f"Failed to retrieve payment history: {exc}") from exc
+
+
+def get_payment(payment_id: str) -> Dict[str, Any]:
+    """Get a payment by its ID.
+
+    Args:
+        payment_id: The unique identifier of the payment.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the payment details.
+
+    Raises:
+        InvalidPaymentDataError: If payment_id is empty or not a string.
+        PaymentNotFoundError: If no payment exists with the given ID.
+        PaymentError: If an error occurs while retrieving the payment.
+    """
+    try:
+        if not isinstance(payment_id, str) or not payment_id.strip():
+            raise InvalidPaymentDataError("payment_id must be a non-empty string")
+
+        payment = _payments_store.get(payment_id)
+        if payment is None:
+            raise PaymentNotFoundError(f"Payment with ID '{payment_id}' not found")
+
+        logger.info("Retrieved payment %s", payment_id)
+        return payment
+
+    except (InvalidPaymentDataError, PaymentNotFoundError):
+        raise
+    except Exception as exc:
+        logger.error("Failed to get payment %s: %s", payment_id, exc)
+        raise PaymentError(f"Failed to retrieve payment: {exc}") from exc
+
+
+def list_payments(
+    filters: Dict[str, Any], page: int, page_size: int
+) -> List[Dict[str, Any]]:
+    """List payments with optional filters and pagination.
+
+    Args:
+        filters: A dictionary of filter criteria (e.g., status, user_id, currency).
+        page: The page number (1-indexed).
+        page_size: The number of payments per page.
+
+    Returns:
+        List[Dict[str, Any]]: A list of payment dictionaries matching the filters,
+            sorted by creation date in descending order (most recent first).
+
+    Raises:
+        InvalidPaymentDataError: If page or page_size is invalid.
+        PaymentError: If an error occurs while listing payments.
+    """
+    try:
+        if not isinstance(filters, dict):
+            raise InvalidPaymentDataError("filters must be a dictionary")
+        if not isinstance(page, int) or page < 1:
+            raise InvalidPaymentDataError("page must be a positive integer")
+        if not isinstance(page_size, int) or page_size < 1:
+            raise InvalidPaymentDataError("page_size must be a positive integer")
+
+        # Filter payments
+        filtered: List[Dict[str, Any]] = []
+        for record in _payments_store.values():
+            match = True
+            for key, value in filters.items():
+                if record.get(key) != value:
+                    match = False
+                    break
+            if match:
+                filtered.append(record)
+
+        # Sort by created_at descending (most recent first)
+        filtered.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+        # Paginate
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated = filtered[start:end]
+
+        logger.info(
+            "Listed payments: filters=%s, page=%d, page_size=%d, results=%d",
+            filters,
+            page,
+            page_size,
+            len(paginated),
+        )
+
+        return paginated
+
+    except InvalidPaymentDataError:
+        raise
+    except Exception as exc:
+        logger.error("Failed to list payments: %s", exc)
+        raise PaymentError(f"Failed to list payments: {exc}") from exc
+
+
+def create_payment(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new payment.
+
+    Args:
+        data: A dictionary containing payment details:
+            - user_id (str): The ID of the user making the payment.
+            - amount (float): The payment amount.
+            - currency (str): 3-letter ISO currency code (e.g., 'USD').
+            - payment_method (str): Payment method identifier.
+            - description (Optional[str]): Optional payment description.
+            - metadata (Optional[Dict[str, Any]]): Optional additional metadata.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the created payment details,
+            including the assigned payment_id and status.
+
+    Raises:
+        InvalidPaymentDataError: If required fields are missing or invalid.
+        PaymentError: If an error occurs while creating the payment.
+    """
+    try:
+        _validate_payment_data(data)
+
+        user_id: str = data["user_id"]
+        amount: float = float(data["amount"])
+        currency: str = data["currency"].upper()
+        payment_method: str = data["payment_method"]
+        description: Optional[str] = data.get("description")
+        metadata: Optional[Dict[str, Any]] = data.get("metadata")
+
+        payment_id: str = str(uuid4())
+        created_at: str = datetime.now(timezone.utc).isoformat()
+
+        payment_record: Dict[str, Any] = {
+            "payment_id": payment_id,
+            "user_id": user_id,
+            "amount": amount,
+            "currency": currency,
+            "payment_method": payment_method,
+            "status": "pending",
+            "description": description,
+            "metadata": metadata or {},
+            "created_at": created_at,
+        }
+
+        _payments_store[payment_id] = payment_record
+
+        logger.info(
+            "Created payment %s for user %s, amount=%.2f %s",
+            payment_id,
+            user_id,
+            amount,
+            currency,
+        )
+
+        return payment_record
+
+    except InvalidPaymentDataError:
+        raise
+    except Exception as exc:
+        logger.error("Failed to create payment: %s", exc)
+        raise PaymentError(f"Failed to create payment: {exc}") from exc
+
+
+def update_payment_status(payment_id: str, status: str) -> Dict[str, Any]:
+    """Update the status of an existing payment.
+
+    Args:
+        payment_id: The unique identifier of the payment.
+        status: The new status to set (e.g., 'pending', 'completed', 'failed').
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the updated payment details.
+
+    Raises:
+        InvalidPaymentDataError: If payment_id is empty or status is invalid.
+        PaymentNotFoundError: If no payment exists with the given ID.
+        PaymentError: If an error occurs while updating the payment.
+    """
+    valid_statuses = {"pending", "processing", "completed", "failed", "refunded", "cancelled"}
+
+    try:
+        if not isinstance(payment_id, str) or not payment_id.strip():
+            raise InvalidPaymentDataError("payment_id must be a non-empty string")
+        if not isinstance(status, str) or status not in valid_statuses:
+            raise InvalidPaymentDataError(
+                f"status must be one of: {', '.join(sorted(valid_statuses))}"
+            )
+
+        payment = _payments_store.get(payment_id)
+        if payment is None:
+            raise PaymentNotFoundError(f"Payment with ID '{payment_id}' not found")
+
+        payment["status"] = status
+        payment["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        logger.info("Updated payment %s status to %s", payment_id, status)
+        return payment
+
+    except (InvalidPaymentDataError, PaymentNotFoundError):
+        raise
+    except Exception as exc:
+        logger.error("Failed to update payment %s status: %s", payment_id, exc)
+        raise PaymentError(f"Failed to update payment status: {exc}") from exc
+
+
+def delete_payment(payment_id: str) -> bool:
+    """Delete a payment by its ID.
+
+    Args:
+        payment_id: The unique identifier of the payment to delete.
+
+    Returns:
+        bool: True if the payment was successfully deleted.
+
+    Raises:
+        InvalidPaymentDataError: If payment_id is empty or not a string.
+        PaymentNotFoundError: If no payment exists with the given ID.
+        PaymentError: If an error occurs while deleting the payment.
+    """
+    try:
+        if not isinstance(payment_id, str) or not payment_id.strip():
+            raise InvalidPaymentDataError("payment_id must be a non-empty string")
+
+        if payment_id not in _payments_store:
+            raise PaymentNotFoundError(f"Payment with ID '{payment_id}' not found")
+
+        del _payments_store[payment_id]
+        logger.info("Deleted payment %s", payment_id)
+        return True
+
+    except (InvalidPaymentDataError, PaymentNotFoundError):
+        raise
+    except Exception as exc:
+        logger.error("Failed to delete payment %s: %s", payment_id, exc)
+        raise PaymentError(f"Failed to delete payment: {exc}") from exc

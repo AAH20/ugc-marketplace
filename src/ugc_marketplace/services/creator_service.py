@@ -127,3 +127,61 @@ class CreatorService:
             "page": page,
             "per_page": per_page,
         }
+
+    def update_creator(self, creator_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing creator.
+
+        Args:
+            creator_id: The unique identifier of the creator.
+            data: Dictionary containing updated creator data.
+
+        Returns:
+            The updated creator record.
+
+        Raises:
+            CreatorNotFoundError: If no creator exists with the given ID.
+            CreatorValidationError: If the update data is invalid.
+        """
+        if not creator_id or not isinstance(creator_id, str):
+            raise CreatorValidationError("A valid creator ID is required")
+
+        if not isinstance(data, dict):
+            raise CreatorValidationError("Update data must be a dictionary")
+
+        creator = self._creators.get(creator_id)
+        if creator is None:
+            raise CreatorNotFoundError(f"Creator with ID '{creator_id}' not allowed")
+
+        allowed_fields = {"name", "email", "bio", "avatar_url", "is_active", "metadata"}
+        for key, value in data.items():
+            if key in allowed_fields:
+                if key == "name" and (not isinstance(value, str) or not value.strip()):
+                    raise CreatorValidationError("Name must be a non-empty string")
+                if key == "email" and (not isinstance(value, str) or "@" not in value):
+                    raise CreatorValidationError("A valid email address is required")
+                creator[key] = value
+
+        self._creators[creator_id] = creator
+        return creator
+
+    def delete_creator(self, creator_id: str) -> bool:
+        """Delete a creator.
+
+        Args:
+            creator_id: The unique identifier of the creator.
+
+        Returns:
+            True if the creator was deleted.
+
+        Raises:
+            CreatorNotFoundError: If no creator exists with the given ID.
+            CreatorValidationError: If creator_id is empty or invalid.
+        """
+        if not creator_id or not isinstance(creator_id, str):
+            raise CreatorValidationError("A valid creator ID is required")
+
+        if creator_id not in self._creators:
+            raise CreatorNotFoundError(f"Creator with ID '{creator_id}' not found")
+
+        del self._creators[creator_id]
+        return True

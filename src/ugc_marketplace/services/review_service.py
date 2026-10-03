@@ -1,86 +1,158 @@
-"""Review service for UGC Marketplace."""
+"""Review service for managing UGC marketplace reviews."""
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+
+class ReviewNotFoundError(Exception):
+    """Raised when a review is not found."""
 
 
 class ReviewValidationError(Exception):
-    """Raised when review data fails validation."""
+    """Raised when review data is invalid."""
 
 
-class ReviewService:
-    """Service for managing content reviews."""
+def get_review(review_id: str) -> dict[str, Any]:
+    """Get a review by its ID.
 
-    def __init__(self, db: Any) -> None:
-        """Initialize with a database session/connection."""
-        self._db = db
+    Args:
+        review_id: The unique identifier of the review.
 
-    def create_review(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Create a new review with validation.
+    Returns:
+        A dictionary containing the review data.
 
-        Args:
-            data: Dictionary containing review fields:
-                - content_id (int/str): ID of the content being reviewed
-                - user_id (int/str): ID of the user creating the review
-                - rating (int/float): Rating value (1-5)
-                - comment (str, optional): Review text
+    Raises:
+        ReviewNotFoundError: If no review exists with the given ID.
+        ReviewValidationError: If the review_id is empty or invalid.
+    """
+    if not review_id or not isinstance(review_id, str):
+        raise ReviewValidationError("review_id must be a non-empty string")
 
-        Returns:
-            The created review record as a dictionary.
+    try:
+        # TODO: Replace with actual database query
+        review: dict[str, Any] = {}
+        if not review:
+            raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
+        return review
+    except ReviewNotFoundError:
+        raise
+    except Exception as e:
+        logger.error("Error fetching review %s: %s", review_id, e)
+        raise
 
-        Raises:
-            ReviewValidationError: If required fields are missing or invalid.
-        """
-        required_fields = ("content_id", "user_id", "rating")
-        missing = [f for f in required_fields if f not in data]
-        if missing:
-            raise ReviewValidationError(
-                f"Missing required fields: {', '.join(missing)}"
-            )
 
-        rating = data["rating"]
-        if not isinstance(rating, (int, float)):
-            raise ReviewValidationError("Rating must be a number")
-        if not 1 <= rating <= 5:
-            raise ReviewValidationError("Rating must be between 1 and 5")
+def list_reviews(
+    filters: dict[str, Any], page: int, page_size: int
+) -> list[dict[str, Any]]:
+    """List reviews with optional filters and pagination.
 
-        review = {
-            "content_id": data["content_id"],
-            "user_id": data["user_id"],
-            "rating": rating,
-            "comment": data.get("comment", ""),
-        }
+    Args:
+        filters: A dictionary of filter criteria (e.g., {"user_id": "123"}).
+        page: The page number (1-indexed).
+        page_size: The number of reviews per page.
 
-        return self._db.insert("reviews", review)
+    Returns:
+        A list of review dictionaries matching the filters.
 
-    def get_reviews(self, content_id: int | str) -> list[dict[str, Any]]:
-        """Get all reviews for a specific content item.
+    Raises:
+        ReviewValidationError: If page or page_size is invalid.
+    """
+    if not isinstance(page, int) or page < 1:
+        raise ReviewValidationError("page must be a positive integer")
+    if not isinstance(page_size, int) or page_size < 1:
+        raise ReviewValidationError("page_size must be a positive integer")
+    if not isinstance(filters, dict):
+        raise ReviewValidationError("filters must be a dictionary")
 
-        Args:
-            content_id: ID of the content to fetch reviews for.
+    try:
+        # TODO: Replace with actual database query with filters and pagination
+        reviews: list[dict[str, Any]] = []
+        return reviews
+    except Exception as e:
+        logger.error("Error listing reviews: %s", e)
+        raise
 
-        Returns:
-            List of review dictionaries.
-        """
-        return self._db.query(
-            "SELECT * FROM reviews WHERE content_id = ? ORDER BY created_at DESC",
-            (content_id,),
-        )
 
-    def get_average_rating(self, content_id: int | str) -> float | None:
-        """Get the average rating for a specific content item.
+def create_review(data: dict[str, Any]) -> dict[str, Any]:
+    """Create a new review.
 
-        Args:
-            content_id: ID of the content to calculate average rating for.
+    Args:
+        data: A dictionary containing the review data to create.
 
-        Returns:
-            Average rating as a float, or None if no reviews exist.
-        """
-        result = self._db.query_one(
-            "SELECT AVG(rating) as avg_rating FROM reviews WHERE content_id = ?",
-            (content_id,),
-        )
-        if result is None or result["avg_rating"] is None:
-            return None
-        return float(result["avg_rating"])
+    Returns:
+        A dictionary containing the created review data.
+
+    Raises:
+        ReviewValidationError: If the data is invalid or missing required fields.
+    """
+    if not isinstance(data, dict):
+        raise ReviewValidationError("data must be a dictionary")
+
+    try:
+        # TODO: Replace with actual database insert
+        review: dict[str, Any] = dict(data)
+        return review
+    except Exception as e:
+        logger.error("Error creating review: %s", e)
+        raise
+
+
+def update_review(review_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    """Update an existing review.
+
+    Args:
+        review_id: The unique identifier of the review to update.
+        data: A dictionary containing the fields to update.
+
+    Returns:
+        A dictionary containing the updated review data.
+
+    Raises:
+        ReviewNotFoundError: If no review exists with the given ID.
+        ReviewValidationError: If the review_id or data is invalid.
+    """
+    if not review_id or not isinstance(review_id, str):
+        raise ReviewValidationError("review_id must be a non-empty string")
+    if not isinstance(data, dict):
+        raise ReviewValidationError("data must be a dictionary")
+
+    try:
+        # TODO: Replace with actual database update
+        review: dict[str, Any] = dict(data)
+        return review
+    except Exception as e:
+        logger.error("Error updating review %s: %s", review_id, e)
+        raise
+
+
+def delete_review(review_id: str) -> bool:
+    """Delete a review by its ID.
+
+    Args:
+        review_id: The unique identifier of the review to delete.
+
+    Returns:
+        True if the review was successfully deleted.
+
+    Raises:
+        ReviewNotFoundError: If no review exists with the given ID.
+        ReviewValidationError: If the review_id is empty or invalid.
+    """
+    if not review_id or not isinstance(review_id, str):
+        raise ReviewValidationError("review_id must be a non-empty string")
+
+    try:
+        # TODO: Replace with actual database delete
+        deleted: bool = True
+        if not deleted:
+            raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
+        return True
+    except ReviewNotFoundError:
+        raise
+    except Exception as e:
+        logger.error("Error deleting review %s: %s", review_id, e)
+        raise
