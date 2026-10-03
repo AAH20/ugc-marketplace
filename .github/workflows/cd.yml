@@ -25,6 +25,7 @@ jobs:
   build-and-push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
       image_digest: ${{ steps.build.outputs.digest }}
@@ -104,6 +105,7 @@ jobs:
   smoke-test:
     name: Smoke Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: build-and-push
     if: github.event_name != 'pull_request'
     services:
