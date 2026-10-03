@@ -16,7 +16,7 @@ from typing import Any, Protocol
 # ---------------------------------------------------------------------------
 
 
-class ListingStatus(str, Enum):
+class ListingStatus(Enum):
     """Lifecycle status of a listing."""
 
     DRAFT = "draft"
@@ -26,7 +26,7 @@ class ListingStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ListingCategory(str, Enum):
+class ListingCategory(Enum):
     """High-level category for a listing."""
 
     DIGITAL_ART = "digital_art"

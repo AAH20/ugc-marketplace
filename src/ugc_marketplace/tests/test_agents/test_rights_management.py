@@ -1,8 +1,9 @@
 """Tests for rights management agents."""
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,9 +13,9 @@ from ugc_marketplace.agents.rights_management import (
     AccessCheckResult,
     AccessDecision,
     GrantResult,
-    RightType,
     RightsManagementAgent,
     RightsRecord,
+    RightType,
     check_content_rights,
     check_rights,
     grant_rights,
@@ -32,7 +33,6 @@ from ugc_marketplace.agents.rights_management.types import (
     TakedownRequest,
     UsageRecord,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -236,9 +236,7 @@ class TestInfringementDetectorAgent:
     @pytest.mark.asyncio
     async def test_check_unauthorized_use_tool(self, sample_content_id: str) -> None:
         """Test the _check_unauthorized_use tool."""
-        result = await InfringementDetectorAgent._check_unauthorized_use(
-            sample_content_id
-        )
+        result = await InfringementDetectorAgent._check_unauthorized_use(sample_content_id)
         assert result["content_id"] == sample_content_id
         assert "violations" in result
 
@@ -259,9 +257,7 @@ class TestLicenseDetectorAgent:
     """Tests for LicenseDetectorAgent."""
 
     @pytest.mark.asyncio
-    async def test_execute_returns_result(
-        self, license_request: LicenseDetectionRequest
-    ) -> None:
+    async def test_execute_returns_result(self, license_request: LicenseDetectionRequest) -> None:
         """Test that execute returns a LicenseDetectionResult."""
         agent = LicenseDetectorAgent()
         result = await agent.execute(license_request)
@@ -304,9 +300,7 @@ class TestLicenseDetectorAgent:
         assert "authorized" in result
 
     @pytest.mark.asyncio
-    async def test_detect_expired_licenses_tool(
-        self, sample_content_id: str
-    ) -> None:
+    async def test_detect_expired_licenses_tool(self, sample_content_id: str) -> None:
         """Test the _detect_expired_licenses tool."""
         result = await LicenseDetectorAgent._detect_expired_licenses(sample_content_id)
         assert result["content_id"] == sample_content_id
@@ -376,9 +370,7 @@ class TestRightsValidatorAgent:
     @pytest.mark.asyncio
     async def test_validate_usage_tool(self, sample_content_id: str) -> None:
         """Test the _validate_usage tool."""
-        result = await RightsValidatorAgent._validate_usage(
-            sample_content_id, "commercial_use"
-        )
+        result = await RightsValidatorAgent._validate_usage(sample_content_id, "commercial_use")
         assert result["content_id"] == sample_content_id
         assert result["usage_type"] == "commercial_use"
         assert "valid" in result
@@ -415,9 +407,7 @@ class TestTakedownAgent:
     """Tests for TakedownAgent."""
 
     @pytest.mark.asyncio
-    async def test_execute_returns_result(
-        self, takedown_request: TakedownRequest
-    ) -> None:
+    async def test_execute_returns_result(self, takedown_request: TakedownRequest) -> None:
         """Test that execute returns a TakedownRequest."""
         agent = TakedownAgent()
         result = await agent.execute(takedown_request.__dict__)
@@ -446,9 +436,7 @@ class TestTakedownAgent:
     async def test_notify_stakeholders_tool(self, sample_content_id: str) -> None:
         """Test the _notify_stakeholders tool."""
         request_data = {"reason": "Copyright infringement"}
-        result = await TakedownAgent._notify_stakeholders(
-            sample_content_id, request_data
-        )
+        result = await TakedownAgent._notify_stakeholders(sample_content_id, request_data)
         assert result["notified"] is True
         assert result["content_id"] == sample_content_id
 
@@ -616,9 +604,7 @@ class TestTypes:
 class TestCheckContentRights:
     """Tests for the check_content_rights function."""
 
-    def test_returns_dict_with_required_keys(
-        self, sample_content_id: str
-    ) -> None:
+    def test_returns_dict_with_required_keys(self, sample_content_id: str) -> None:
         """Test that check_content_rights returns a dict with required keys."""
         result = check_content_rights(sample_content_id, "commercial")
         assert isinstance(result, dict)
@@ -628,23 +614,17 @@ class TestCheckContentRights:
         assert "reason" in result
         assert "checked_at" in result
 
-    def test_returns_correct_content_id(
-        self, sample_content_id: str
-    ) -> None:
+    def test_returns_correct_content_id(self, sample_content_id: str) -> None:
         """Test that result contains the correct content_id."""
         result = check_content_rights(sample_content_id, "commercial")
         assert result["content_id"] == sample_content_id
 
-    def test_returns_correct_usage_type(
-        self, sample_content_id: str
-    ) -> None:
+    def test_returns_correct_usage_type(self, sample_content_id: str) -> None:
         """Test that result contains the correct usage_type."""
         result = check_content_rights(sample_content_id, "commercial")
         assert result["usage_type"] == "commercial"
 
-    def test_allowed_for_registered_content(
-        self, sample_content_id: str
-    ) -> None:
+    def test_allowed_for_registered_content(self, sample_content_id: str) -> None:
         """Test that registered content is allowed for valid usage types."""
         result = check_content_rights(sample_content_id, "commercial")
         assert result["allowed"] is True
@@ -659,9 +639,7 @@ class TestCheckContentRights:
         "usage_type",
         ["commercial", "non-commercial", "editorial", "personal"],
     )
-    def test_all_valid_usage_types(
-        self, sample_content_id: str, usage_type: str
-    ) -> None:
+    def test_all_valid_usage_types(self, sample_content_id: str, usage_type: str) -> None:
         """Test that all valid usage types are accepted."""
         result = check_content_rights(sample_content_id, usage_type)
         assert result["usage_type"] == usage_type
@@ -677,9 +655,7 @@ class TestCheckContentRights:
         with pytest.raises(ValueError, match="content_id must be a non-empty string"):
             check_content_rights("   ", "commercial")
 
-    def test_invalid_usage_type_raises_value_error(
-        self, sample_content_id: str
-    ) -> None:
+    def test_invalid_usage_type_raises_value_error(self, sample_content_id: str) -> None:
         """Test that invalid usage_type raises ValueError."""
         with pytest.raises(ValueError, match="Unsupported usage_type"):
             check_content_rights(sample_content_id, "invalid_type")
@@ -933,6 +909,7 @@ class TestRevokeLicense:
         revoke_license(license_id)
         # Check the internal state
         from ugc_marketplace.agents.rights_management import _MOCK_LICENSES
+
         assert _MOCK_LICENSES[license_id]["status"] == "revoked"
 
     def test_revoked_license_has_revoked_at_timestamp(
@@ -943,6 +920,7 @@ class TestRevokeLicense:
         license_id = license_result["license_id"]
         revoke_license(license_id)
         from ugc_marketplace.agents.rights_management import _MOCK_LICENSES
+
         assert "revoked_at" in _MOCK_LICENSES[license_id]
         # Should be a valid ISO format
         datetime.fromisoformat(_MOCK_LICENSES[license_id]["revoked_at"])
@@ -961,39 +939,29 @@ class TestRightsManagementAgent:
         """Create a fresh RightsManagementAgent for each test."""
         return RightsManagementAgent()
 
-    def test_check_rights_owner_has_all_rights(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_owner_has_all_rights(self, agent: RightsManagementAgent) -> None:
         """Test that content owner has all rights."""
         result = agent.check_rights("content-001", "user-admin-01", RightType.VIEW)
         assert result.decision == AccessDecision.ALLOWED
         assert result.granted_rights == set(RightType)
 
-    def test_check_rights_with_valid_grant(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_with_valid_grant(self, agent: RightsManagementAgent) -> None:
         """Test check_rights with a valid rights grant."""
         result = agent.check_rights("content-001", "user-viewer-10", RightType.VIEW)
         assert result.decision == AccessDecision.ALLOWED
         assert RightType.VIEW in result.granted_rights
 
-    def test_check_rights_without_grant_denied(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_without_grant_denied(self, agent: RightsManagementAgent) -> None:
         """Test that check_rights denies access without a grant."""
         result = agent.check_rights("content-001", "user-unknown", RightType.VIEW)
         assert result.decision == AccessDecision.DENIED
 
-    def test_check_rights_pending_request(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_pending_request(self, agent: RightsManagementAgent) -> None:
         """Test that pending requests return PENDING decision."""
         result = agent.check_rights("content-005", "user-viewer-10", RightType.VIEW)
         assert result.decision == AccessDecision.PENDING
 
-    def test_check_rights_expired_grant(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_expired_grant(self, agent: RightsManagementAgent) -> None:
         """Test that expired grants return EXPIRED decision."""
         # content-002 has an expiry of 2026-10-15 which may be expired
         # depending on current date. Let's create our own expired grant.
@@ -1006,21 +974,17 @@ class TestRightsManagementAgent:
         # Manually expire it by modifying the record
         key = ("content-001", "user-expired")
         if key in agent._rights_db:
-            agent._rights_db[key].expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+            agent._rights_db[key].expires_at = datetime.now(UTC) - timedelta(days=1)
         result = agent.check_rights("content-001", "user-expired", RightType.VIEW)
         assert result.decision == AccessDecision.EXPIRED
 
-    def test_check_rights_wrong_right_denied(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_check_rights_wrong_right_denied(self, agent: RightsManagementAgent) -> None:
         """Test that having one right doesn't grant another."""
         # user-viewer-10 has VIEW on content-002 but not EDIT
         result = agent.check_rights("content-002", "user-viewer-10", RightType.EDIT)
         assert result.decision == AccessDecision.DENIED
 
-    def test_grant_rights_success(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_grant_rights_success(self, agent: RightsManagementAgent) -> None:
         """Test successful rights grant."""
         result = agent.grant_rights(
             "content-001",
@@ -1032,17 +996,13 @@ class TestRightsManagementAgent:
         assert result.user_id == "user-new"
         assert result.rights == {RightType.VIEW, RightType.DOWNLOAD}
 
-    def test_grant_rights_empty_rights_fails(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_grant_rights_empty_rights_fails(self, agent: RightsManagementAgent) -> None:
         """Test that granting empty rights set fails."""
         result = agent.grant_rights("content-001", "user-new", set())
         assert result.success is False
         assert "At least one right" in result.message
 
-    def test_grant_rights_with_duration(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_grant_rights_with_duration(self, agent: RightsManagementAgent) -> None:
         """Test granting rights with a duration."""
         result = agent.grant_rights(
             "content-001",
@@ -1054,9 +1014,7 @@ class TestRightsManagementAgent:
         key = ("content-001", "user-temp")
         assert agent._rights_db[key].expires_at is not None
 
-    def test_grant_rights_invalid_duration_fails(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_grant_rights_invalid_duration_fails(self, agent: RightsManagementAgent) -> None:
         """Test that invalid duration fails."""
         result = agent.grant_rights(
             "content-001",
@@ -1067,26 +1025,20 @@ class TestRightsManagementAgent:
         assert result.success is False
         assert "duration_days must be a positive integer" in result.message
 
-    def test_grant_rights_removes_pending(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_grant_rights_removes_pending(self, agent: RightsManagementAgent) -> None:
         """Test that granting rights removes pending request."""
         # content-005 has a pending request from user-viewer-10
         agent.grant_rights("content-005", "user-viewer-10", {RightType.VIEW})
         assert ("content-005", "user-viewer-10") not in agent._pending_requests
 
-    def test_revoke_rights_all(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_revoke_rights_all(self, agent: RightsManagementAgent) -> None:
         """Test revoking all rights."""
         agent.grant_rights("content-001", "user-revoke", {RightType.VIEW})
         result = agent.revoke_rights("content-001", "user-revoke")
         assert result is True
         assert ("content-001", "user-revoke") not in agent._rights_db
 
-    def test_revoke_rights_specific(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_revoke_rights_specific(self, agent: RightsManagementAgent) -> None:
         """Test revoking specific rights."""
         agent.grant_rights(
             "content-001",
@@ -1098,16 +1050,12 @@ class TestRightsManagementAgent:
         # Should still have DOWNLOAD
         assert agent._rights_db[("content-001", "user-partial")].rights == {RightType.DOWNLOAD}
 
-    def test_revoke_rights_nonexistent_returns_false(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_revoke_rights_nonexistent_returns_false(self, agent: RightsManagementAgent) -> None:
         """Test that revoking nonexistent rights returns False."""
         result = agent.revoke_rights("content-001", "user-nonexistent")
         assert result is False
 
-    def test_list_user_rights(
-        self, agent: RightsManagementAgent
-    ) -> None:
+    def test_list_user_rights(self, agent: RightsManagementAgent) -> None:
         """Test listing user rights."""
         agent.grant_rights("content-001", "user-list", {RightType.VIEW})
         agent.grant_rights("content-002", "user-list", {RightType.VIEW})
@@ -1131,7 +1079,7 @@ class TestRightsRecord:
             user_id="u1",
             rights={RightType.VIEW},
             granted_by="admin",
-            granted_at=datetime.now(timezone.utc),
+            granted_at=datetime.now(UTC),
             expires_at=None,
         )
         assert record.is_active() is True
@@ -1143,8 +1091,8 @@ class TestRightsRecord:
             user_id="u1",
             rights={RightType.VIEW},
             granted_by="admin",
-            granted_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+            granted_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(days=1),
         )
         assert record.is_active() is True
 
@@ -1155,8 +1103,8 @@ class TestRightsRecord:
             user_id="u1",
             rights={RightType.VIEW},
             granted_by="admin",
-            granted_at=datetime.now(timezone.utc) - timedelta(days=10),
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            granted_at=datetime.now(UTC) - timedelta(days=10),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
         assert record.is_active() is False
 

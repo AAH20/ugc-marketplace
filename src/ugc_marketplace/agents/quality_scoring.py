@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-class ContentType(str, Enum):
+class ContentType(Enum):
     """Supported UGC content types."""
 
     IMAGE = "image"
@@ -30,7 +30,7 @@ class ContentType(str, Enum):
     MIXED = "mixed"
 
 
-class QualityGrade(str, Enum):
+class QualityGrade(Enum):
     """Letter-grade classification derived from numeric score."""
 
     EXCELLENT = "A"

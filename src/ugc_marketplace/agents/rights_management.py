@@ -16,7 +16,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class RightType(str, Enum):
+class RightType(Enum):
     """Types of rights that can be granted on content."""
 
     VIEW = "view"
@@ -28,7 +28,7 @@ class RightType(str, Enum):
     ATTRIBUTION = "attribution"
 
 
-class AccessDecision(str, Enum):
+class AccessDecision(Enum):
     """Possible outcomes of a rights check."""
 
     ALLOWED = "allowed"

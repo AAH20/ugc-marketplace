@@ -28,7 +28,7 @@ class TransactionStateError(TransactionError):
     """Raised when an operation is invalid for the current transaction state."""
 
 
-class TransactionStatus(str, Enum):
+class TransactionStatus(Enum):
     """Possible statuses for a transaction."""
 
     PENDING = "pending"
@@ -38,7 +38,7 @@ class TransactionStatus(str, Enum):
     PARTIALLY_REFUNDED = "partially_refunded"
 
 
-class RefundReason(str, Enum):
+class RefundReason(Enum):
     """Valid reasons for processing a refund."""
 
     BUYER_REMORSE = "buyer_remorse"

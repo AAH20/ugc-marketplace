@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any
 
 
-class ContentType(str, Enum):
+class ContentType(Enum):
     """Supported content types."""
 
     IMAGE = "image"
@@ -18,7 +18,7 @@ class ContentType(str, Enum):
     AUDIO = "audio"
 
 
-class ContentStatus(str, Enum):
+class ContentStatus(Enum):
     """Content lifecycle statuses."""
 
     DRAFT = "draft"

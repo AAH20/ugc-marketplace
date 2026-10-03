@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 
-class CreatorTier(str, Enum):
+class CreatorTier(Enum):
     """Creator tier levels."""
 
     BRONZE = "bronze"
@@ -21,7 +21,7 @@ class CreatorTier(str, Enum):
     PLATINUM = "platinum"
 
 
-class ContentStatus(str, Enum):
+class ContentStatus(Enum):
     """Content moderation status."""
 
     DRAFT = "draft"
@@ -31,7 +31,7 @@ class ContentStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ListingStatus(str, Enum):
+class ListingStatus(Enum):
     """Listing availability status."""
 
     ACTIVE = "active"
@@ -40,7 +40,7 @@ class ListingStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class TransactionStatus(str, Enum):
+class TransactionStatus(Enum):
     """Transaction lifecycle status."""
 
     PENDING = "pending"

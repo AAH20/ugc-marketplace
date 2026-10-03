@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 
-class ContentType(str, Enum):
+class ContentType(Enum):
     """Supported content types for moderation."""
 
     TEXT = "text"
@@ -18,7 +18,7 @@ class ContentType(str, Enum):
     VIDEO = "video"
 
 
-class ModerationAction(str, Enum):
+class ModerationAction(Enum):
     """Possible moderation actions."""
 
     ALLOW = "allow"
@@ -27,7 +27,7 @@ class ModerationAction(str, Enum):
     ESCALATE = "escalate"
 
 
-class PolicySeverity(str, Enum):
+class PolicySeverity(Enum):
     """Policy violation severity levels."""
 
     LOW = "low"
@@ -36,7 +36,7 @@ class PolicySeverity(str, Enum):
     CRITICAL = "critical"
 
 
-class AppealStatus(str, Enum):
+class AppealStatus(Enum):
     """Appeal processing status."""
 
     PENDING = "pending"
@@ -138,7 +138,7 @@ class Appeal(BaseModel):
     resolved_at: datetime | None = None
 
 
-class ScoreDimension(str, Enum):
+class ScoreDimension(Enum):
     """Quality scoring dimensions."""
 
     READABILITY = "readability"
@@ -147,7 +147,7 @@ class ScoreDimension(str, Enum):
     SEO = "seo"
 
 
-class ScoreLevel(str, Enum):
+class ScoreLevel(Enum):
     """Quality score levels."""
 
     LOW = "low"
@@ -174,7 +174,7 @@ class HealthResponse(BaseModel):
 # ── Marketplace models ──────────────────────────────────────────────────────
 
 
-class ListingStatus(str, Enum):
+class ListingStatus(Enum):
     """Listing status values."""
 
     DRAFT = "draft"
@@ -214,7 +214,7 @@ class Listing(BaseModel):
     status: ListingStatus = ListingStatus.DRAFT
 
 
-class TransactionStatus(str, Enum):
+class TransactionStatus(Enum):
     """Transaction status values."""
 
     PENDING = "pending"
@@ -262,7 +262,7 @@ class Pricing(BaseModel):
     currency: str = "USD"
 
 
-class TrustLevel(str, Enum):
+class TrustLevel(Enum):
     """Trust level values."""
 
     BRONZE = "bronze"
@@ -323,7 +323,7 @@ class DemandPrediction(BaseModel):
 # ── Fraud detection models ──────────────────────────────────────────────────
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(Enum):
     """Risk level values."""
 
     LOW = "low"

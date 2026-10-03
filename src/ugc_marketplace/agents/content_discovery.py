@@ -15,7 +15,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class ContentCategory(str, Enum):
+class ContentCategory(Enum):
     """Supported content categories."""
 
     VIDEO = "video"
@@ -25,7 +25,7 @@ class ContentCategory(str, Enum):
     MIXED = "mixed"
 
 
-class TrendingTimeframe(str, Enum):
+class TrendingTimeframe(Enum):
     """Supported trending timeframes."""
 
     DAILY = "daily"

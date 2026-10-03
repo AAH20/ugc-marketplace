@@ -18,7 +18,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class LicenseType(str, Enum):
+class LicenseType(Enum):
     """Supported license types."""
 
     PERSONAL = "personal"
@@ -28,7 +28,7 @@ class LicenseType(str, Enum):
     CREATIVE_COMMONS = "creative_commons"
 
 
-class LicenseStatus(str, Enum):
+class LicenseStatus(Enum):
     """Lifecycle status of a license."""
 
     ACTIVE = "active"
@@ -38,7 +38,7 @@ class LicenseStatus(str, Enum):
     SUSPENDED = "suspended"
 
 
-class UsageType(str, Enum):
+class UsageType(Enum):
     """Types of usage that can be validated."""
 
     VIEW = "view"
@@ -49,7 +49,7 @@ class UsageType(str, Enum):
     ATTRIBUTE = "attribute"
 
 
-class ValidationResult(str, Enum):
+class ValidationResult(Enum):
     """Outcome of a license validation check."""
 
     VALID = "valid"

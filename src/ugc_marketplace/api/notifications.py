@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 # ---------------------------------------------------------------------------
 
 
-class NotificationType(str, Enum):
+class NotificationType(Enum):
     """Types of notifications supported by the marketplace."""
 
     ORDER_PLACED = "order_placed"
@@ -37,7 +37,7 @@ class NotificationType(str, Enum):
     PROMOTION = "promotion"
 
 
-class NotificationPriority(str, Enum):
+class NotificationPriority(Enum):
     """Priority levels for notifications."""
 
     LOW = "low"

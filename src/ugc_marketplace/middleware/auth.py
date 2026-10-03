@@ -32,7 +32,7 @@ AUTHORIZATION_HEADER = "Authorization"
 BEARER_PREFIX = "Bearer "
 
 
-class UserRole(str, Enum):
+class UserRole(Enum):
     """Enumeration of user roles for RBAC."""
 
     ADMIN = "admin"

@@ -31,7 +31,7 @@ class InvalidActivityError(FraudDetectionError):
 # ---------------------------------------------------------------------------
 
 
-class FraudRiskLevel(str, Enum):
+class FraudRiskLevel(Enum):
     """Risk classification for a transaction."""
 
     LOW = "low"
@@ -40,7 +40,7 @@ class FraudRiskLevel(str, Enum):
     CRITICAL = "critical"
 
 
-class FraudFlagType(str, Enum):
+class FraudFlagType(Enum):
     """Types of fraud indicators that can be raised."""
 
     VELOCITY = "velocity"

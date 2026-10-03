@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 # ---------------------------------------------------------------------------
 
 
-class TransactionStatus(str, Enum):
+class TransactionStatus(Enum):
     """Valid transaction statuses."""
 
     PENDING = "pending"
@@ -37,7 +37,7 @@ class TransactionStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class TransactionType(str, Enum):
+class TransactionType(Enum):
     """Valid transaction types."""
 
     PURCHASE = "purchase"

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-class ContentType(str, Enum):
+class ContentType(Enum):
     """Supported content types in the marketplace."""
 
     VIDEO = "video"
@@ -30,7 +30,7 @@ class ContentType(str, Enum):
     PRESET = "preset"
 
 
-class ContentCategory(str, Enum):
+class ContentCategory(Enum):
     """Content categories available in the marketplace."""
 
     SOCIAL_MEDIA = "social_media"
@@ -43,7 +43,7 @@ class ContentCategory(str, Enum):
     FINANCE = "finance"
 
 
-class SortOrder(str, Enum):
+class SortOrder(Enum):
     """Sort order options for search results."""
 
     RELEVANCE = "relevance"

@@ -15,7 +15,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class ContentCategory(str, Enum):
+class ContentCategory(Enum):
     """Content categories available in the marketplace."""
 
     TUTORIAL = "tutorial"
@@ -25,7 +25,7 @@ class ContentCategory(str, Enum):
     NEWS = "news"
 
 
-class ContentQuality(str, Enum):
+class ContentQuality(Enum):
     """Quality tiers for curated content."""
 
     EXCELLENT = "excellent"

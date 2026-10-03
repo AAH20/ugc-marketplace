@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Any
 
 
-class ModerationStatus(str, Enum):
+class ModerationStatus(Enum):
     """Possible moderation outcomes."""
 
     APPROVED = "approved"
@@ -21,7 +21,7 @@ class ModerationStatus(str, Enum):
     FLAGGED_FOR_REVIEW = "flagged_for_review"
 
 
-class ViolationCategory(str, Enum):
+class ViolationCategory(Enum):
     """Categories of content violations."""
 
     NONE = "none"
@@ -196,7 +196,7 @@ def _generate_decision(content_id: str) -> ModerationDecision:
             ModerationStatus.REJECTED if confidence > 0.85 else ModerationStatus.FLAGGED_FOR_REVIEW
         )
         reasons = [
-            f"Detected {category.value.replace('_', ' ')} indicators",
+            (f"Detected {category.value.replace('_', ' ')} indicators",)
             f"Matched patterns: {', '.join(matched_keywords)}",
         ]
     else:
