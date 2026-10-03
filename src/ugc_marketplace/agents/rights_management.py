@@ -462,3 +462,164 @@ def grant_rights(
         duration_days=duration_days,
         metadata=metadata,
     )
+
+
+# ---------------------------------------------------------------------------
+# Content Licensing API
+# ---------------------------------------------------------------------------
+
+# Simulated license registry: license_id -> dict
+_MOCK_LICENSES: dict[str, dict[str, Any]] = {}
+
+
+def check_content_rights(content_id: str, usage_type: str) -> dict[str, Any]:
+    """Check whether content can be used for a given usage type.
+
+    Args:
+        content_id: Unique identifier of the content to check.
+        usage_type: Intended usage type (commercial, non-commercial,
+            editorial, personal).
+
+    Returns:
+        A dictionary with keys:
+            - content_id (str): The content identifier.
+            - usage_type (str): The requested usage type.
+            - allowed (bool): Whether the usage is permitted.
+            - reason (str): Human-readable explanation.
+            - checked_at (str): ISO-8601 timestamp of the check.
+
+    Raises:
+        ValueError: If content_id is empty or usage_type is not supported.
+    """
+    if not content_id or not content_id.strip():
+        raise ValueError("content_id must be a non-empty string")
+
+    valid_usage_types = {"commercial", "non-commercial", "editorial", "personal"}
+    if usage_type not in valid_usage_types:
+        raise ValueError(
+            f"Unsupported usage_type '{usage_type}'. "
+            f"Valid types: {sorted(valid_usage_types)}"
+        )
+
+    # Check if content exists in the ownership registry
+    if content_id not in _MOCK_CONTENT_OWNERS:
+        return {
+            "content_id": content_id,
+            "usage_type": usage_type,
+            "allowed": False,
+            "reason": "Content not found in the registry.",
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # In a real implementation this would query a rights database.
+    # For now we assume all registered content is cleared for all usage types.
+    return {
+        "content_id": content_id,
+        "usage_type": usage_type,
+        "allowed": True,
+        "reason": "Content is cleared for the requested usage type.",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def license_content(
+    content_id: str, licensee: str, terms: dict[str, Any]
+) -> dict[str, Any]:
+    """License content to a licensee under specified terms.
+
+    Args:
+        content_id: Unique identifier of the content to license.
+        licensee: Identifier of the licensee (user or organization).
+        terms: Dictionary of license terms. Required keys:
+            - usage_type (str): One of commercial, non-commercial, editorial,
+              personal.
+            - duration_days (int): License duration in days (must be > 0).
+            - territory (str): Geographic territory for the license.
+            - exclusive (bool): Whether the license is exclusive.
+
+    Returns:
+        A dictionary with keys:
+            - license_id (str): Newly generated license identifier.
+            - content_id (str): The licensed content.
+            - licensee (str): The licensee identifier.
+            - terms (dict): The agreed license terms.
+            - status (str): Always "active" on creation.
+            - created_at (str): ISO-8601 timestamp of creation.
+
+    Raises:
+        ValueError: If content_id is empty, licensee is empty, or terms are
+            invalid.
+    """
+    if not content_id or not content_id.strip():
+        raise ValueError("content_id must be a non-empty string")
+
+    if not licensee or not licensee.strip():
+        raise ValueError("licensee must be a non-empty string")
+
+    if not isinstance(terms, dict):
+        raise ValueError("terms must be a dictionary")
+
+    required_keys = {"usage_type", "duration_days", "territory", "exclusive"}
+    missing = required_keys - terms.keys()
+    if missing:
+        raise ValueError(
+            f"Missing required license terms: {sorted(missing)}"
+        )
+
+    valid_usage_types = {"commercial", "non-commercial", "editorial", "personal"}
+    if terms["usage_type"] not in valid_usage_types:
+        raise ValueError(
+            f"Invalid usage_type '{terms['usage_type']}'. "
+            f"Valid types: {sorted(valid_usage_types)}"
+        )
+
+    if not isinstance(terms["duration_days"], int) or terms["duration_days"] <= 0:
+        raise ValueError("duration_days must be a positive integer")
+
+    if not isinstance(terms["exclusive"], bool):
+        raise ValueError("exclusive must be a boolean")
+
+    license_id = str(uuid.uuid4())
+    created_at = datetime.now(timezone.utc)
+
+    license_record = {
+        "license_id": license_id,
+        "content_id": content_id,
+        "licensee": licensee,
+        "terms": dict(terms),
+        "status": "active",
+        "created_at": created_at.isoformat(),
+    }
+
+    _MOCK_LICENSES[license_id] = license_record
+
+    return license_record
+
+
+def revoke_license(license_id: str) -> bool:
+    """Revoke an active content license.
+
+    Args:
+        license_id: Unique identifier of the license to revoke.
+
+    Returns:
+        True if the license was successfully revoked, False if the license
+        was not found or was already revoked.
+
+    Raises:
+        ValueError: If license_id is empty.
+    """
+    if not license_id or not license_id.strip():
+        raise ValueError("license_id must be a non-empty string")
+
+    license_record = _MOCK_LICENSES.get(license_id)
+    if license_record is None:
+        return False
+
+    if license_record["status"] == "revoked":
+        return False
+
+    license_record["status"] = "revoked"
+    license_record["revoked_at"] = datetime.now(timezone.utc).isoformat()
+
+    return True

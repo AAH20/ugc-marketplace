@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
 
 # ---------------------------------------------------------------------------
@@ -272,3 +272,58 @@ async def create_notification(payload: NotificationCreate) -> Notification:
     MOCK_NOTIFICATIONS.append(new_notification)
 
     return Notification(**new_notification)
+
+
+def _find_notification(notification_id: str) -> Dict[str, Any]:
+    """Return the notification dict or raise 404."""
+    for n in MOCK_NOTIFICATIONS:
+        if n["id"] == notification_id:
+            return n
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Notification {notification_id} not found",
+    )
+
+
+@router.get(
+    "/{notification_id}",
+    response_model=Notification,
+    summary="Get a notification by ID",
+    description="Retrieve a single notification by its unique ID.",
+)
+async def get_notification(notification_id: str) -> Notification:
+    """Retrieve a single notification by its ID."""
+    record = _find_notification(notification_id)
+    return Notification(**record)
+
+
+@router.put(
+    "/{notification_id}",
+    response_model=Notification,
+    summary="Update a notification",
+    description="Update a notification (e.g. mark as read).",
+)
+async def update_notification(
+    notification_id: str,
+    is_read: bool = Query(..., description="New read status"),
+) -> Notification:
+    """Update a notification's read status."""
+    record = _find_notification(notification_id)
+    record["is_read"] = is_read
+    if is_read:
+        record["read_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        record["read_at"] = None
+    return Notification(**record)
+
+
+@router.delete(
+    "/{notification_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a notification",
+    description="Delete a notification by its ID.",
+)
+async def delete_notification(notification_id: str) -> None:
+    """Delete a notification by its ID."""
+    record = _find_notification(notification_id)
+    MOCK_NOTIFICATIONS.remove(record)

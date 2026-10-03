@@ -11,7 +11,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/categories", tags=["categories"])
+router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────
@@ -239,6 +239,20 @@ MOCK_CATEGORIES: List[dict] = [
 _next_id = max(c["id"] for c in MOCK_CATEGORIES) + 1
 
 
+# ─── Helpers ─────────────────────────────────────────────────────────────────
+
+
+def _get_category_or_404(category_id: int) -> dict:
+    """Return category dict or raise 404."""
+    for cat in MOCK_CATEGORIES:
+        if cat["id"] == category_id:
+            return cat
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Category with id {category_id} not found",
+    )
+
+
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 
@@ -348,3 +362,76 @@ async def create_category(payload: CategoryCreate) -> CategoryResponse:
     _next_id += 1
 
     return CategoryResponse(**new_category)
+
+
+@router.get(
+    "/{category_id}",
+    response_model=CategoryResponse,
+    summary="Get a category by ID",
+    description="Retrieve a single category by its numeric ID.",
+)
+async def get_category(category_id: int) -> CategoryResponse:
+    """
+    Return a single category by ID.
+
+    Raises 404 if the category does not exist.
+    """
+    category = _get_category_or_404(category_id)
+    return CategoryResponse(**category)
+
+
+@router.put(
+    "/{category_id}",
+    response_model=CategoryResponse,
+    summary="Update a category",
+    description="Update an existing category. Only provided fields are modified.",
+)
+async def update_category(category_id: int, payload: CategoryUpdate) -> CategoryResponse:
+    """
+    Update an existing category.
+
+    Validates slug uniqueness and parent_id existence when those fields are provided.
+    Returns the updated category.
+    """
+    category = _get_category_or_404(category_id)
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    # Check for duplicate slug if slug is being changed
+    if "slug" in update_data and update_data["slug"] != category["slug"]:
+        existing_slugs = {c["slug"] for c in MOCK_CATEGORIES if c["id"] != category_id}
+        if update_data["slug"] in existing_slugs:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Category with slug '{update_data['slug']}' already exists.",
+            )
+
+    # Validate parent_id if provided
+    if "parent_id" in update_data and update_data["parent_id"] is not None:
+        parent_ids = {c["id"] for c in MOCK_CATEGORIES if c["id"] != category_id}
+        if update_data["parent_id"] not in parent_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Parent category with id {update_data['parent_id']} does not exist.",
+            )
+
+    category.update(update_data)
+    category["updated_at"] = datetime.utcnow()
+
+    return CategoryResponse(**category)
+
+
+@router.delete(
+    "/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a category",
+    description="Delete a category by ID. Returns 204 No Content on success.",
+)
+async def delete_category(category_id: int) -> None:
+    """
+    Delete a category by ID.
+
+    Raises 404 if the category does not exist.
+    """
+    category = _get_category_or_404(category_id)
+    MOCK_CATEGORIES.remove(category)

@@ -6,9 +6,12 @@ including filtering by content type, price range, rating, and availability.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -930,3 +933,176 @@ def get_marketplace_stats() -> MarketplaceStats:
     """
     agent = ContentMarketplaceAgent()
     return agent.get_marketplace_stats()
+
+
+# ---------------------------------------------------------------------------
+# Required Agent Functions
+# ---------------------------------------------------------------------------
+
+
+def list_marketplace_items(filters: dict[str, Any]) -> list[dict[str, Any]]:
+    """List marketplace items matching the given filters.
+
+    Args:
+        filters: Optional filter criteria (e.g. ``{"category": "image",
+            "min_price": 0, "max_price": 100}``). An empty dict returns
+            all available items.
+
+    Returns:
+        A list of marketplace item dictionaries. Each item contains
+        at least ``id``, ``title``, ``price``, ``category``, and
+        ``seller_id`` keys.
+
+    Raises:
+        ValueError: If ``filters`` is not a dict.
+        RuntimeError: If the marketplace backend is unreachable.
+    """
+    if not isinstance(filters, dict):
+        raise ValueError("filters must be a dict")
+
+    try:
+        agent = ContentMarketplaceAgent()
+        # Use empty query to match all items, apply filters via MarketplaceFilters
+        marketplace_filters = MarketplaceFilters(
+            content_types=[
+                ContentType(ct) for ct in filters.get("content_types", [])
+            ],
+            categories=[
+                ContentCategory(c) for c in filters.get("categories", [])
+            ],
+            min_price=filters.get("min_price"),
+            max_price=filters.get("max_price"),
+            min_rating=filters.get("min_rating"),
+            max_rating=filters.get("max_rating"),
+            tags=filters.get("tags", []),
+            creator_verified=filters.get("creator_verified"),
+            limit=filters.get("limit", 100),
+            offset=filters.get("offset", 0),
+        )
+        result = agent.search_marketplace("", marketplace_filters)
+        items: list[dict[str, Any]] = []
+        for item in result.items:
+            items.append({
+                "id": item.item_id,
+                "title": item.title,
+                "description": item.description,
+                "content_type": item.content_type.value,
+                "category": item.category.value,
+                "price": item.price,
+                "currency": item.currency,
+                "rating": item.rating,
+                "review_count": item.review_count,
+                "sales_count": item.sales_count,
+                "tags": item.tags,
+                "seller_id": item.creator.creator_id,
+                "thumbnail_url": item.thumbnail_url,
+                "created_at": item.created_at,
+                "updated_at": item.updated_at,
+                "is_active": item.is_active,
+                "license_type": item.license_type,
+                "file_size_mb": item.file_size_mb,
+                "preview_url": item.preview_url,
+            })
+        logger.info("Listed %d marketplace items", len(items))
+        return items
+    except Exception as exc:
+        logger.error("Failed to list marketplace items: %s", exc)
+        raise RuntimeError(f"Failed to list marketplace items: {exc}") from exc
+
+
+def purchase_content(content_id: str, buyer_id: str) -> dict[str, Any]:
+    """Purchase content from the marketplace.
+
+    Args:
+        content_id: The unique identifier of the content to purchase.
+        buyer_id: The unique identifier of the buyer.
+
+    Returns:
+        A dictionary containing purchase confirmation details including
+        ``purchase_id``, ``content_id``, ``buyer_id``, ``price``, and
+        ``status``.
+
+    Raises:
+        ValueError: If ``content_id`` or ``buyer_id`` is empty.
+        LookupError: If the content_id does not exist.
+        RuntimeError: If the purchase transaction fails.
+    """
+    if not content_id:
+        raise ValueError("content_id must not be empty")
+    if not buyer_id:
+        raise ValueError("buyer_id must not be empty")
+
+    try:
+        agent = ContentMarketplaceAgent()
+        # Find the item by ID
+        item = next(
+            (i for i in agent._items if i.item_id == content_id and i.is_active),
+            None,
+        )
+        if item is None:
+            raise LookupError(f"Content with id '{content_id}' not found")
+
+        # Placeholder: replace with actual purchase transaction
+        import uuid
+        result: dict[str, Any] = {
+            "purchase_id": str(uuid.uuid4()),
+            "content_id": content_id,
+            "buyer_id": buyer_id,
+            "price": item.price,
+            "currency": item.currency,
+            "status": "completed",
+            "purchased_at": "2025-10-03T00:00:00Z",
+        }
+        logger.info("Purchased content %s for buyer %s", content_id, buyer_id)
+        return result
+    except LookupError:
+        raise
+    except Exception as exc:
+        logger.error("Failed to purchase content %s: %s", content_id, exc)
+        raise RuntimeError(f"Failed to purchase content {content_id}: {exc}") from exc
+
+
+def get_marketplace_stats_dict() -> dict[str, Any]:
+    """Get marketplace statistics as a dictionary.
+
+    Returns:
+        A dictionary containing marketplace metrics such as
+        ``total_items``, ``total_transactions``, ``total_volume``,
+        ``average_price``, and ``active_sellers``.
+
+    Raises:
+        RuntimeError: If the marketplace backend is unreachable.
+    """
+    try:
+        agent = ContentMarketplaceAgent()
+        stats = agent.get_marketplace_stats()
+        result: dict[str, Any] = {
+            "total_items": stats.total_items,
+            "total_creators": stats.total_creators,
+            "total_sales": stats.total_sales,
+            "total_revenue": stats.total_revenue,
+            "average_item_price": stats.average_item_price,
+            "average_item_rating": stats.average_item_rating,
+            "active_items": stats.active_items,
+            "verified_creators": stats.verified_creators,
+            "new_items_last_30_days": stats.new_items_last_30_days,
+            "sales_last_30_days": stats.sales_last_30_days,
+            "revenue_last_30_days": stats.revenue_last_30_days,
+            "top_categories": [
+                {
+                    "category": c.category.value,
+                    "item_count": c.item_count,
+                    "total_sales": c.total_sales,
+                    "average_price": c.average_price,
+                    "average_rating": c.average_rating,
+                }
+                for c in stats.top_categories
+            ],
+            "content_type_distribution": stats.content_type_distribution,
+            "price_range": stats.price_range,
+        }
+        logger.info("Retrieved marketplace stats")
+        return result
+    except Exception as exc:
+        logger.error("Failed to get marketplace stats: %s", exc)
+        raise RuntimeError(f"Failed to get marketplace stats: {exc}") from exc

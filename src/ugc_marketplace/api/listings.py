@@ -388,3 +388,57 @@ async def create_listing(payload: ListingCreate) -> dict:
     MOCK_LISTINGS.append(new_listing)
 
     return new_listing
+
+
+@router.get("/{listing_id}", response_model=ListingResponse, summary="Get a listing by ID")
+async def get_listing(listing_id: str) -> dict:
+    """Retrieve a single listing by its ID."""
+    for listing in MOCK_LISTINGS:
+        if listing["id"] == listing_id:
+            return listing
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Listing {listing_id} not found",
+    )
+
+
+@router.put("/{listing_id}", response_model=ListingResponse, summary="Update a listing")
+async def update_listing(listing_id: str, payload: ListingCreate) -> dict:
+    """Update an existing listing. Replaces all fields with the provided values."""
+    for i, listing in enumerate(MOCK_LISTINGS):
+        if listing["id"] == listing_id:
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            updated = {
+                "id": listing_id,
+                "seller_id": payload.seller_id,
+                "title": payload.title,
+                "description": payload.description,
+                "category": payload.category,
+                "price": payload.price,
+                "currency": payload.currency,
+                "status": listing.get("status", "active"),
+                "tags": payload.tags,
+                "rating": listing.get("rating", 0.0),
+                "review_count": listing.get("review_count", 0),
+                "created_at": listing.get("created_at", now),
+                "updated_at": now,
+            }
+            MOCK_LISTINGS[i] = updated
+            return updated
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Listing {listing_id} not found",
+    )
+
+
+@router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a listing")
+async def delete_listing(listing_id: str) -> None:
+    """Delete a listing by its ID."""
+    for i, listing in enumerate(MOCK_LISTINGS):
+        if listing["id"] == listing_id:
+            MOCK_LISTINGS.pop(i)
+            return None
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Listing {listing_id} not found",
+    )

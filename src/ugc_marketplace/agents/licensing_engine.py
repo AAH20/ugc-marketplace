@@ -186,7 +186,7 @@ def _get_user_info(user_id: str) -> dict[str, Any] | None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def create_license(
+def _create_license_impl(
     content_id: str,
     terms: LicenseTerms,
     *,
@@ -241,7 +241,7 @@ def create_license(
     return license_obj
 
 
-def validate_license(license_id: str, usage: UsageType) -> ValidationReport:
+def _validate_license_impl(license_id: str, usage: UsageType) -> ValidationReport:
     """
     Validate whether a license permits the requested usage.
 
@@ -355,6 +355,125 @@ def validate_license(license_id: str, usage: UsageType) -> ValidationReport:
             "content_id": license_obj.content_id,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Public API — Simple dict-based interface
+# ---------------------------------------------------------------------------
+
+def create_license(content_id: str, licensee: str, terms: dict) -> dict:
+    """Create a content license.
+
+    Args:
+        content_id: Unique identifier of the content being licensed.
+        licensee: Identifier of the licensee (e.g., user or org ID).
+        terms: Dictionary of license terms (e.g., duration, usage rights).
+
+    Returns:
+        A dictionary representing the created license with its ID,
+        content ID, licensee, terms, and creation timestamp.
+
+    Raises:
+        ValueError: If content_id or licensee is empty, or if terms is not a dict.
+    """
+    if not content_id or not isinstance(content_id, str):
+        raise ValueError("content_id must be a non-empty string")
+    if not licensee or not isinstance(licensee, str):
+        raise ValueError("licensee must be a non-empty string")
+    if not isinstance(terms, dict):
+        raise ValueError("terms must be a dictionary")
+
+    license_id = _generate_license_id()
+    license_record = {
+        "license_id": license_id,
+        "content_id": content_id,
+        "licensee": licensee,
+        "terms": terms,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+    }
+    return license_record
+
+
+def validate_license(license_id: str) -> dict:
+    """Validate a license by its ID.
+
+    Args:
+        license_id: The unique identifier of the license to validate.
+
+    Returns:
+        A dictionary with validation result including license_id,
+        is_valid flag, and status.
+
+    Raises:
+        ValueError: If license_id is empty or not a string.
+    """
+    if not license_id or not isinstance(license_id, str):
+        raise ValueError("license_id must be a non-empty string")
+
+    license_obj = _LICENSE_STORE.get(license_id)
+
+    if license_obj is None:
+        return {
+            "license_id": license_id,
+            "is_valid": False,
+            "status": "not_found",
+            "validated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    return {
+        "license_id": license_id,
+        "is_valid": license_obj.status == LicenseStatus.ACTIVE,
+        "status": license_obj.status.value,
+        "validated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def get_license_terms(license_id: str) -> dict:
+    """Retrieve the terms of a license by its ID.
+
+    Args:
+        license_id: The unique identifier of the license.
+
+    Returns:
+        A dictionary containing the license terms.
+
+    Raises:
+        ValueError: If license_id is empty or not a string.
+    """
+    if not license_id or not isinstance(license_id, str):
+        raise ValueError("license_id must be a non-empty string")
+
+    license_obj = _LICENSE_STORE.get(license_id)
+
+    if license_obj is None:
+        return {
+            "license_id": license_id,
+            "terms": {},
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    return {
+        "license_id": license_id,
+        "terms": {
+            "license_type": license_obj.terms.license_type.value,
+            "max_usage_count": license_obj.terms.max_usage_count,
+            "allowed_usages": [u.value for u in license_obj.terms.allowed_usages],
+            "requires_attribution": license_obj.terms.requires_attribution,
+            "allows_modification": license_obj.terms.allows_modification,
+            "allows_redistribution": license_obj.terms.allows_redistribution,
+            "territory_restrictions": license_obj.terms.territory_restrictions,
+            "valid_from": license_obj.terms.valid_from.isoformat(),
+            "valid_until": (
+                license_obj.terms.valid_until.isoformat()
+                if license_obj.terms.valid_until
+                else None
+            ),
+            "royalty_percentage": license_obj.terms.royalty_percentage,
+            "metadata": license_obj.terms.metadata,
+        },
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ---------------------------------------------------------------------------

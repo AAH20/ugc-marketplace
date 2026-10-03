@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone
 
-router = APIRouter(prefix="/tags", tags=["tags"])
+router = APIRouter(prefix="/api/v1/tags", tags=["tags"])
 
 
 # ─── Mock Data ───────────────────────────────────────────────────────────────

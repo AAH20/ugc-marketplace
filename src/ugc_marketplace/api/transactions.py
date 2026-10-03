@@ -1,276 +1,346 @@
 """
-Transactions API endpoints for UGC Marketplace.
+Transaction API endpoints for UGC Marketplace.
 
 Provides:
-  GET  /transactions  — list with pagination, filtering by status/date
-  POST /transactions  — create with validation
+  GET    /api/v1/transactions        — list with pagination and filtering
+  POST   /api/v1/transactions        — create a new transaction
+  GET    /api/v1/transactions/{id}   — get a single transaction by ID
+  PUT    /api/v1/transactions/{id}   — update transaction status
+  DELETE /api/v1/transactions/{id}   — delete a transaction
 """
 
-from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel, Field
+from __future__ import annotations
 
-router = APIRouter(prefix="/transactions", tags=["transactions"])
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional
+from uuid import UUID, uuid4
 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict, Field
 
-# ─── Mock Data Store ────────────────────────────────────────────────────────
-
-MOCK_TRANSACTIONS = [
-    {
-        "id": "txn_001",
-        "order_id": "ord_1001",
-        "buyer_id": "usr_501",
-        "seller_id": "usr_701",
-        "amount": 49.99,
-        "currency": "USD",
-        "status": "completed",
-        "payment_method": "stripe",
-        "created_at": "2026-09-15T10:30:00Z",
-        "updated_at": "2026-09-15T10:30:05Z",
-    },
-    {
-        "id": "txn_002",
-        "order_id": "ord_1002",
-        "buyer_id": "usr_502",
-        "seller_id": "usr_702",
-        "amount": 129.50,
-        "currency": "USD",
-        "status": "pending",
-        "payment_method": "paypal",
-        "created_at": "2026-09-20T14:15:00Z",
-        "updated_at": "2026-09-20T14:15:00Z",
-    },
-    {
-        "id": "txn_003",
-        "order_id": "ord_1003",
-        "buyer_id": "usr_503",
-        "seller_id": "usr_703",
-        "amount": 250.00,
-        "currency": "USD",
-        "status": "completed",
-        "payment_method": "stripe",
-        "created_at": "2026-09-25T09:00:00Z",
-        "updated_at": "2026-09-25T09:00:03Z",
-    },
-    {
-        "id": "txn_004",
-        "order_id": "ord_1004",
-        "buyer_id": "usr_504",
-        "seller_id": "usr_704",
-        "amount": 75.25,
-        "currency": "USD",
-        "status": "failed",
-        "payment_method": "stripe",
-        "created_at": "2026-09-28T16:45:00Z",
-        "updated_at": "2026-09-28T16:45:10Z",
-    },
-    {
-        "id": "txn_005",
-        "order_id": "ord_1005",
-        "buyer_id": "usr_505",
-        "seller_id": "usr_705",
-        "amount": 310.00,
-        "currency": "USD",
-        "status": "refunded",
-        "payment_method": "paypal",
-        "created_at": "2026-10-01T11:20:00Z",
-        "updated_at": "2026-10-02T08:00:00Z",
-    },
-    {
-        "id": "txn_006",
-        "order_id": "ord_1006",
-        "buyer_id": "usr_506",
-        "seller_id": "usr_706",
-        "amount": 89.99,
-        "currency": "USD",
-        "status": "completed",
-        "payment_method": "stripe",
-        "created_at": "2026-10-02T13:00:00Z",
-        "updated_at": "2026-10-02T13:00:02Z",
-    },
-    {
-        "id": "txn_007",
-        "order_id": "ord_1007",
-        "buyer_id": "usr_507",
-        "seller_id": "usr_707",
-        "amount": 199.00,
-        "currency": "USD",
-        "status": "pending",
-        "payment_method": "paypal",
-        "created_at": "2026-10-03T07:30:00Z",
-        "updated_at": "2026-10-03T07:30:00Z",
-    },
-    {
-        "id": "txn_008",
-        "order_id": "ord_1008",
-        "buyer_id": "usr_508",
-        "seller_id": "usr_708",
-        "amount": 59.99,
-        "currency": "USD",
-        "status": "completed",
-        "payment_method": "stripe",
-        "created_at": "2026-09-10T12:00:00Z",
-        "updated_at": "2026-09-10T12:00:04Z",
-    },
-    {
-        "id": "txn_009",
-        "order_id": "ord_1009",
-        "buyer_id": "usr_509",
-        "seller_id": "usr_709",
-        "amount": 450.00,
-        "currency": "USD",
-        "status": "completed",
-        "payment_method": "stripe",
-        "created_at": "2026-09-05T18:00:00Z",
-        "updated_at": "2026-09-05T18:00:06Z",
-    },
-    {
-        "id": "txn_010",
-        "order_id": "ord_1010",
-        "buyer_id": "usr_510",
-        "seller_id": "usr_710",
-        "amount": 35.00,
-        "currency": "USD",
-        "status": "failed",
-        "payment_method": "paypal",
-        "created_at": "2026-09-01T20:00:00Z",
-        "updated_at": "2026-09-01T20:00:08Z",
-    },
-]
+router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
 
-# ─── Pydantic Schemas ────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+
+class TransactionStatus(str, Enum):
+    """Valid transaction statuses."""
+
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    CANCELLED = "cancelled"
+
+
+class TransactionType(str, Enum):
+    """Valid transaction types."""
+
+    PURCHASE = "purchase"
+    SALE = "sale"
+    REFUND = "refund"
+    WITHDRAWAL = "withdrawal"
+    DEPOSIT = "deposit"
+
+
+# ---------------------------------------------------------------------------
+# Pydantic Models
+# ---------------------------------------------------------------------------
+
+
+class TransactionBase(BaseModel):
+    """Base transaction model with shared fields."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    buyer_id: UUID = Field(..., description="UUID of the buyer")
+    seller_id: UUID = Field(..., description="UUID of the seller")
+    amount: float = Field(..., gt=0, description="Transaction amount in currency units")
+    currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
+    type: TransactionType = Field(..., description="Type of transaction")
+    status: TransactionStatus = Field(default=TransactionStatus.PENDING, description="Current transaction status")
+    description: Optional[str] = Field(default=None, max_length=500, description="Optional transaction description")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional transaction metadata")
+
 
 class TransactionCreate(BaseModel):
-    order_id: str = Field(..., min_length=1, description="Associated order ID")
-    buyer_id: str = Field(..., min_length=1, description="Buyer user ID")
-    seller_id: str = Field(..., min_length=1, description="Seller user ID")
-    amount: float = Field(..., gt=0, description="Transaction amount (must be positive)")
+    """Model for creating a new transaction."""
+
+    buyer_id: UUID = Field(..., description="UUID of the buyer")
+    seller_id: UUID = Field(..., description="UUID of the seller")
+    amount: float = Field(..., gt=0, description="Transaction amount in currency units")
     currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
-    payment_method: str = Field(..., description="Payment method (stripe, paypal, etc.)")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "order_id": "ord_1011",
-                "buyer_id": "usr_511",
-                "seller_id": "usr_711",
-                "amount": 149.99,
-                "currency": "USD",
-                "payment_method": "stripe",
-            }
-        }
+    type: TransactionType = Field(..., description="Type of transaction")
+    description: Optional[str] = Field(default=None, max_length=500, description="Optional transaction description")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional transaction metadata")
 
 
-class TransactionResponse(BaseModel):
-    id: str
-    order_id: str
-    buyer_id: str
-    seller_id: str
-    amount: float
-    currency: str
-    status: str
-    payment_method: str
-    created_at: str
-    updated_at: str
+class TransactionUpdate(BaseModel):
+    """Model for updating an existing transaction."""
+
+    status: TransactionStatus = Field(..., description="New transaction status")
+    description: Optional[str] = Field(default=None, max_length=500, description="Updated description")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Updated metadata")
+
+
+class TransactionResponse(TransactionBase):
+    """Full transaction response model."""
+
+    id: UUID = Field(..., description="Unique transaction identifier")
+    created_at: datetime = Field(..., description="Transaction creation timestamp")
+    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
 
 
 class TransactionListResponse(BaseModel):
-    data: list[TransactionResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+    """Paginated list of transactions."""
+
+    items: List[TransactionResponse] = Field(..., description="List of transactions")
+    total: int = Field(..., description="Total number of transactions matching the query")
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Number of items per page")
+    pages: int = Field(..., description="Total number of pages")
 
 
-# ─── Endpoints ───────────────────────────────────────────────────────────────
+class ErrorResponse(BaseModel):
+    """Standard error response model."""
 
-@router.get("/", response_model=TransactionListResponse)
+    detail: str = Field(..., description="Error description")
+    code: Optional[str] = Field(default=None, description="Machine-readable error code")
+
+
+# ---------------------------------------------------------------------------
+# In-memory store (replace with actual database in production)
+# ---------------------------------------------------------------------------
+
+_transactions: Dict[UUID, Dict[str, Any]] = {}
+
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+
+def _get_transaction_or_404(transaction_id: UUID) -> Dict[str, Any]:
+    """Retrieve a transaction by ID or raise a 404 error."""
+    transaction = _transactions.get(transaction_id)
+    if transaction is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transaction with id '{transaction_id}' not found",
+        )
+    return transaction
+
+
+def _paginate_items(
+    items: List[Dict[str, Any]],
+    page: int,
+    page_size: int,
+) -> tuple[List[Dict[str, Any]], int, int]:
+    """Paginate a list of items and return the slice along with pagination metadata."""
+    total = len(items)
+    pages = (total + page_size - 1) // page_size if total > 0 else 1
+    start = (page - 1) * page_size
+    end = start + page_size
+    return items[start:end], total, pages
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "",
+    response_model=TransactionListResponse,
+    summary="List transactions",
+    description="Retrieve a paginated list of transactions with optional filtering.",
+    responses={
+        200: {"description": "Successful response with paginated transactions"},
+        422: {"model": ErrorResponse, "description": "Validation error in query parameters"},
+    },
+)
 async def list_transactions(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
-    page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    status: Optional[str] = Query(
-        default=None,
-        description="Filter by status",
-        pattern="^(completed|pending|failed|refunded)$",
-    ),
-    start_date: Optional[str] = Query(
-        default=None,
-        description="Filter transactions created on or after this date (ISO 8601)",
-    ),
-    end_date: Optional[str] = Query(
-        default=None,
-        description="Filter transactions created on or before this date (ISO 8601)",
-    ),
-):
+    page_size: int = Query(default=20, ge=1, le=100, description="Number of items per page"),
+    status_filter: Optional[TransactionStatus] = Query(default=None, alias="status", description="Filter by transaction status"),
+    type_filter: Optional[TransactionType] = Query(default=None, alias="type", description="Filter by transaction type"),
+    buyer_id: Optional[UUID] = Query(default=None, description="Filter by buyer UUID"),
+    seller_id: Optional[UUID] = Query(default=None, description="Filter by seller UUID"),
+) -> TransactionListResponse:
     """
-    List transactions with pagination and optional filtering by status and date range.
+    List all transactions with pagination and optional filters.
+
+    Args:
+        page: Page number (1-indexed).
+        page_size: Number of items per page (max 100).
+        status_filter: Optional status filter.
+        type_filter: Optional type filter.
+        buyer_id: Optional buyer UUID filter.
+        seller_id: Optional seller UUID filter.
+
+    Returns:
+        Paginated list of transactions.
     """
-    filtered = MOCK_TRANSACTIONS.copy()
+    # Collect all transactions
+    all_transactions: List[Dict[str, Any]] = list(_transactions.values())
 
-    # Filter by status
-    if status:
-        filtered = [t for t in filtered if t["status"] == status]
+    # Apply filters
+    if status_filter is not None:
+        all_transactions = [t for t in all_transactions if t["status"] == status_filter.value]
+    if type_filter is not None:
+        all_transactions = [t for t in all_transactions if t["type"] == type_filter.value]
+    if buyer_id is not None:
+        all_transactions = [t for t in all_transactions if t["buyer_id"] == str(buyer_id)]
+    if seller_id is not None:
+        all_transactions = [t for t in all_transactions if t["seller_id"] == str(seller_id)]
 
-    # Filter by date range
-    if start_date:
-        try:
-            start_dt = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
-            filtered = [
-                t for t in filtered
-                if datetime.fromisoformat(t["created_at"].replace("Z", "+00:00")) >= start_dt
-            ]
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid start_date format. Use ISO 8601.")
+    # Sort by created_at descending (most recent first)
+    all_transactions.sort(key=lambda t: t["created_at"], reverse=True)
 
-    if end_date:
-        try:
-            end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-            filtered = [
-                t for t in filtered
-                if datetime.fromisoformat(t["created_at"].replace("Z", "+00:00")) <= end_dt
-            ]
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid end_date format. Use ISO 8601.")
-
-    # Pagination
-    total = len(filtered)
-    total_pages = max(1, (total + page_size - 1) // page_size)
-    start_idx = (page - 1) * page_size
-    end_idx = start_idx + page_size
-    paginated = filtered[start_idx:end_idx]
+    # Paginate
+    paginated_items, total, pages = _paginate_items(all_transactions, page, page_size)
 
     return TransactionListResponse(
-        data=paginated,
+        items=[TransactionResponse(**item) for item in paginated_items],
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=total_pages,
+        pages=pages,
     )
 
 
-@router.post("/", response_model=TransactionResponse, status_code=201)
-async def create_transaction(payload: TransactionCreate):
+@router.post(
+    "",
+    response_model=TransactionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new transaction",
+    description="Create a new transaction record.",
+    responses={
+        201: {"description": "Transaction created successfully"},
+        422: {"model": ErrorResponse, "description": "Validation error in request body"},
+    },
+)
+async def create_transaction(payload: TransactionCreate) -> TransactionResponse:
     """
-    Create a new transaction with validation.
-    """
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    new_id = f"txn_{len(MOCK_TRANSACTIONS) + 1:03d}"
+    Create a new transaction.
 
-    transaction = {
-        "id": new_id,
-        "order_id": payload.order_id,
-        "buyer_id": payload.buyer_id,
-        "seller_id": payload.seller_id,
+    Args:
+        payload: Transaction creation data.
+
+    Returns:
+        The newly created transaction.
+    """
+    now = datetime.now(timezone.utc)
+    transaction_id = uuid4()
+
+    transaction_data: Dict[str, Any] = {
+        "id": str(transaction_id),
+        "buyer_id": str(payload.buyer_id),
+        "seller_id": str(payload.seller_id),
         "amount": payload.amount,
-        "currency": payload.currency.upper(),
-        "status": "pending",
-        "payment_method": payload.payment_method,
+        "currency": payload.currency,
+        "type": payload.type.value,
+        "status": TransactionStatus.PENDING.value,
+        "description": payload.description,
+        "metadata": payload.metadata,
         "created_at": now,
-        "updated_at": now,
+        "updated_at": None,
     }
 
-    MOCK_TRANSACTIONS.append(transaction)
+    _transactions[transaction_id] = transaction_data
+
+    return TransactionResponse(**transaction_data)
+
+
+@router.get(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Get transaction by ID",
+    description="Retrieve a single transaction by its UUID.",
+    responses={
+        200: {"description": "Transaction found and returned"},
+        404: {"model": ErrorResponse, "description": "Transaction not found"},
+        422: {"model": ErrorResponse, "description": "Invalid UUID format"},
+    },
+)
+async def get_transaction(transaction_id: UUID) -> TransactionResponse:
+    """
+    Get a transaction by its ID.
+
+    Args:
+        transaction_id: The UUID of the transaction to retrieve.
+
+    Returns:
+        The requested transaction.
+    """
+    transaction = _get_transaction_or_404(transaction_id)
+    return TransactionResponse(**transaction)
+
+
+@router.put(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Update transaction status",
+    description="Update the status and/or metadata of an existing transaction.",
+    responses={
+        200: {"description": "Transaction updated successfully"},
+        404: {"model": ErrorResponse, "description": "Transaction not found"},
+        422: {"model": ErrorResponse, "description": "Validation error in request body"},
+    },
+)
+async def update_transaction(
+    transaction_id: UUID,
+    payload: TransactionUpdate,
+) -> TransactionResponse:
+    """
+    Update an existing transaction.
+
+    Args:
+        transaction_id: The UUID of the transaction to update.
+        payload: Update data (status, description, metadata).
+
+    Returns:
+        The updated transaction.
+    """
+    transaction = _get_transaction_or_404(transaction_id)
+
+    # Update fields
+    transaction["status"] = payload.status.value
+    if payload.description is not None:
+        transaction["description"] = payload.description
+    if payload.metadata is not None:
+        transaction["metadata"] = payload.metadata
+    transaction["updated_at"] = datetime.now(timezone.utc)
+
+    _transactions[transaction_id] = transaction
 
     return TransactionResponse(**transaction)
+
+
+@router.delete(
+    "/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a transaction",
+    description="Permanently delete a transaction by its UUID.",
+    responses={
+        204: {"description": "Transaction deleted successfully"},
+        404: {"model": ErrorResponse, "description": "Transaction not found"},
+        422: {"model": ErrorResponse, "description": "Invalid UUID format"},
+    },
+)
+async def delete_transaction(transaction_id: UUID) -> None:
+    """
+    Delete a transaction by its ID.
+
+    Args:
+        transaction_id: The UUID of the transaction to delete.
+
+    Returns:
+        None (204 No Content).
+    """
+    _get_transaction_or_404(transaction_id)
+    del _transactions[transaction_id]

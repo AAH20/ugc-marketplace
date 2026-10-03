@@ -1,234 +1,196 @@
-"""
-Analytics API endpoints for UGC Marketplace.
+"""Analytics API endpoints for the UGC Marketplace."""
 
-Provides marketplace-level and creator-level performance metrics.
-"""
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Query
-from typing import Optional
-from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
 
-@router.get("/dashboard")
-async def get_dashboard_metrics(
-    period: Optional[str] = Query("30d", description="Time period: 7d, 30d, 90d, 12m")
-):
-    """
-    Get marketplace-wide analytics dashboard metrics.
-    """
-    # Mock data — replace with real aggregation queries
-    return {
-        "period": period,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
-        "overview": {
-            "total_revenue": 284750.00,
-            "total_orders": 3241,
-            "total_creators": 187,
-            "total_buyers": 1204,
-            "average_order_value": 87.85,
-            "conversion_rate": 3.42,
-        },
-        "revenue": {
-            "current": 284750.00,
-            "previous": 241300.00,
-            "change_percent": 18.0,
-            "breakdown": {
-                "product_sales": 198500.00,
-                "commission": 56950.00,
-                "subscriptions": 29300.00,
-            },
-        },
-        "orders": {
-            "current": 3241,
-            "previous": 2890,
-            "change_percent": 12.1,
-            "by_status": {
-                "completed": 2890,
-                "pending": 187,
-                "cancelled": 98,
-                "refunded": 66,
-            },
-        },
-        "creators": {
-            "total": 187,
-            "active": 142,
-            "new_this_period": 23,
-            "change_percent": 14.3,
-        },
-        "buyers": {
-            "total": 1204,
-            "returning": 489,
-            "new": 715,
-            "change_percent": 9.8,
-        },
-        "top_categories": [
-            {"name": "Digital Art", "revenue": 89400.00, "orders": 892},
-            {"name": "Templates", "revenue": 67200.00, "orders": 1105},
-            {"name": "Photography", "revenue": 45800.00, "orders": 567},
-            {"name": "Video Clips", "revenue": 38900.00, "orders": 312},
-            {"name": "Audio", "revenue": 24700.00, "orders": 198},
-            {"name": "Writing", "revenue": 18750.00, "orders": 167},
-        ],
-        "daily_trend": [
-            {"date": (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"), "revenue": 8200 + (i * 137) % 3400, "orders": 89 + (i * 11) % 42}
-            for i in range(30, 0, -1)
-        ],
-    }
+# ---------------------------------------------------------------------------
+# Pydantic Models
+# ---------------------------------------------------------------------------
+
+class DashboardMetrics(BaseModel):
+    """Top-level marketplace dashboard metrics."""
+
+    total_creators: int = Field(..., description="Total number of creators")
+    total_content_items: int = Field(..., description="Total content items published")
+    total_revenue: float = Field(..., description="Total marketplace revenue")
+    total_transactions: int = Field(..., description="Total number of transactions")
+    active_creators_30d: int = Field(..., description="Creators active in the last 30 days")
+    content_published_30d: int = Field(..., description="Content published in the last 30 days")
+    revenue_30d: float = Field(..., description="Revenue generated in the last 30 days")
+    avg_transaction_value: float = Field(..., description="Average transaction value")
+    period_start: datetime = Field(..., description="Analytics period start")
+    period_end: datetime = Field(..., description="Analytics period end")
 
 
-@router.get("/creators")
-async def get_creator_metrics(
-    period: Optional[str] = Query("30d", description="Time period: 7d, 30d, 90d, 12m"),
-    sort_by: Optional[str] = Query("revenue", description="Sort field: revenue, orders, rating"),
-    limit: Optional[int] = Query(20, ge=1, le=100),
-):
-    """
-    Get creator performance metrics.
-    """
-    # Mock data — replace with real aggregation queries
-    creators = [
-        {
-            "creator_id": "cr_001",
-            "name": "Elena Vasquez",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_001.png",
-            "total_revenue": 42300.00,
-            "total_orders": 312,
-            "average_rating": 4.9,
-            "total_reviews": 287,
-            "products_listed": 18,
-            "conversion_rate": 4.8,
-            "refund_rate": 1.2,
-            "response_time_hours": 2.3,
-            "joined_at": "2024-03-15T10:00:00Z",
-            "top_category": "Digital Art",
-            "revenue_change_percent": 22.5,
-        },
-        {
-            "creator_id": "cr_002",
-            "name": "Marcus Chen",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_002.png",
-            "total_revenue": 38750.00,
-            "total_orders": 428,
-            "average_rating": 4.8,
-            "total_reviews": 391,
-            "products_listed": 24,
-            "conversion_rate": 5.2,
-            "refund_rate": 0.8,
-            "response_time_hours": 1.7,
-            "joined_at": "2023-11-02T10:00:00Z",
-            "top_category": "Templates",
-            "revenue_change_percent": 15.3,
-        },
-        {
-            "creator_id": "cr_003",
-            "name": "Aisha Patel",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_003.png",
-            "total_revenue": 31200.00,
-            "total_orders": 189,
-            "average_rating": 4.9,
-            "total_reviews": 172,
-            "products_listed": 12,
-            "conversion_rate": 3.9,
-            "refund_rate": 1.5,
-            "response_time_hours": 3.1,
-            "joined_at": "2024-06-20T10:00:00Z",
-            "top_category": "Photography",
-            "revenue_change_percent": 31.7,
-        },
-        {
-            "creator_id": "cr_004",
-            "name": "James O'Brien",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_004.png",
-            "total_revenue": 27800.00,
-            "total_orders": 256,
-            "average_rating": 4.7,
-            "total_reviews": 231,
-            "products_listed": 15,
-            "conversion_rate": 4.1,
-            "refund_rate": 2.1,
-            "response_time_hours": 4.5,
-            "joined_at": "2024-01-10T10:00:00Z",
-            "top_category": "Video Clips",
-            "revenue_change_percent": 8.9,
-        },
-        {
-            "creator_id": "cr_005",
-            "name": "Sofia Andersson",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_005.png",
-            "total_revenue": 24500.00,
-            "total_orders": 198,
-            "average_rating": 4.8,
-            "total_reviews": 184,
-            "products_listed": 9,
-            "conversion_rate": 3.6,
-            "refund_rate": 1.0,
-            "response_time_hours": 2.8,
-            "joined_at": "2024-08-05T10:00:00Z",
-            "top_category": "Audio",
-            "revenue_change_percent": 19.2,
-        },
-        {
-            "creator_id": "cr_006",
-            "name": "David Kim",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_006.png",
-            "total_revenue": 21300.00,
-            "total_orders": 167,
-            "average_rating": 4.6,
-            "total_reviews": 149,
-            "products_listed": 11,
-            "conversion_rate": 3.2,
-            "refund_rate": 1.8,
-            "response_time_hours": 5.2,
-            "joined_at": "2024-04-18T10:00:00Z",
-            "top_category": "Writing",
-            "revenue_change_percent": -3.4,
-        },
-        {
-            "creator_id": "cr_007",
-            "name": "Priya Sharma",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_007.png",
-            "total_revenue": 18900.00,
-            "total_orders": 145,
-            "average_rating": 4.9,
-            "total_reviews": 138,
-            "products_listed": 8,
-            "conversion_rate": 4.4,
-            "refund_rate": 0.6,
-            "response_time_hours": 1.9,
-            "joined_at": "2024-09-12T10:00:00Z",
-            "top_category": "Digital Art",
-            "revenue_change_percent": 42.1,
-        },
-        {
-            "creator_id": "cr_008",
-            "name": "Lucas Silva",
-            "avatar_url": "https://cdn.ugc-marketplace.io/avatars/cr_008.png",
-            "total_revenue": 16700.00,
-            "total_orders": 132,
-            "average_rating": 4.7,
-            "total_reviews": 121,
-            "products_listed": 7,
-            "conversion_rate": 3.8,
-            "refund_rate": 1.3,
-            "response_time_hours": 3.7,
-            "joined_at": "2024-07-22T10:00:00Z",
-            "top_category": "Templates",
-            "revenue_change_percent": 11.6,
-        },
-    ]
+class CreatorAnalytics(BaseModel):
+    """Per-creator analytics record."""
 
-    # Sort creators
-    sort_key = sort_by if sort_by in ("revenue", "orders", "rating") else "revenue"
-    sort_map = {"revenue": "total_revenue", "orders": "total_orders", "rating": "average_rating"}
-    creators.sort(key=lambda c: c[sort_map[sort_key]], reverse=True)
+    creator_id: str = Field(..., description="Creator unique identifier")
+    creator_name: str = Field(..., description="Creator display name")
+    content_count: int = Field(..., description="Number of content items")
+    total_views: int = Field(..., description="Total content views")
+    total_likes: int = Field(..., description="Total content likes")
+    total_shares: int = Field(..., description="Total content shares")
+    total_revenue: float = Field(..., description="Revenue attributed to creator")
+    avg_engagement_rate: float = Field(..., description="Average engagement rate (0-1)")
+    follower_count: int = Field(..., description="Current follower count")
+    rank: int = Field(..., description="Creator rank by revenue")
 
-    return {
-        "period": period,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
-        "total_creators": 187,
-        "returned": min(limit, len(creators)),
-        "sort_by": sort_key,
-        "creators": creators[:limit],
-    }
+
+class ContentAnalytics(BaseModel):
+    """Per-content-item analytics record."""
+
+    content_id: str = Field(..., description="Content unique identifier")
+    creator_id: str = Field(..., description="Owning creator identifier")
+    title: str = Field(..., description="Content title")
+    content_type: str = Field(..., description="Type of content (video, image, text)")
+    views: int = Field(..., description="Total views")
+    likes: int = Field(..., description="Total likes")
+    shares: int = Field(..., description="Total shares")
+    comments: int = Field(..., description="Total comments")
+    revenue: float = Field(..., description="Revenue generated by this content")
+    engagement_rate: float = Field(..., description="Engagement rate (0-1)")
+    published_at: datetime = Field(..., description="Publication timestamp")
+
+
+class RevenueAnalytics(BaseModel):
+    """Revenue analytics summary."""
+
+    total_revenue: float = Field(..., description="Total revenue in period")
+    total_transactions: int = Field(..., description="Total transactions in period")
+    avg_transaction_value: float = Field(..., description="Average transaction value")
+    top_earning_creators: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Top earning creators"
+    )
+    revenue_by_content_type: Dict[str, float] = Field(
+        default_factory=dict, description="Revenue breakdown by content type"
+    )
+    daily_revenue: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Daily revenue time series"
+    )
+    period_start: datetime = Field(..., description="Period start")
+    period_end: datetime = Field(..., description="Period end")
+
+
+class AnalyticsResponse(BaseModel):
+    """Generic analytics response wrapper."""
+
+    success: bool = True
+    data: Optional[Any] = None
+    message: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "",
+    response_model=AnalyticsResponse,
+    summary="Get marketplace analytics dashboard",
+    description="Returns high-level marketplace analytics including totals, "
+    "30-day activity, and key performance indicators.",
+)
+async def get_dashboard_analytics() -> AnalyticsResponse:
+    """Retrieve the marketplace analytics dashboard."""
+    try:
+        now = datetime.utcnow()
+        data = DashboardMetrics(
+            total_creators=0,
+            total_content_items=0,
+            total_revenue=0.0,
+            total_transactions=0,
+            active_creators_30d=0,
+            content_published_30d=0,
+            revenue_30d=0.0,
+            avg_transaction_value=0.0,
+            period_start=now,
+            period_end=now,
+        )
+        return AnalyticsResponse(data=data)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve dashboard analytics: {exc}",
+        )
+
+
+@router.get(
+    "/creators",
+    response_model=AnalyticsResponse,
+    summary="Get creator analytics",
+    description="Returns analytics for all creators including engagement, "
+    "revenue, and ranking data.",
+)
+async def get_creator_analytics(
+    limit: int = Query(default=50, ge=1, le=200, description="Max creators to return"),
+    sort_by: str = Query(default="revenue", description="Sort field (revenue, engagement, followers)"),
+) -> AnalyticsResponse:
+    """Retrieve creator analytics."""
+    try:
+        creators: List[CreatorAnalytics] = []
+        return AnalyticsResponse(data=creators)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve creator analytics: {exc}",
+        )
+
+
+@router.get(
+    "/content",
+    response_model=AnalyticsResponse,
+    summary="Get content analytics",
+    description="Returns analytics for content items including views, "
+    "engagement, and revenue per item.",
+)
+async def get_content_analytics(
+    limit: int = Query(default=50, ge=1, le=200, description="Max content items to return"),
+    content_type: Optional[str] = Query(default=None, description="Filter by content type"),
+) -> AnalyticsResponse:
+    """Retrieve content analytics."""
+    try:
+        content: List[ContentAnalytics] = []
+        return AnalyticsResponse(data=content)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve content analytics: {exc}",
+        )
+
+
+@router.get(
+    "/revenue",
+    response_model=AnalyticsResponse,
+    summary="Get revenue analytics",
+    description="Returns revenue analytics including totals, top earners, "
+    "breakdowns by content type, and daily time series.",
+)
+async def get_revenue_analytics(
+    days: int = Query(default=30, ge=1, le=365, description="Number of days to include"),
+) -> AnalyticsResponse:
+    """Retrieve revenue analytics."""
+    try:
+        now = datetime.utcnow()
+        data = RevenueAnalytics(
+            total_revenue=0.0,
+            total_transactions=0,
+            avg_transaction_value=0.0,
+            top_earning_creators=[],
+            revenue_by_content_type={},
+            daily_revenue=[],
+            period_start=now,
+            period_end=now,
+        )
+        return AnalyticsResponse(data=data)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve revenue analytics: {exc}",
+        )

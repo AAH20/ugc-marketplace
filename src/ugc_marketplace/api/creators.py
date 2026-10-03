@@ -244,6 +244,18 @@ class CreatorResponse(BaseModel):
     verified: bool = False
 
 
+class CreatorUpdate(BaseModel):
+    """Payload for updating an existing creator — all fields optional."""
+
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    handle: Optional[str] = Field(default=None, min_length=3, max_length=30, pattern=r"^@[a-zA-Z0-9_]+$")
+    tier: Optional[CreatorTier] = None
+    status: Optional[CreatorStatus] = None
+    bio: Optional[str] = Field(default=None, max_length=500)
+    categories: Optional[list[str]] = Field(default=None, max_length=5)
+
+
 class CreatorListResponse(BaseModel):
     """Paginated list of creators."""
 
@@ -359,3 +371,72 @@ async def create_creator(payload: CreatorCreate) -> dict:
     _creators_db[new_id] = new_creator
 
     return new_creator
+
+
+@router.get(
+    "/{creator_id}",
+    response_model=CreatorResponse,
+    summary="Get a creator by ID",
+)
+async def get_creator(creator_id: str) -> dict:
+    """Retrieve a single creator by their unique ID."""
+    creator = _creators_db.get(creator_id)
+    if creator is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Creator with id '{creator_id}' not found.",
+        )
+    return creator
+
+
+@router.put(
+    "/{creator_id}",
+    response_model=CreatorResponse,
+    summary="Update a creator",
+)
+async def update_creator(creator_id: str, payload: CreatorUpdate) -> dict:
+    """Update an existing creator. Only provided fields are modified."""
+    creator = _creators_db.get(creator_id)
+    if creator is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Creator with id '{creator_id}' not found.",
+        )
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    # Check for duplicate email if email is being updated
+    if "email" in update_data:
+        for existing_id, existing in _creators_db.items():
+            if existing_id != creator_id and existing["email"] == update_data["email"]:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A creator with email '{update_data['email']}' already exists.",
+                )
+
+    # Check for duplicate handle if handle is being updated
+    if "handle" in update_data:
+        for existing_id, existing in _creators_db.items():
+            if existing_id != creator_id and existing["handle"].lower() == update_data["handle"].lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A creator with handle '{update_data['handle']}' already exists.",
+                )
+
+    creator.update(update_data)
+    return creator
+
+
+@router.delete(
+    "/{creator_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a creator",
+)
+async def delete_creator(creator_id: str) -> None:
+    """Delete a creator by their unique ID."""
+    if creator_id not in _creators_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Creator with id '{creator_id}' not found.",
+        )
+    del _creators_db[creator_id]

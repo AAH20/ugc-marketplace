@@ -479,3 +479,98 @@ def compare_creators(creator_ids: list[str]) -> dict[str, Any]:
         "category_leaders": category_leaders,
         "insights": insights,
     }
+
+
+def get_creator_growth(creator_id: str, time_range: str) -> dict[str, Any]:
+    """
+    Retrieve follower growth and audience expansion data for a creator.
+
+    Args:
+        creator_id: Unique identifier for the creator (e.g., "CR001").
+        time_range: Time period for growth data (e.g., "7d", "30d", "90d", "1y").
+
+    Returns:
+        A dictionary containing:
+            - creator_id: The creator's unique identifier.
+            - time_range: The requested time range.
+            - total_followers: Current total follower count.
+            - new_followers: Net new followers in the period.
+            - follower_growth_rate: Growth rate as a percentage.
+            - previous_period_followers: Follower count at the start of the period.
+            - current_followers: Follower count at the end of the period.
+            - content_output: Number of new content pieces in the period.
+            - avg_posts_per_week: Average posts per week.
+
+    Raises:
+        ValueError: If creator_id is empty or time_range is not a supported value.
+    """
+    if not creator_id or not creator_id.strip():
+        raise ValueError("creator_id must be a non-empty string")
+
+    supported_ranges = {"7d", "30d", "90d", "1y"}
+    if time_range not in supported_ranges:
+        raise ValueError(
+            f"Unsupported time_range '{time_range}'. Must be one of: {supported_ranges}"
+        )
+
+    rng = _seeded_random(creator_id)
+    audience = _generate_audience(rng)
+    content = _generate_content(rng)
+
+    return {
+        "creator_id": creator_id,
+        "time_range": time_range,
+        "total_followers": audience.total_followers,
+        "new_followers": audience.new_followers,
+        "follower_growth_rate": audience.follower_growth_rate,
+        "previous_period_followers": audience.total_followers - audience.new_followers,
+        "current_followers": audience.total_followers,
+        "content_output": content.posts_this_period,
+        "avg_posts_per_week": content.avg_posts_per_week,
+    }
+
+
+def get_creator_engagement(creator_id: str, time_range: str) -> dict[str, Any]:
+    """
+    Retrieve engagement metrics for a creator's content.
+
+    Args:
+        creator_id: Unique identifier for the creator (e.g., "CR001").
+        time_range: Time period for engagement data (e.g., "7d", "30d", "90d", "1y").
+
+    Returns:
+        A dictionary containing:
+            - creator_id: The creator's unique identifier.
+            - time_range: The requested time range.
+            - likes: Total likes received.
+            - comments: Total comments received.
+            - shares: Total shares.
+            - saves: Total saves/bookmarks.
+            - views: Total content views.
+            - engagement_rate: Overall engagement rate as a percentage.
+
+    Raises:
+        ValueError: If creator_id is empty or time_range is not a supported value.
+    """
+    if not creator_id or not creator_id.strip():
+        raise ValueError("creator_id must be a non-empty string")
+
+    supported_ranges = {"7d", "30d", "90d", "1y"}
+    if time_range not in supported_ranges:
+        raise ValueError(
+            f"Unsupported time_range '{time_range}'. Must be one of: {supported_ranges}"
+        )
+
+    rng = _seeded_random(creator_id)
+    engagement = _generate_engagement(rng)
+
+    return {
+        "creator_id": creator_id,
+        "time_range": time_range,
+        "likes": engagement.likes,
+        "comments": engagement.comments,
+        "shares": engagement.shares,
+        "saves": engagement.saves,
+        "views": engagement.views,
+        "engagement_rate": engagement.engagement_rate,
+    }

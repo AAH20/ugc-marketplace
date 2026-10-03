@@ -217,3 +217,54 @@ async def create_review(payload: ReviewCreate) -> dict:
     _next_id += 1
 
     return review
+
+
+class ReviewUpdate(BaseModel):
+    """Payload for updating an existing review (all fields optional)."""
+
+    rating: Optional[int] = Field(None, ge=1, le=5, description="Star rating from 1 to 5")
+    title: Optional[str] = Field(None, min_length=1, max_length=120, description="Short review headline")
+    body: Optional[str] = Field(None, min_length=1, max_length=2000, description="Full review text")
+
+
+@router.get("/{review_id}", response_model=ReviewResponse)
+async def get_review(review_id: int) -> dict:
+    """Retrieve a single review by its unique identifier."""
+    for review in MOCK_REVIEWS:
+        if review["id"] == review_id:
+            return review
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Review with id {review_id} not found",
+    )
+
+
+@router.put("/{review_id}", response_model=ReviewResponse)
+async def update_review(review_id: int, payload: ReviewUpdate) -> dict:
+    """Update an existing review by its unique identifier."""
+    for review in MOCK_REVIEWS:
+        if review["id"] == review_id:
+            update_data = payload.model_dump(exclude_unset=True)
+            review.update(update_data)
+            review["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            return review
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Review with id {review_id} not found",
+    )
+
+
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_review(review_id: int) -> None:
+    """Delete a review by its unique identifier."""
+    for i, review in enumerate(MOCK_REVIEWS):
+        if review["id"] == review_id:
+            MOCK_REVIEWS.pop(i)
+            return None
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Review with id {review_id} not found",
+    )

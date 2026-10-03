@@ -7,10 +7,13 @@ comparative analysis across multiple content items.
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -550,6 +553,129 @@ def _build_summary(
     elif spread < 10:
         parts.append("Low variance — content quality is relatively uniform.")
     return "; ".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Required Agent API
+# ---------------------------------------------------------------------------
+
+
+def score_content_quality(content_id: str) -> dict[str, Any]:
+    """Score the quality of a piece of content.
+
+    Evaluates multiple quality dimensions including engagement,
+    authenticity, production quality, creator reputation, and
+    policy compliance, returning an overall score between 0.0 and 100.0.
+
+    Args:
+        content_id: Unique identifier for the content to score.
+
+    Returns:
+        A dictionary containing:
+            - content_id (str): The content identifier.
+            - overall_score (float): Weighted quality score (0.0–100.0).
+            - grade (str): Letter grade (A–F).
+            - dimensions (list[dict]): Per-dimension score breakdowns.
+            - metadata (dict): Additional scoring metadata.
+
+    Raises:
+        ValueError: If content_id is empty or None.
+    """
+    if not content_id:
+        raise ValueError("content_id must be a non-empty string")
+
+    logger.info("Scoring content quality for %s", content_id)
+    result = score_content(content_id)
+    return result.to_dict()
+
+
+def get_quality_metrics(content_id: str) -> dict[str, Any]:
+    """Retrieve detailed quality metrics for a piece of content.
+
+    Returns raw metric values used in quality scoring, without
+    applying thresholds or computing an overall score.
+
+    Args:
+        content_id: Unique identifier for the content.
+
+    Returns:
+        A dictionary containing:
+            - content_id (str): The content identifier.
+            - content_type (str): Type of content (image, video, etc.).
+            - engagement_rate (float): Engagement rate metric.
+            - completion_rate (float): Completion rate metric.
+            - report_count (int): Number of policy reports.
+            - ai_generated_probability (float): Likelihood content is AI-generated.
+            - creator_tier (str): Creator reputation tier.
+            - upload_age_days (int): Days since content was published.
+
+    Raises:
+        ValueError: If content_id is empty or None.
+    """
+    if not content_id:
+        raise ValueError("content_id must be a non-empty string")
+
+    logger.info("Fetching quality metrics for %s", content_id)
+
+    content = _MOCK_CONTENT_DB.get(content_id)
+    if content is None:
+        content = _synthetic_content(content_id)
+
+    signals: dict[str, Any] = content.get("authenticity_signals", {})
+
+    metrics: dict[str, Any] = {
+        "content_id": content_id,
+        "content_type": content.get("content_type", ContentType.TEXT).value,
+        "engagement_rate": content.get("engagement_rate", 0.0),
+        "completion_rate": content.get("completion_rate", 0.0),
+        "report_count": content.get("report_count", 0),
+        "ai_generated_probability": signals.get("ai_generated_probability", 0.0),
+        "creator_tier": content.get("creator_tier", "new"),
+        "upload_age_days": content.get("upload_age_days", 0),
+    }
+
+    return metrics
+
+
+def flag_low_quality(content_id: str) -> bool:
+    """Determine whether content should be flagged as low quality.
+
+    Content is flagged if its overall quality score falls below
+    60.0 (the AVERAGE grade threshold) or if it has 3 or more
+    policy reports.
+
+    Args:
+        content_id: Unique identifier for the content to evaluate.
+
+    Returns:
+        True if the content should be flagged as low quality,
+        False otherwise.
+
+    Raises:
+        ValueError: If content_id is empty or None.
+    """
+    if not content_id:
+        raise ValueError("content_id must be a non-empty string")
+
+    logger.info("Checking low-quality flag for %s", content_id)
+
+    score_result = score_content(content_id)
+    metrics = get_quality_metrics(content_id)
+
+    should_flag = (
+        score_result.overall_score < 60.0
+        or metrics["report_count"] >= 3
+    )
+
+    if should_flag:
+        logger.warning(
+            "Content %s flagged as low quality (score=%.2f, reports=%d)",
+            content_id,
+            score_result.overall_score,
+            metrics["report_count"],
+        )
+
+    return should_flag
 
 
 # ---------------------------------------------------------------------------

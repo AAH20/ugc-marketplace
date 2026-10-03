@@ -560,3 +560,178 @@ def rank_content(
     """
     agent = CommunityCurationAgent()
     return agent.rank_content(content_ids, criteria)
+
+
+# ---------------------------------------------------------------------------
+# Community-level curation functions
+# ---------------------------------------------------------------------------
+
+
+def curate_community_content(community_id: str) -> list[dict[str, Any]]:
+    """Curate community content.
+
+    Retrieves and curates all content belonging to the specified community,
+    applying quality filters and relevance scoring.
+
+    Args:
+        community_id: The unique identifier of the community to curate content for.
+
+    Returns:
+        A list of curated content dictionaries, each containing at minimum:
+            - content_id (str): The content identifier.
+            - title (str): The content title.
+            - author_id (str): The content author identifier.
+            - score (float): The curation relevance score.
+            - featured (bool): Whether the content is featured.
+            - created_at (str): ISO 8601 creation timestamp.
+
+    Raises:
+        ValueError: If community_id is empty or invalid.
+        RuntimeError: If curation fails for any other reason.
+
+    Example:
+        >>> curated = curate_community_content("community-123")
+        >>> print(curated[0]["title"])
+        'Amazing UGC Content'
+    """
+    if not community_id or not isinstance(community_id, str):
+        raise ValueError(
+            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
+        )
+
+    try:
+        agent = CommunityCurationAgent()
+        # Use default preferences for community-level curation
+        prefs = UserPreferences()
+        content_items = agent.curate_feed(community_id, prefs)
+
+        curated: list[dict[str, Any]] = []
+        for item in content_items:
+            curated.append({
+                "content_id": item.content_id,
+                "title": item.title,
+                "author_id": item.author_id,
+                "score": agent._compute_curation_score(item, prefs),
+                "featured": item.is_featured,
+                "created_at": item.created_at.isoformat(),
+            })
+
+        return curated
+
+    except Exception as exc:
+        raise RuntimeError(
+            f"Curation failed for community {community_id!r}: {exc}"
+        ) from exc
+
+
+def feature_content(content_id: str, community_id: str) -> bool:
+    """Feature content in a community.
+
+    Marks the specified content as featured within the community,
+    giving it prominence in the community feed.
+
+    Args:
+        content_id: The unique identifier of the content to feature.
+        community_id: The unique identifier of the community where the content
+            will be featured.
+
+    Returns:
+        True if the content was successfully featured, False otherwise.
+
+    Raises:
+        ValueError: If content_id or community_id is empty or invalid.
+        RuntimeError: If featuring the content fails for any other reason.
+
+    Example:
+        >>> success = feature_content("content-001", "community-123")
+        >>> print(success)
+        True
+    """
+    if not content_id or not isinstance(content_id, str):
+        raise ValueError(
+            f"Invalid content_id: {content_id!r}. Must be a non-empty string."
+        )
+    if not community_id or not isinstance(community_id, str):
+        raise ValueError(
+            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
+        )
+
+    try:
+        agent = CommunityCurationAgent()
+        content_lookup = {item.content_id: item for item in agent._content_pool}
+
+        if content_id not in content_lookup:
+            return False
+
+        content_lookup[content_id].is_featured = True
+        return True
+
+    except Exception as exc:
+        raise RuntimeError(
+            f"Featuring content {content_id!r} in community {community_id!r} "
+            f"failed: {exc}"
+        ) from exc
+
+
+def get_curated_feed(community_id: str, limit: int = 20) -> list[dict[str, Any]]:
+    """Get the curated feed for a community.
+
+    Retrieves a paginated, curated feed of content for the specified community,
+    ordered by relevance and featuring featured content first.
+
+    Args:
+        community_id: The unique identifier of the community to get the feed for.
+        limit: The maximum number of items to return (default: 20).
+            Must be a positive integer.
+
+    Returns:
+        A list of content dictionaries representing the curated feed, each
+        containing at minimum:
+            - content_id (str): The content identifier.
+            - title (str): The content title.
+            - author_id (str): The content author identifier.
+            - score (float): The curation relevance score.
+            - featured (bool): Whether the content is featured.
+            - created_at (str): ISO 8601 creation timestamp.
+
+    Raises:
+        ValueError: If community_id is empty or invalid, or if limit is not a
+            positive integer.
+        RuntimeError: If retrieving the feed fails for any other reason.
+
+    Example:
+        >>> feed = get_curated_feed("community-123", limit=10)
+        >>> print(len(feed))
+        10
+    """
+    if not community_id or not isinstance(community_id, str):
+        raise ValueError(
+            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
+        )
+    if not isinstance(limit, int) or limit <= 0:
+        raise ValueError(
+            f"Invalid limit: {limit!r}. Must be a positive integer."
+        )
+
+    try:
+        agent = CommunityCurationAgent()
+        prefs = UserPreferences(max_results=limit)
+        content_items = agent.curate_feed(community_id, prefs)
+
+        feed: list[dict[str, Any]] = []
+        for item in content_items:
+            feed.append({
+                "content_id": item.content_id,
+                "title": item.title,
+                "author_id": item.author_id,
+                "score": agent._compute_curation_score(item, prefs),
+                "featured": item.is_featured,
+                "created_at": item.created_at.isoformat(),
+            })
+
+        return feed
+
+    except Exception as exc:
+        raise RuntimeError(
+            f"Retrieving curated feed for community {community_id!r} failed: {exc}"
+        ) from exc

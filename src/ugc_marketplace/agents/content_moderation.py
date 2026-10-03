@@ -218,8 +218,8 @@ def _generate_decision(content_id: str) -> ModerationDecision:
 # --- Public API ----------------------------------------------------------
 
 
-def moderate_content(content_id: str) -> ModerationDecision:
-    """Moderate a single piece of content and return a decision.
+def moderate_content_by_id(content_id: str) -> ModerationDecision:
+    """Moderate a single piece of content by ID and return a decision.
 
     Args:
         content_id: Unique identifier for the content to moderate.
@@ -264,3 +264,144 @@ def batch_moderate(content_ids: list[str]) -> BatchModerationResult:
         flagged_count=flagged,
         average_confidence=avg_confidence,
     )
+
+
+# --- Text-based moderation, flagging, and status tracking -----------------
+
+import re as _re
+
+# Simple policy violation patterns for text-based moderation
+_VIOLATION_PATTERNS: dict[str, _re.Pattern[str]] = {
+    "hate_speech": _re.compile(r"\b(hate|kill|die)\b", _re.IGNORECASE),
+    "harassment": _re.compile(r"\b(stupid|idiot|loser)\b", _re.IGNORECASE),
+    "spam": _re.compile(r"\b(buy now|click here|free money)\b", _re.IGNORECASE),
+    "explicit": _re.compile(r"\b(nsfw|explicit|xxx)\b", _re.IGNORECASE),
+}
+
+# In-memory store for flagged content and moderation statuses
+_flagged_content: dict[str, dict[str, Any]] = {}
+_moderation_statuses: dict[str, dict[str, Any]] = {}
+
+
+def moderate_content(content: str) -> dict[str, Any]:
+    """Moderate content for policy violations.
+
+    Analyzes the given text against known violation patterns and returns
+    a dictionary with the moderation result.
+
+    Args:
+        content: The user-generated content to moderate.
+
+    Returns:
+        A dictionary with moderation results containing:
+            - content (str): The original content.
+            - approved (bool): Whether the content passes moderation.
+            - violations (list[str]): List of detected violation categories.
+            - flagged (bool): Whether the content was flagged for review.
+
+    Raises:
+        TypeError: If content is not a string.
+        ValueError: If content is empty or whitespace-only.
+    """
+    if not isinstance(content, str):
+        raise TypeError(
+            f"content must be a string, got {type(content).__name__}"
+        )
+    if not content.strip():
+        raise ValueError("content must not be empty or whitespace-only")
+
+    violations: list[str] = []
+    for category, pattern in _VIOLATION_PATTERNS.items():
+        if pattern.search(content):
+            violations.append(category)
+
+    approved = len(violations) == 0
+    flagged = not approved
+
+    result: dict[str, Any] = {
+        "content": content,
+        "approved": approved,
+        "violations": violations,
+        "flagged": flagged,
+    }
+
+    return result
+
+
+def flag_content(content_id: str, reason: str) -> bool:
+    """Flag content for review.
+
+    Marks a piece of content as needing manual review with the given reason.
+
+    Args:
+        content_id: The unique identifier of the content to flag.
+        reason: The reason for flagging the content.
+
+    Returns:
+        True if the content was successfully flagged, False if the content
+        was already flagged.
+
+    Raises:
+        TypeError: If content_id or reason is not a string.
+        ValueError: If content_id or reason is empty or whitespace-only.
+    """
+    if not isinstance(content_id, str):
+        raise TypeError(
+            f"content_id must be a string, got {type(content_id).__name__}"
+        )
+    if not isinstance(reason, str):
+        raise TypeError(
+            f"reason must be a string, got {type(reason).__name__}"
+        )
+    if not content_id.strip():
+        raise ValueError("content_id must not be empty or whitespace-only")
+    if not reason.strip():
+        raise ValueError("reason must not be empty or whitespace-only")
+
+    if content_id in _flagged_content:
+        return False
+
+    _flagged_content[content_id] = {
+        "content_id": content_id,
+        "reason": reason,
+        "status": "pending_review",
+    }
+    _moderation_statuses[content_id] = {
+        "content_id": content_id,
+        "status": "pending_review",
+        "reason": reason,
+    }
+
+    return True
+
+
+def get_moderation_status(content_id: str) -> dict[str, Any]:
+    """Get moderation status for a piece of content.
+
+    Args:
+        content_id: The unique identifier of the content.
+
+    Returns:
+        A dictionary with moderation status containing:
+            - content_id (str): The content identifier.
+            - status (str): The current moderation status.
+            - reason (str | None): The reason for flagging, if any.
+
+    Raises:
+        TypeError: If content_id is not a string.
+        ValueError: If content_id is empty or whitespace-only.
+        KeyError: If the content_id has not been flagged or moderated.
+    """
+    if not isinstance(content_id, str):
+        raise TypeError(
+            f"content_id must be a string, got {type(content_id).__name__}"
+        )
+    if not content_id.strip():
+        raise ValueError("content_id must not be empty or whitespace-only")
+
+    if content_id not in _moderation_statuses:
+        raise KeyError(
+            f"No moderation status found for content_id: {content_id}"
+        )
+
+    return dict(_moderation_statuses[content_id])

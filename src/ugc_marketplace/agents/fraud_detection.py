@@ -8,11 +8,22 @@ Uses realistic mock data for demonstration and testing purposes.
 from __future__ import annotations
 
 import hashlib
+import logging
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+
+class FraudDetectionError(Exception):
+    """Raised when fraud detection cannot be completed."""
+
+
+class InvalidActivityError(FraudDetectionError):
+    """Raised when activity data is malformed or incomplete."""
 
 
 # ---------------------------------------------------------------------------
@@ -647,6 +658,218 @@ def investigate_fraud(transaction_id: str) -> InvestigationReport:
         related_transactions=related,
         recommendations=recommendations,
     )
+
+
+# ---------------------------------------------------------------------------
+# Suspicious Activity & User-Level Fraud Score
+# ---------------------------------------------------------------------------
+
+# In-memory store for user activity history used by flag_suspicious_activity
+# and get_fraud_score.  In production this would be backed by a database.
+_USER_ACTIVITY_LOG: dict[str, list[dict[str, Any]]] = {}
+
+
+def flag_suspicious_activity(user_id: str, activity: dict[str, Any]) -> bool:
+    """Flag suspicious activity for a given user.
+
+    Evaluates the provided *activity* against known suspicious patterns
+    and records it in the user's activity history.
+
+    Parameters
+    ----------
+    user_id : str
+        The unique identifier of the user whose activity is being evaluated.
+    activity : dict[str, Any]
+        A dictionary describing the activity. Expected keys include:
+        - ``type`` (str): Activity type (e.g. ``"login"``, ``"purchase"``,
+          ``"account_takeover"``, ``"chargeback"``, ``"fake_review"``,
+          ``"bot_activity"``).
+        - ``timestamp`` (str): ISO-8601 timestamp of the activity.
+        - ``metadata`` (dict): Additional context (optional). Recognised
+          keys: ``ip_reputation`` (``"bad"``/``"good"``),
+          ``device_fingerprint_mismatch`` (bool).
+
+    Returns
+    -------
+    bool
+        ``True`` if the activity is flagged as suspicious, ``False``
+        otherwise.
+
+    Raises
+    ------
+    ValueError
+        If *user_id* is empty or not a string.
+    TypeError
+        If *activity* is not a dictionary.
+    InvalidActivityError
+        If *activity* lacks the required ``type`` key.
+
+    Examples
+    --------
+    >>> flag_suspicious_activity("user_42", {"type": "login"})
+    False
+    >>> flag_suspicious_activity("user_99", {"type": "account_takeover"})
+    True
+    """
+    if not user_id or not isinstance(user_id, str):
+        raise ValueError("user_id must be a non-empty string")
+
+    if not isinstance(activity, dict):
+        raise TypeError("activity must be a dictionary")
+
+    if "type" not in activity:
+        raise InvalidActivityError("activity must contain a 'type' key")
+
+    try:
+        is_suspicious = _evaluate_suspicious_activity(activity)
+
+        # Record the activity in the user's log
+        _USER_ACTIVITY_LOG.setdefault(user_id, []).append(activity)
+
+        if is_suspicious:
+            logger.warning(
+                "Suspicious activity flagged for user %s: %s",
+                user_id,
+                activity["type"],
+            )
+
+        return is_suspicious
+
+    except (InvalidActivityError, TypeError, ValueError):
+        raise
+    except Exception as exc:
+        logger.exception("Error flagging activity for user %s", user_id)
+        raise FraudDetectionError(
+            f"Failed to flag activity for user '{user_id}': {exc}"
+        ) from exc
+
+
+def get_fraud_score(user_id: str) -> float:
+    """Get the fraud risk score for a user.
+
+    Computes a risk score between 0.0 (no risk) and 1.0 (maximum risk)
+    based on the user's historical activities and flagged events.
+
+    Parameters
+    ----------
+    user_id : str
+        The unique identifier of the user.
+
+    Returns
+    -------
+    float
+        The fraud risk score in the range [0.0, 1.0].  Returns ``0.0``
+        if the user has no recorded activity.
+
+    Raises
+    ------
+    ValueError
+        If *user_id* is empty or not a string.
+    FraudDetectionError
+        If an unexpected error occurs during score computation.
+
+    Examples
+    --------
+    >>> get_fraud_score("user_42")
+    0.0
+    """
+    if not user_id or not isinstance(user_id, str):
+        raise ValueError("user_id must be a non-empty string")
+
+    try:
+        activities = _USER_ACTIVITY_LOG.get(user_id, [])
+
+        if not activities:
+            return 0.0
+
+        score = _compute_user_fraud_score(activities)
+        return score
+
+    except Exception as exc:
+        logger.exception("Error computing fraud score for user %s", user_id)
+        raise FraudDetectionError(
+            f"Failed to compute fraud score for user '{user_id}': {exc}"
+        ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers for suspicious activity & user-level scoring
+# ---------------------------------------------------------------------------
+
+# Activity types that are always considered suspicious
+_SUSPICIOUS_ACTIVITY_TYPES: set[str] = {
+    "account_takeover",
+    "chargeback",
+    "fake_review",
+    "bot_activity",
+}
+
+
+def _evaluate_suspicious_activity(activity: dict[str, Any]) -> bool:
+    """Determine whether a single activity is suspicious.
+
+    Parameters
+    ----------
+    activity : dict[str, Any]
+        The activity dictionary to evaluate.
+
+    Returns
+    -------
+    bool
+        ``True`` if the activity matches a suspicious pattern.
+    """
+    activity_type = activity.get("type", "")
+
+    # Check against known suspicious activity types
+    if activity_type in _SUSPICIOUS_ACTIVITY_TYPES:
+        return True
+
+    # Check metadata for additional signals
+    metadata = activity.get("metadata", {})
+    if isinstance(metadata, dict):
+        if metadata.get("ip_reputation") == "bad":
+            return True
+        if metadata.get("device_fingerprint_mismatch", False):
+            return True
+
+    return False
+
+
+def _compute_user_fraud_score(activities: list[dict[str, Any]]) -> float:
+    """Compute a composite fraud risk score from a user's activity history.
+
+    The score is derived from the ratio of suspicious activities to total
+    activities, with a penalty for users with many flagged events.
+
+    Parameters
+    ----------
+    activities : list[dict[str, Any]]
+        The user's recorded activity history.
+
+    Returns
+    -------
+    float
+        A risk score in the range [0.0, 1.0].
+    """
+    if not activities:
+        return 0.0
+
+    suspicious_count = sum(
+        1 for a in activities if _evaluate_suspicious_activity(a)
+    )
+    total_count = len(activities)
+
+    # Base score from suspicious ratio
+    ratio = suspicious_count / total_count
+    score = ratio * 0.8
+
+    # Penalty for high absolute number of suspicious activities
+    if suspicious_count > 5:
+        score += 0.1
+    if suspicious_count > 10:
+        score += 0.05
+
+    return min(score, 1.0)
 
 
 # ---------------------------------------------------------------------------

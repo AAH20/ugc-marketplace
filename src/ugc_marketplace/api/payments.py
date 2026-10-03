@@ -1,166 +1,280 @@
-"""
-Payments API endpoints for UGC Marketplace.
+"""Payment API endpoints for UGC Marketplace."""
 
-Provides endpoints for listing payments and initiating payouts.
-"""
+from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import List, Optional
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+from uuid import UUID, uuid4
 
-router = APIRouter(prefix="/payments", tags=["payments"])
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
+from pydantic import BaseModel, Field, field_validator
+
+router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
 
 
-# ─── Pydantic Schemas ────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Pydantic Models
+# ---------------------------------------------------------------------------
 
-class PaymentSchema(BaseModel):
-    """Schema for a single payment record."""
-    id: str
-    creator_id: str
-    campaign_id: str
+class PaymentCreate(BaseModel):
+    """Schema for creating a new payment."""
+
+    order_id: UUID = Field(..., description="Associated order ID")
+    amount: float = Field(..., gt=0, description="Payment amount in currency units")
+    currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
+    method: str = Field(..., description="Payment method (e.g., credit_card, paypal, bank_transfer)")
+    payer_id: UUID = Field(..., description="ID of the user making the payment")
+    payee_id: UUID = Field(..., description="ID of the user receiving the payment")
+    description: Optional[str] = Field(default=None, max_length=500, description="Optional payment description")
+
+    @field_validator("currency")
+    @classmethod
+    def currency_uppercase(cls, v: str) -> str:
+        return v.upper()
+
+
+class PaymentUpdate(BaseModel):
+    """Schema for updating a payment's status."""
+
+    status: str = Field(..., description="New payment status")
+    transaction_id: Optional[str] = Field(default=None, description="External transaction reference")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional payment metadata")
+
+    @field_validator("status")
+    @classmethod
+    def valid_status(cls, v: str) -> str:
+        allowed = {"pending", "processing", "completed", "failed", "refunded", "cancelled"}
+        if v not in allowed:
+            raise ValueError(f"status must be one of: {', '.join(sorted(allowed))}")
+        return v
+
+
+class PaymentResponse(BaseModel):
+    """Schema for payment response."""
+
+    id: UUID
+    order_id: UUID
     amount: float
     currency: str
-    status: str  # pending, processing, completed, failed
-    payout_method: str  # bank_transfer, paypal, stripe
-    created_at: str
-    updated_at: Optional[str] = None
-    completed_at: Optional[str] = None
+    method: str
+    status: str
+    payer_id: UUID
+    payee_id: UUID
+    description: Optional[str] = None
     transaction_id: Optional[str] = None
-    failure_reason: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: str
+    updated_at: str
+
+    model_config = {"from_attributes": True}
 
 
 class PaymentListResponse(BaseModel):
-    """Paginated list of payments."""
-    data: List[PaymentSchema]
+    """Schema for paginated payment list response."""
+
+    items: List[PaymentResponse]
     total: int
     page: int
     page_size: int
-    total_pages: int
+    pages: int
 
 
-class PayoutRequest(BaseModel):
-    """Request body for initiating a payout."""
-    creator_id: str
-    amount: float = Field(..., gt=0, description="Payout amount must be positive")
-    currency: str = Field(default="USD", min_length=3, max_length=3)
-    payout_method: str = Field(..., description="One of: bank_transfer, paypal, stripe")
-    destination_id: str = Field(..., description="ID of the saved payout destination")
+class ErrorResponse(BaseModel):
+    """Schema for error responses."""
+
+    detail: str
 
 
-class PayoutResponse(BaseModel):
-    """Response after initiating a payout."""
-    id: str
-    creator_id: str
-    amount: float
-    currency: str
-    status: str
-    payout_method: str
-    estimated_arrival: str
-    created_at: str
+# ---------------------------------------------------------------------------
+# In-memory store (replace with database in production)
+# ---------------------------------------------------------------------------
+
+_payments_store: Dict[UUID, Dict[str, Any]] = {}
 
 
-# ─── Mock Data Helpers ───────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
-def _generate_mock_payments(page: int = 1, page_size: int = 10) -> PaymentListResponse:
-    """Generate realistic mock payment data."""
-    statuses = ["pending", "processing", "completed", "failed"]
-    payout_methods = ["bank_transfer", "paypal", "stripe"]
-    currencies = ["USD", "EUR", "GBP"]
-
-    total = 47  # Simulate 47 total payments in the system
-    total_pages = (total + page_size - 1) // page_size
-
-    # Generate deterministic mock records for the requested page
-    start_idx = (page - 1) * page_size
-    data: List[PaymentSchema] = []
-
-    for i in range(start_idx, min(start_idx + page_size, total)):
-        idx = i + 1
-        status = statuses[idx % len(statuses)]
-        method = payout_methods[idx % len(payout_methods)]
-        currency = currencies[idx % len(currencies)]
-        amount = round(25.0 + (idx * 13.37), 2)
-
-        created = datetime(2026, 9, 1, 10, 0, 0) + timedelta(days=idx, hours=idx % 12)
-        updated = created + timedelta(hours=2) if status != "pending" else None
-        completed = created + timedelta(days=1) if status == "completed" else None
-
-        data.append(PaymentSchema(
-            id=f"pay_{idx:06d}",
-            creator_id=f"usr_creator_{idx:04d}",
-            campaign_id=f"cmp_{idx:05d}",
-            amount=amount,
-            currency=currency,
-            status=status,
-            payout_method=method,
-            created_at=created.isoformat(),
-            updated_at=updated.isoformat() if updated else None,
-            completed_at=completed.isoformat() if completed else None,
-            transaction_id=f"txn_{idx:08d}" if status in ("completed", "processing") else None,
-            failure_reason="Insufficient funds" if status == "failed" else None,
-        ))
-
-    return PaymentListResponse(
-        data=data,
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-    )
-
-
-# ─── Endpoints ───────────────────────────────────────────────────────────────
-
-@router.get("", response_model=PaymentListResponse)
+@router.get(
+    "",
+    response_model=PaymentListResponse,
+    responses={500: {"model": ErrorResponse, "description": "Internal server error"}},
+    summary="List payments",
+    description="Retrieve a paginated list of all payments.",
+)
 async def list_payments(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
-    page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    status: Optional[str] = Query(default=None, description="Filter by status"),
-    creator_id: Optional[str] = Query(default=None, description="Filter by creator ID"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    status: Optional[str] = Query(default=None, description="Filter by payment status"),
 ) -> PaymentListResponse:
-    """
-    List payments with pagination.
+    """List payments with optional filtering and pagination."""
+    try:
+        all_payments: List[Dict[str, Any]] = list(_payments_store.values())
 
-    Returns a paginated list of payment records. Supports filtering by status
-    and creator_id.
-    """
-    response = _generate_mock_payments(page=page, page_size=page_size)
+        if status:
+            all_payments = [p for p in all_payments if p["status"] == status]
 
-    # Apply filters if provided
-    if status:
-        response.data = [p for p in response.data if p.status == status]
-    if creator_id:
-        response.data = [p for p in response.data if p.creator_id == creator_id]
+        total = len(all_payments)
+        pages = (total + page_size - 1) // page_size if total > 0 else 1
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated = all_payments[start:end]
 
-    return response
-
-
-@router.post("/payout", response_model=PayoutResponse, status_code=201)
-async def initiate_payout(payload: PayoutRequest) -> PayoutResponse:
-    """
-    Initiate a payout for a creator.
-
-    Creates a new payout request. The payout will be processed asynchronously
-    and the status can be tracked via the payment ID returned.
-    """
-    valid_methods = {"bank_transfer", "paypal", "stripe"}
-    if payload.payout_method not in valid_methods:
+        return PaymentListResponse(
+            items=[PaymentResponse(**p) for p in paginated],
+            total=total,
+            page=page,
+            page_size=page_size,
+            pages=pages,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
         raise HTTPException(
-            status_code=400,
-            detail=f"Invalid payout_method. Must be one of: {', '.join(valid_methods)}",
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve payments: {str(exc)}",
         )
 
-    payout_id = f"pay_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{payload.creator_id[-4:]}"
-    estimated = datetime.utcnow() + timedelta(days=3)
 
-    return PayoutResponse(
-        id=payout_id,
-        creator_id=payload.creator_id,
-        amount=payload.amount,
-        currency=payload.currency,
-        status="pending",
-        payout_method=payload.payout_method,
-        estimated_arrival=estimated.isoformat(),
-        created_at=datetime.utcnow().isoformat(),
-    )
+@router.post(
+    "",
+    response_model=PaymentResponse,
+    status_code=http_status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "Payment created successfully"},
+        400: {"model": ErrorResponse, "description": "Invalid input data"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+    summary="Create payment",
+    description="Create a new payment record.",
+)
+async def create_payment(payment: PaymentCreate) -> PaymentResponse:
+    """Create a new payment."""
+    try:
+        payment_id = uuid4()
+        now = "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+
+        payment_data: Dict[str, Any] = {
+            "id": payment_id,
+            "order_id": payment.order_id,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "method": payment.method,
+            "status": "pending",
+            "payer_id": payment.payer_id,
+            "payee_id": payment.payee_id,
+            "description": payment.description,
+            "transaction_id": None,
+            "metadata": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        _payments_store[payment_id] = payment_data
+        return PaymentResponse(**payment_data)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create payment: {str(exc)}",
+        )
+
+
+@router.get(
+    "/{payment_id}",
+    response_model=PaymentResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Payment not found"},
+        422: {"model": ErrorResponse, "description": "Invalid payment ID format"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+    summary="Get payment by ID",
+    description="Retrieve a single payment by its unique identifier.",
+)
+async def get_payment(payment_id: UUID) -> PaymentResponse:
+    """Get a payment by ID."""
+    try:
+        payment_data = _payments_store.get(payment_id)
+        if payment_data is None:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Payment with id {payment_id} not found",
+            )
+        return PaymentResponse(**payment_data)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve payment: {str(exc)}",
+        )
+
+
+@router.put(
+    "/{payment_id}",
+    response_model=PaymentResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Payment not found"},
+        400: {"model": ErrorResponse, "description": "Invalid update data"},
+        422: {"model": ErrorResponse, "description": "Invalid payment ID format"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+    summary="Update payment status",
+    description="Update the status and optional fields of an existing payment.",
+)
+async def update_payment(payment_id: UUID, update: PaymentUpdate) -> PaymentResponse:
+    """Update a payment's status."""
+    try:
+        payment_data = _payments_store.get(payment_id)
+        if payment_data is None:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Payment with id {payment_id} not found",
+            )
+
+        payment_data["status"] = update.status
+        if update.transaction_id is not None:
+            payment_data["transaction_id"] = update.transaction_id
+        if update.metadata is not None:
+            payment_data["metadata"] = update.metadata
+        payment_data["updated_at"] = "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+
+        return PaymentResponse(**payment_data)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update payment: {str(exc)}",
+        )
+
+
+@router.delete(
+    "/{payment_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {"model": ErrorResponse, "description": "Payment not found"},
+        422: {"model": ErrorResponse, "description": "Invalid payment ID format"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+    summary="Delete payment",
+    description="Permanently delete a payment record.",
+)
+async def delete_payment(payment_id: UUID) -> None:
+    """Delete a payment by ID."""
+    try:
+        if payment_id not in _payments_store:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Payment with id {payment_id} not found",
+            )
+        del _payments_store[payment_id]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete payment: {str(exc)}",
+        )

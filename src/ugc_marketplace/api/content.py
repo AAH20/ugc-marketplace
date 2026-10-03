@@ -1,10 +1,4 @@
-"""
-Content API endpoints for UGC Marketplace.
-
-Provides:
-  GET  /content  — list content with pagination, filtering by type/status
-  POST /content  — create content with validation
-"""
+"""Content API endpoints for UGC Marketplace."""
 
 from __future__ import annotations
 
@@ -15,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
-router = APIRouter(prefix="/content", tags=["content"])
+router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
 
 # ─── Mock data store ────────────────────────────────────────────────────────
@@ -226,6 +220,42 @@ class ContentCreate(BaseModel):
         return v
 
 
+class ContentUpdate(BaseModel):
+    """Schema for updating existing content."""
+
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    type: Optional[str] = Field(None, description="Content type: image, video, or review")
+    status: Optional[str] = Field(None, description="Content status")
+    description: Optional[str] = Field(None, max_length=2000)
+    tags: Optional[List[str]] = None
+    media_url: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_TYPES:
+            raise ValueError(f"type must be one of: {', '.join(sorted(VALID_TYPES))}")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_STATUSES:
+            raise ValueError(f"status must be one of: {', '.join(sorted(VALID_STATUSES))}")
+        return v
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is not None:
+            if len(v) > 20:
+                raise ValueError("maximum 20 tags allowed")
+            for tag in v:
+                if len(tag) > 50:
+                    raise ValueError("each tag must be 50 characters or fewer")
+        return v
+
+
 class ContentResponse(BaseModel):
     """Schema for content response."""
 
@@ -328,3 +358,53 @@ async def create_content(payload: ContentCreate) -> Dict[str, Any]:
     MOCK_CONTENT.append(new_content)
 
     return new_content
+
+
+@router.get("/{content_id}", response_model=ContentResponse)
+async def get_content(content_id: str) -> Dict[str, Any]:
+    """
+    Get a single content item by ID.
+    """
+    for item in MOCK_CONTENT:
+        if item["id"] == content_id:
+            return item
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Content with id '{content_id}' not found",
+    )
+
+
+@router.put("/{content_id}", response_model=ContentResponse)
+async def update_content(content_id: str, payload: ContentUpdate) -> Dict[str, Any]:
+    """
+    Update an existing content item. Returns the updated content object.
+    """
+    for i, item in enumerate(MOCK_CONTENT):
+        if item["id"] == content_id:
+            update_data = payload.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                item[field] = value
+            item["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            return item
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Content with id '{content_id}' not found",
+    )
+
+
+@router.delete("/{content_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_content(content_id: str) -> None:
+    """
+    Delete a content item by ID.
+    """
+    for i, item in enumerate(MOCK_CONTENT):
+        if item["id"] == content_id:
+            MOCK_CONTENT.pop(i)
+            return None
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Content with id '{content_id}' not found",
+    )

@@ -599,3 +599,97 @@ def trending_content(
         A list of content item dictionaries, sorted by trending score.
     """
     return _default_agent.trending_content(category, timeframe, limit)
+
+
+def search_content(query: str, filters: dict[str, Any]) -> list[dict[str, Any]]:
+    """Search content items by free-text query with optional filters.
+
+    Args:
+        query: Free-text search string matched against title and tags.
+        filters: Optional filter criteria. Supported keys:
+            - ``category``: Filter by content category (str or ContentCategory).
+            - ``min_likes``: Minimum number of likes (int).
+            - ``min_views``: Minimum number of views (int).
+            - ``tags``: List of tags; items must match at least one (list[str]).
+            - ``creator_id``: Filter by creator identifier (str).
+
+    Returns:
+        A list of content item dictionaries matching the query and filters,
+        sorted by relevance score.
+
+    Raises:
+        ValueError: If ``query`` is empty or ``filters`` is not a dict.
+    """
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("query must be a non-empty string")
+    if not isinstance(filters, dict):
+        raise ValueError("filters must be a dictionary")
+
+    query_lower = query.strip().lower()
+    results: list[dict[str, Any]] = []
+
+    for item in _default_agent._content_pool:
+        # Text match on title or tags
+        title_match = query_lower in item.title.lower()
+        tag_match = any(query_lower in tag.lower() for tag in item.tags)
+        if not (title_match or tag_match):
+            continue
+
+        # Apply filters
+        if "category" in filters:
+            cat_filter = filters["category"]
+            if isinstance(cat_filter, str):
+                try:
+                    cat_filter = ContentCategory(cat_filter.lower())
+                except ValueError:
+                    valid = [c.value for c in ContentCategory]
+                    raise ValueError(
+                        f"Invalid category '{cat_filter}'. Valid options: {valid}"
+                    )
+            if item.category != cat_filter:
+                continue
+
+        if "min_likes" in filters and item.likes < filters["min_likes"]:
+            continue
+        if "min_views" in filters and item.views < filters["min_views"]:
+            continue
+        if "creator_id" in filters and item.creator_id != filters["creator_id"]:
+            continue
+        if "tags" in filters:
+            required_tags = set(filters["tags"])
+            if not required_tags.intersection(item.tags):
+                continue
+
+        results.append(item.to_dict())
+
+    return results
+
+
+def get_trending_content(category: str, limit: int = 10) -> list[dict[str, Any]]:
+    """Get trending content for a given category.
+
+    Args:
+        category: Content category (e.g. ``"video"``, ``"image"``, ``"audio"``,
+            ``"text"``, ``"mixed"``).
+        limit: Maximum number of trending items to return.
+
+    Returns:
+        A list of content item dictionaries, sorted by trending score.
+
+    Raises:
+        ValueError: If ``category`` is empty/invalid or ``limit`` is not positive.
+    """
+    if not isinstance(category, str) or not category.strip():
+        raise ValueError("category must be a non-empty string")
+    if not isinstance(limit, int) or limit <= 0:
+        raise ValueError(f"limit must be a positive integer, got {limit}")
+
+    try:
+        cat_enum = ContentCategory(category.lower())
+    except ValueError:
+        valid = [c.value for c in ContentCategory]
+        raise ValueError(
+            f"Invalid category '{category}'. Valid options: {valid}"
+        )
+
+    return _default_agent.trending_content(category=cat_enum, limit=limit)
