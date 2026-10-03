@@ -1,9 +1,10 @@
-"""Tests for rights management module-level functions."""
+"""Tests for rights management agents."""
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -19,6 +20,17 @@ from ugc_marketplace.agents.rights_management import (
     grant_rights,
     license_content,
     revoke_license,
+)
+from ugc_marketplace.agents.rights_management.base import BaseAgent
+from ugc_marketplace.agents.rights_management.types import (
+    InfringementDetectionRequest,
+    InfringementDetectionResult,
+    LicenseDetectionRequest,
+    LicenseDetectionResult,
+    RightsValidation,
+    RightsValidationRequest,
+    TakedownRequest,
+    UsageRecord,
 )
 
 
@@ -57,9 +69,543 @@ def valid_license_terms() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_licenses_db() -> dict[str, dict[str, Any]]:
-    """Empty mock licenses database for testing."""
-    return {}
+def infringement_request(
+    sample_content_id: str,
+) -> InfringementDetectionRequest:
+    """Sample infringement detection request."""
+    return InfringementDetectionRequest(
+        content_id=sample_content_id,
+        content_url="https://example.com/content/123",
+        content_type="image",
+        reporter_id="reporter_001",
+    )
+
+
+@pytest.fixture
+def license_request(
+    sample_content_id: str,
+) -> LicenseDetectionRequest:
+    """Sample license detection request."""
+    return LicenseDetectionRequest(
+        content_id=sample_content_id,
+        content_url="https://example.com/content/123",
+        content_type="video",
+    )
+
+
+@pytest.fixture
+def rights_validation_request(
+    sample_content_id: str, sample_user_id: str
+) -> RightsValidationRequest:
+    """Sample rights validation request."""
+    return RightsValidationRequest(
+        content_id=sample_content_id,
+        user_id=sample_user_id,
+        action="download",
+    )
+
+
+@pytest.fixture
+def takedown_request(sample_content_id: str) -> TakedownRequest:
+    """Sample takedown request."""
+    return TakedownRequest(
+        content_id=sample_content_id,
+        reason="Copyright infringement",
+        requester_id="rights_holder_001",
+        legal_basis="DMCA",
+    )
+
+
+@pytest.fixture
+def usage_record(sample_content_id: str, sample_user_id: str) -> UsageRecord:
+    """Sample usage record."""
+    return UsageRecord(
+        content_id=sample_content_id,
+        user_id=sample_user_id,
+        usage_type="view",
+        metadata={"source": "test"},
+    )
+
+
+@pytest.fixture
+def mock_llm() -> MagicMock:
+    """Mock LLM for testing."""
+    mock = MagicMock()
+    mock.invoke = AsyncMock(return_value=MagicMock(content="test response"))
+    return mock
+
+
+# ---------------------------------------------------------------------------
+# BaseAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestBaseAgent:
+    """Tests for the BaseAgent abstract class."""
+
+    def test_base_agent_is_abstract(self) -> None:
+        """Test that BaseAgent cannot be instantiated directly."""
+        with pytest.raises(TypeError):
+            BaseAgent()  # type: ignore[abstract]
+
+    def test_base_agent_llm_lazy_init(self, mock_llm: MagicMock) -> None:
+        """Test that LLM is lazily initialized."""
+        agent = RightsValidatorAgent()
+        assert agent._llm is None
+
+        with patch(
+            "ugc_marketplace.agents.rights_management.base.ChatOpenAI",
+            return_value=mock_llm,
+        ):
+            llm = agent.llm
+            assert llm is mock_llm
+            assert agent._llm is mock_llm
+
+    def test_base_agent_llm_cached(self, mock_llm: MagicMock) -> None:
+        """Test that LLM is cached after first access."""
+        agent = RightsValidatorAgent()
+
+        with patch(
+            "ugc_marketplace.agents.rights_management.base.ChatOpenAI",
+            return_value=mock_llm,
+        ):
+            llm1 = agent.llm
+            llm2 = agent.llm
+            assert llm1 is llm2
+
+
+# ---------------------------------------------------------------------------
+# InfringementDetectorAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestInfringementDetectorAgent:
+    """Tests for InfringementDetectorAgent."""
+
+    @pytest.mark.asyncio
+    async def test_execute_returns_result(
+        self, infringement_request: InfringementDetectionRequest
+    ) -> None:
+        """Test that execute returns an InfringementDetectionResult."""
+        agent = InfringementDetectorAgent()
+        result = await agent.execute(infringement_request)
+        assert isinstance(result, InfringementDetectionResult)
+
+    @pytest.mark.asyncio
+    async def test_execute_result_contains_content_id(
+        self, infringement_request: InfringementDetectionRequest
+    ) -> None:
+        """Test that result contains the correct content_id."""
+        agent = InfringementDetectorAgent()
+        result = await agent.execute(infringement_request)
+        assert result.content_id == infringement_request.content_id
+
+    @pytest.mark.asyncio
+    async def test_execute_result_has_confidence(
+        self, infringement_request: InfringementDetectionRequest
+    ) -> None:
+        """Test that result has a confidence score."""
+        agent = InfringementDetectorAgent()
+        result = await agent.execute(infringement_request)
+        assert isinstance(result.confidence, float)
+        assert 0.0 <= result.confidence <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_execute_result_has_is_infringing_flag(
+        self, infringement_request: InfringementDetectionRequest
+    ) -> None:
+        """Test that result has an is_infringing boolean flag."""
+        agent = InfringementDetectorAgent()
+        result = await agent.execute(infringement_request)
+        assert isinstance(result.is_infringing, bool)
+
+    @pytest.mark.asyncio
+    async def test_check_copyright_tool(self, sample_content_id: str) -> None:
+        """Test the _check_copyright tool."""
+        result = await InfringementDetectorAgent._check_copyright(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "violations" in result
+
+    @pytest.mark.asyncio
+    async def test_check_trademark_tool(self, sample_content_id: str) -> None:
+        """Test the _check_trademark tool."""
+        result = await InfringementDetectorAgent._check_trademark(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "violations" in result
+
+    @pytest.mark.asyncio
+    async def test_check_unauthorized_use_tool(self, sample_content_id: str) -> None:
+        """Test the _check_unauthorized_use tool."""
+        result = await InfringementDetectorAgent._check_unauthorized_use(
+            sample_content_id
+        )
+        assert result["content_id"] == sample_content_id
+        assert "violations" in result
+
+    @pytest.mark.asyncio
+    async def test_build_agent(self) -> None:
+        """Test that _build_agent returns an agent instance."""
+        agent = InfringementDetectorAgent()
+        built = agent._build_agent()
+        assert built is not None
+
+
+# ---------------------------------------------------------------------------
+# LicenseDetectorAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestLicenseDetectorAgent:
+    """Tests for LicenseDetectorAgent."""
+
+    @pytest.mark.asyncio
+    async def test_execute_returns_result(
+        self, license_request: LicenseDetectionRequest
+    ) -> None:
+        """Test that execute returns a LicenseDetectionResult."""
+        agent = LicenseDetectorAgent()
+        result = await agent.execute(license_request)
+        assert isinstance(result, LicenseDetectionResult)
+
+    @pytest.mark.asyncio
+    async def test_execute_result_contains_content_id(
+        self, license_request: LicenseDetectionRequest
+    ) -> None:
+        """Test that result contains the correct content_id."""
+        agent = LicenseDetectorAgent()
+        result = await agent.execute(license_request)
+        assert result.content_id == license_request.content_id
+
+    @pytest.mark.asyncio
+    async def test_execute_result_has_confidence(
+        self, license_request: LicenseDetectionRequest
+    ) -> None:
+        """Test that result has a confidence score."""
+        agent = LicenseDetectorAgent()
+        result = await agent.execute(license_request)
+        assert isinstance(result.confidence, float)
+        assert 0.0 <= result.confidence <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_check_license_status_tool(self, sample_content_id: str) -> None:
+        """Test the _check_license_status tool."""
+        result = await LicenseDetectorAgent._check_license_status(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "license_status" in result
+
+    @pytest.mark.asyncio
+    async def test_verify_usage_rights_tool(self, sample_content_id: str) -> None:
+        """Test the _verify_usage_rights tool."""
+        result = await LicenseDetectorAgent._verify_usage_rights(
+            sample_content_id, "commercial_use"
+        )
+        assert result["content_id"] == sample_content_id
+        assert result["usage_type"] == "commercial_use"
+        assert "authorized" in result
+
+    @pytest.mark.asyncio
+    async def test_detect_expired_licenses_tool(
+        self, sample_content_id: str
+    ) -> None:
+        """Test the _detect_expired_licenses tool."""
+        result = await LicenseDetectorAgent._detect_expired_licenses(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "expired" in result
+
+    @pytest.mark.asyncio
+    async def test_build_agent(self) -> None:
+        """Test that _build_agent returns an agent instance."""
+        agent = LicenseDetectorAgent()
+        built = agent._build_agent()
+        assert built is not None
+
+
+# ---------------------------------------------------------------------------
+# RightsValidatorAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestRightsValidatorAgent:
+    """Tests for RightsValidatorAgent."""
+
+    @pytest.mark.asyncio
+    async def test_execute_returns_result(
+        self, rights_validation_request: RightsValidationRequest
+    ) -> None:
+        """Test that execute returns a RightsValidation."""
+        agent = RightsValidatorAgent()
+        result = await agent.execute(rights_validation_request)
+        assert isinstance(result, RightsValidation)
+
+    @pytest.mark.asyncio
+    async def test_execute_result_contains_content_id(
+        self, rights_validation_request: RightsValidationRequest
+    ) -> None:
+        """Test that result contains the correct content_id."""
+        agent = RightsValidatorAgent()
+        result = await agent.execute(rights_validation_request)
+        assert result.content_id == rights_validation_request.content_id
+
+    @pytest.mark.asyncio
+    async def test_execute_result_contains_user_id(
+        self, rights_validation_request: RightsValidationRequest
+    ) -> None:
+        """Test that result contains the correct user_id."""
+        agent = RightsValidatorAgent()
+        result = await agent.execute(rights_validation_request)
+        assert result.user_id == rights_validation_request.user_id
+
+    @pytest.mark.asyncio
+    async def test_execute_result_contains_action(
+        self, rights_validation_request: RightsValidationRequest
+    ) -> None:
+        """Test that result contains the correct action."""
+        agent = RightsValidatorAgent()
+        result = await agent.execute(rights_validation_request)
+        assert result.action == rights_validation_request.action
+
+    @pytest.mark.asyncio
+    async def test_execute_result_has_is_allowed_flag(
+        self, rights_validation_request: RightsValidationRequest
+    ) -> None:
+        """Test that result has an is_allowed boolean flag."""
+        agent = RightsValidatorAgent()
+        result = await agent.execute(rights_validation_request)
+        assert isinstance(result.is_allowed, bool)
+
+    @pytest.mark.asyncio
+    async def test_validate_usage_tool(self, sample_content_id: str) -> None:
+        """Test the _validate_usage tool."""
+        result = await RightsValidatorAgent._validate_usage(
+            sample_content_id, "commercial_use"
+        )
+        assert result["content_id"] == sample_content_id
+        assert result["usage_type"] == "commercial_use"
+        assert "valid" in result
+
+    @pytest.mark.asyncio
+    async def test_check_territory_tool(self, sample_content_id: str) -> None:
+        """Test the _check_territory tool."""
+        result = await RightsValidatorAgent._check_territory(sample_content_id, "US")
+        assert result["content_id"] == sample_content_id
+        assert result["territory"] == "US"
+        assert "allowed" in result
+
+    @pytest.mark.asyncio
+    async def test_check_duration_tool(self, sample_content_id: str) -> None:
+        """Test the _check_duration tool."""
+        result = await RightsValidatorAgent._check_duration(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "within_duration" in result
+
+    @pytest.mark.asyncio
+    async def test_build_agent(self) -> None:
+        """Test that _build_agent returns an agent instance."""
+        agent = RightsValidatorAgent()
+        built = agent._build_agent()
+        assert built is not None
+
+
+# ---------------------------------------------------------------------------
+# TakedownAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestTakedownAgent:
+    """Tests for TakedownAgent."""
+
+    @pytest.mark.asyncio
+    async def test_execute_returns_result(
+        self, takedown_request: TakedownRequest
+    ) -> None:
+        """Test that execute returns a TakedownRequest."""
+        agent = TakedownAgent()
+        result = await agent.execute(takedown_request.__dict__)
+        assert isinstance(result, TakedownRequest)
+
+    @pytest.mark.asyncio
+    async def test_validate_takedown_request_tool(self) -> None:
+        """Test the _validate_takedown_request tool."""
+        request_data = {
+            "content_id": "content_123",
+            "reason": "Copyright infringement",
+            "requester_id": "user_456",
+        }
+        result = await TakedownAgent._validate_takedown_request(request_data)
+        assert "valid" in result
+        assert "errors" in result
+
+    @pytest.mark.asyncio
+    async def test_process_removal_tool(self, sample_content_id: str) -> None:
+        """Test the _process_removal tool."""
+        result = await TakedownAgent._process_removal(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert result["removed"] is True
+
+    @pytest.mark.asyncio
+    async def test_notify_stakeholders_tool(self, sample_content_id: str) -> None:
+        """Test the _notify_stakeholders tool."""
+        request_data = {"reason": "Copyright infringement"}
+        result = await TakedownAgent._notify_stakeholders(
+            sample_content_id, request_data
+        )
+        assert result["notified"] is True
+        assert result["content_id"] == sample_content_id
+
+    @pytest.mark.asyncio
+    async def test_build_agent(self) -> None:
+        """Test that _build_agent returns an agent instance."""
+        agent = TakedownAgent()
+        built = agent._build_agent()
+        assert built is not None
+
+
+# ---------------------------------------------------------------------------
+# UsageTrackerAgent Tests
+# ---------------------------------------------------------------------------
+
+
+class TestUsageTrackerAgent:
+    """Tests for UsageTrackerAgent."""
+
+    @pytest.mark.asyncio
+    async def test_execute_returns_result(
+        self, sample_content_id: str, sample_user_id: str
+    ) -> None:
+        """Test that execute returns a UsageRecord."""
+        agent = UsageTrackerAgent()
+        input_data = {
+            "content_id": sample_content_id,
+            "user_id": sample_user_id,
+            "usage_type": "view",
+        }
+        result = await agent.execute(input_data)
+        assert isinstance(result, UsageRecord)
+
+    @pytest.mark.asyncio
+    async def test_record_usage_tool(self, sample_content_id: str) -> None:
+        """Test the _record_usage tool."""
+        usage_data = {"type": "view", "duration": 30}
+        result = await UsageTrackerAgent._record_usage(sample_content_id, usage_data)
+        assert result["content_id"] == sample_content_id
+        assert result["usage"] == usage_data
+        assert "recorded_at" in result
+
+    @pytest.mark.asyncio
+    async def test_check_usage_limits_tool(self, sample_content_id: str) -> None:
+        """Test the _check_usage_limits tool."""
+        result = await UsageTrackerAgent._check_usage_limits(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "within_limits" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_usage_report_tool(self, sample_content_id: str) -> None:
+        """Test the _generate_usage_report tool."""
+        result = await UsageTrackerAgent._generate_usage_report(sample_content_id)
+        assert result["content_id"] == sample_content_id
+        assert "report" in result
+
+    @pytest.mark.asyncio
+    async def test_build_agent(self) -> None:
+        """Test that _build_agent returns an agent instance."""
+        agent = UsageTrackerAgent()
+        built = agent._build_agent()
+        assert built is not None
+
+
+# ---------------------------------------------------------------------------
+# Type Tests
+# ---------------------------------------------------------------------------
+
+
+class TestTypes:
+    """Tests for rights management type definitions."""
+
+    def test_infringement_detection_request(self) -> None:
+        """Test InfringementDetectionRequest dataclass."""
+        req = InfringementDetectionRequest(
+            content_id="c1",
+            content_url="https://example.com",
+            content_type="image",
+        )
+        assert req.content_id == "c1"
+        assert req.reporter_id is None
+
+    def test_infringement_detection_result(self) -> None:
+        """Test InfringementDetectionResult dataclass."""
+        result = InfringementDetectionResult(
+            content_id="c1",
+            is_infringing=True,
+            confidence=0.95,
+        )
+        assert result.content_id == "c1"
+        assert result.is_infringing is True
+        assert result.confidence == 0.95
+        assert result.original_content_url is None
+        assert result.details == {}
+
+    def test_license_detection_request(self) -> None:
+        """Test LicenseDetectionRequest dataclass."""
+        req = LicenseDetectionRequest(
+            content_id="c1",
+            content_url="https://example.com",
+            content_type="video",
+        )
+        assert req.content_id == "c1"
+        assert req.content_type == "video"
+
+    def test_license_detection_result(self) -> None:
+        """Test LicenseDetectionResult dataclass."""
+        result = LicenseDetectionResult(content_id="c1")
+        assert result.content_id == "c1"
+        assert result.license_type is None
+        assert result.license_url is None
+        assert result.confidence == 0.0
+
+    def test_rights_validation_request(self) -> None:
+        """Test RightsValidationRequest dataclass."""
+        req = RightsValidationRequest(
+            content_id="c1",
+            user_id="u1",
+            action="download",
+        )
+        assert req.content_id == "c1"
+        assert req.user_id == "u1"
+        assert req.action == "download"
+
+    def test_rights_validation(self) -> None:
+        """Test RightsValidation dataclass."""
+        val = RightsValidation(
+            content_id="c1",
+            user_id="u1",
+            action="download",
+            is_allowed=True,
+        )
+        assert val.content_id == "c1"
+        assert val.is_allowed is True
+        assert val.reason is None
+
+    def test_takedown_request(self) -> None:
+        """Test TakedownRequest dataclass."""
+        req = TakedownRequest(
+            content_id="c1",
+            reason="DMCA",
+            requester_id="rh1",
+        )
+        assert req.content_id == "c1"
+        assert req.legal_basis is None
+
+    def test_usage_record(self) -> None:
+        """Test UsageRecord dataclass."""
+        record = UsageRecord(
+            content_id="c1",
+            user_id="u1",
+            usage_type="view",
+        )
+        assert record.content_id == "c1"
+        assert record.user_id == "u1"
+        assert record.usage_type == "view"
+        assert record.metadata == {}
 
 
 # ---------------------------------------------------------------------------
@@ -664,3 +1210,107 @@ class TestModuleLevelFunctions:
         )
         assert isinstance(result, GrantResult)
         assert result.success is True
+
+
+# ---------------------------------------------------------------------------
+# Integration-style Tests
+# ---------------------------------------------------------------------------
+
+
+class TestRightsManagementIntegration:
+    """Integration-style tests for rights management agents."""
+
+    @pytest.mark.asyncio
+    async def test_full_rights_validation_workflow(
+        self,
+        sample_content_id: str,
+        sample_user_id: str,
+    ) -> None:
+        """Test a full rights validation workflow."""
+        # Step 1: Check for infringement
+        infringement_agent = InfringementDetectorAgent()
+        infringement_result = await infringement_agent.execute(
+            InfringementDetectionRequest(
+                content_id=sample_content_id,
+                content_url="https://example.com/content/123",
+                content_type="image",
+            )
+        )
+        assert isinstance(infringement_result, InfringementDetectionResult)
+
+        # Step 2: Detect license
+        license_agent = LicenseDetectorAgent()
+        license_result = await license_agent.execute(
+            LicenseDetectionRequest(
+                content_id=sample_content_id,
+                content_url="https://example.com/content/123",
+                content_type="image",
+            )
+        )
+        assert isinstance(license_result, LicenseDetectionResult)
+
+        # Step 3: Validate rights
+        validator_agent = RightsValidatorAgent()
+        validation_result = await validator_agent.execute(
+            RightsValidationRequest(
+                content_id=sample_content_id,
+                user_id=sample_user_id,
+                action="download",
+            )
+        )
+        assert isinstance(validation_result, RightsValidation)
+
+    @pytest.mark.asyncio
+    async def test_takedown_and_usage_tracking_workflow(
+        self, sample_content_id: str, sample_user_id: str
+    ) -> None:
+        """Test takedown followed by usage tracking."""
+        # Step 1: Process takedown
+        takedown_agent = TakedownAgent()
+        takedown_result = await takedown_agent.execute(
+            {
+                "content_id": sample_content_id,
+                "reason": "Copyright infringement",
+                "requester_id": "rights_holder_001",
+            }
+        )
+        assert isinstance(takedown_result, TakedownRequest)
+
+        # Step 2: Track usage after takedown
+        usage_agent = UsageTrackerAgent()
+        usage_result = await usage_agent.execute(
+            {
+                "content_id": sample_content_id,
+                "user_id": sample_user_id,
+                "usage_type": "view",
+            }
+        )
+        assert isinstance(usage_result, UsageRecord)
+
+    @pytest.mark.asyncio
+    async def test_all_agents_inherit_base_agent(self) -> None:
+        """Test that all rights management agents inherit from BaseAgent."""
+        agents = [
+            InfringementDetectorAgent(),
+            LicenseDetectorAgent(),
+            RightsValidatorAgent(),
+            TakedownAgent(),
+            UsageTrackerAgent(),
+        ]
+        for agent in agents:
+            assert isinstance(agent, BaseAgent)
+
+    @pytest.mark.asyncio
+    async def test_all_agents_have_build_agent(self) -> None:
+        """Test that all agents have _build_agent method."""
+        agents = [
+            InfringementDetectorAgent(),
+            LicenseDetectorAgent(),
+            RightsValidatorAgent(),
+            TakedownAgent(),
+            UsageTrackerAgent(),
+        ]
+        for agent in agents:
+            assert hasattr(agent, "_build_agent")
+            built = agent._build_agent()
+            assert built is not None

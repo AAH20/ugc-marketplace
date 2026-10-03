@@ -6,17 +6,32 @@ deletion, payment processing, and fraud detection.
 
 from __future__ import annotations
 
+import importlib.util
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
-from ugc_marketplace.agents.fraud_detection import (
-    FraudRiskLevel,
-    detect_fraud,
-    flag_suspicious_activity,
-    get_fraud_score,
-    investigate_fraud,
+# Load the fraud_detection module directly since the package shadows it
+_module_path = (
+    Path(__file__).resolve().parent.parent.parent
+    / "src"
+    / "ugc_marketplace"
+    / "agents"
+    / "fraud_detection.py"
 )
+_spec = importlib.util.spec_from_file_location("_fraud_detection_module", _module_path)
+_fraud_detection = importlib.util.module_from_spec(_spec)
+sys.modules["_fraud_detection_module"] = _fraud_detection
+_spec.loader.exec_module(_fraud_detection)
+
+detect_fraud = _fraud_detection.detect_fraud
+flag_suspicious_activity = _fraud_detection.flag_suspicious_activity
+get_fraud_score = _fraud_detection.get_fraud_score
+investigate_fraud = _fraud_detection.investigate_fraud
+FraudRiskLevel = _fraud_detection.FraudRiskLevel
+
 from ugc_marketplace.services.payment_service import (
     create_payment,
     get_payment,
