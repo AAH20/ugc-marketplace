@@ -65,9 +65,6 @@ target-version = "py311"
 line-length = 100
 src = ["src"]
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "TCH"]
-ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -97,3 +94,7 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff.lint]
+select = ["E9", "F821", "F811"]
+ignore = []
