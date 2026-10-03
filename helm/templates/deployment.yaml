@@ -4,24 +4,18 @@ metadata:
   name: {{ include "ugc-marketplace.fullname" . }}
   labels:
     {{- include "ugc-marketplace.labels" . | nindent 4 }}
-    app.kubernetes.io/component: api
-    app.kubernetes.io/part-of: ugc-marketplace
-  {{- with .Values.podAnnotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
-  {{- with .Values.deploymentStrategy }}
-  strategy:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "ugc-marketplace.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       annotations:
@@ -29,14 +23,11 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
-        prometheus.io/scrape: "{{ .Values.monitoring.enabled }}"
-        prometheus.io/port: "{{ .Values.config.METRICS_PORT }}"
-        prometheus.io/path: "/metrics"
       labels:
         {{- include "ugc-marketplace.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: api
-        app.kubernetes.io/part-of: ugc-marketplace
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -49,21 +40,16 @@ spec:
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.hostAliases }}
-      hostAliases:
+      {{- with .Values.affinity }}
+      affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.dnsConfig }}
-      dnsConfig:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      dnsPolicy: {{ .Values.dnsPolicy }}
-      {{- if .Values.priorityClassName }}
-      priorityClassName: {{ .Values.priorityClassName }}
-      {{- end }}
-      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
-      {{- with .Values.initContainers }}
-      initContainers:
+      {{- with .Values.tolerations }}
+      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
@@ -75,36 +61,7 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
-              protocol: TCP
-            {{- if .Values.monitoring.enabled }}
-            - name: metrics
-              containerPort: {{ .Values.config.METRICS_PORT }}
-              protocol: TCP
-            {{- end }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "ugc-marketplace.fullname" . }}-config
-            - secretRef:
-                name: {{ include "ugc-marketplace.fullname" . }}-secrets
-          {{- with .Values.extraEnvFrom }}
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            {{- with .Values.extraEnv }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
+              protocol: {{ .Values.service.protocol }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -113,34 +70,62 @@ spec:
             {{- toYaml .Values.startupProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.lifecycle }}
-          lifecycle:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-            {{- with .Values.extraVolumeMounts }}
+          env:
+            - name: PORT
+              value: {{ .Values.config.port | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            - name: DATABASE_HOST
+              value: {{ .Values.config.database.host | quote }}
+            - name: DATABASE_PORT
+              value: {{ .Values.config.database.port | quote }}
+            - name: DATABASE_NAME
+              value: {{ .Values.config.database.name | quote }}
+            - name: DATABASE_USER
+              value: {{ .Values.config.database.user | quote }}
+            - name: DATABASE_SSL_MODE
+              value: {{ .Values.config.database.sslMode | quote }}
+            - name: REDIS_HOST
+              value: {{ .Values.config.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.config.redis.port | quote }}
+            - name: JWT_EXPIRATION
+              value: {{ .Values.config.jwt.expiration | quote }}
+            - name: CORS_ALLOWED_ORIGINS
+              value: {{ .Values.config.cors.allowedOrigins | quote }}
+            - name: CORS_ALLOWED_METHODS
+              value: {{ .Values.config.cors.allowedMethods | quote }}
+            - name: CORS_ALLOWED_HEADERS
+              value: {{ .Values.config.cors.allowedHeaders | quote }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ugc-marketplace.fullname" . }}-db
+                  key: password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ugc-marketplace.fullname" . }}-redis
+                  key: password
+                  optional: true
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ugc-marketplace.fullname" . }}-jwt
+                  key: secret
+            {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-        {{- with .Values.sidecarContainers }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
       volumes:
-        - name: tmp
-          emptyDir: {}
-        {{- with .Values.extraVolumes }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      terminationGracePeriodSeconds: 60

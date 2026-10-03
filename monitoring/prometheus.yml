@@ -1,13 +1,14 @@
-# Prometheus configuration for UGC Marketplace
-# Scrapes metrics from all services in the stack
+# Prometheus Configuration for UGC Marketplace
+# Production-grade monitoring with comprehensive scrape targets
 
 global:
   scrape_interval: 15s
   scrape_timeout: 10s
   evaluation_interval: 15s
   external_labels:
-    cluster: ugc-marketplace
     environment: production
+    project: ugc-marketplace
+    region: us-east-1
 
 # Alertmanager configuration
 alerting:
@@ -17,123 +18,154 @@ alerting:
             - alertmanager:9093
       scheme: http
       timeout: 10s
+      api_version: v2
 
-# Load alert rules
+# Rule files
 rule_files:
-  - /etc/prometheus/alerts/*.yml
+  - /etc/prometheus/rules/alert-rules.yml
 
+# Scrape configurations
 scrape_configs:
-  # ============================================================
-  # UGC Marketplace API (FastAPI application)
-  # ============================================================
-  - job_name: ugc-marketplace-api
-    metrics_path: /metrics
+  # Prometheus self-monitoring
+  - job_name: prometheus
     static_configs:
       - targets:
-          - api:8000
-        labels:
-          service: api
-          app: ugc-marketplace
-    scrape_interval: 10s
-    scrape_timeout: 5s
+          - localhost:9090
+    metrics_path: /metrics
+    scrape_interval: 30s
 
-  # ============================================================
-  # PostgreSQL exporter
-  # ============================================================
+  # API Gateway
+  - job_name: api-gateway
+    static_configs:
+      - targets:
+          - api-gateway:8080
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    labels:
+      service: api-gateway
+      team: platform
+
+  # User Service
+  - job_name: user-service
+    static_configs:
+      - targets:
+          - user-service:8081
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: user-service
+      team: identity
+
+  # Content Service
+  - job_name: content-service
+    static_configs:
+      - targets:
+          - content-service:8082
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: content-service
+      team: content
+
+  # Media Processing Service
+  - job_name: media-service
+    static_configs:
+      - targets:
+          - media-service:8083
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: media-service
+      team: content
+
+  # Search Service
+  - job_name: search-service
+    static_configs:
+      - targets:
+          - search-service:8084
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: search-service
+      team: discovery
+
+  # Payment Service
+  - job_name: payment-service
+    static_configs:
+      - targets:
+          - payment-service:8085
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: payment-service
+      team: commerce
+
+  # Notification Service
+  - job_name: notification-service
+    static_configs:
+      - targets:
+          - notification-service:8086
+    metrics_path: /metrics
+    scrape_interval: 15s
+    labels:
+      service: notification-service
+      team: platform
+
+  # PostgreSQL Exporter
   - job_name: postgres-exporter
     static_configs:
       - targets:
           - postgres-exporter:9187
-        labels:
-          service: database
-          app: ugc-marketplace
+    metrics_path: /metrics
     scrape_interval: 30s
+    labels:
+      service: database
+      engine: postgresql
 
-  # ============================================================
-  # Redis exporter
-  # ============================================================
+  # Redis Exporter
   - job_name: redis-exporter
     static_configs:
       - targets:
           - redis-exporter:9121
-        labels:
-          service: cache
-          app: ugc-marketplace
-    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_interval: 30s
+    labels:
+      service: cache
+      engine: redis
 
-  # ============================================================
-  # Kafka exporter (JMX)
-  # ============================================================
-  - job_name: kafka-exporter
+  # RabbitMQ Exporter
+  - job_name: rabbitmq-exporter
     static_configs:
       - targets:
-          - kafka-exporter:9308
-        labels:
-          service: messaging
-          app: ugc-marketplace
+          - rabbitmq-exporter:15692
+    metrics_path: /metrics
     scrape_interval: 30s
+    labels:
+      service: queue
+      engine: rabbitmq
 
-  # ============================================================
-  # Node exporter (host-level metrics)
-  # ============================================================
+  # Node Exporter (host metrics)
   - job_name: node-exporter
     static_configs:
       - targets:
           - node-exporter:9100
-        labels:
-          service: node
-          app: ugc-marketplace
-    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_interval: 30s
+    labels:
+      service: infrastructure
 
-  # ============================================================
-  # cAdvisor (container-level metrics)
-  # ============================================================
-  - job_name: cadvisor
-    static_configs:
-      - targets:
-          - cadvisor:8080
-        labels:
-          service: container
-          app: ugc-marketplace
-    scrape_interval: 15s
-
-  # ============================================================
-  # Jaeger (tracing metrics)
-  # ============================================================
-  - job_name: jaeger
-    static_configs:
-      - targets:
-          - jaeger:14269
-        labels:
-          service: tracing
-          app: ugc-marketplace
-    scrape_interval: 15s
-
-  # ============================================================
-  # Fluentd (logging pipeline metrics)
-  # ============================================================
-  - job_name: fluentd
-    static_configs:
-      - targets:
-          - fluentd:24231
-        labels:
-          service: logging
-          app: ugc-marketplace
-    scrape_interval: 15s
-
-  # ============================================================
-  # Blackbox exporter (endpoint availability)
-  # ============================================================
+  # Blackbox Exporter (endpoint monitoring)
   - job_name: blackbox-http
     metrics_path: /probe
     params:
       module: [http_2xx]
     static_configs:
       - targets:
-          - http://api:8000/api/v1/health
-        labels:
-          service: api-health
-          app: ugc-marketplace
+          - https://api.ugc-marketplace.com/health
+          - https://api.ugc-marketplace.com/v1/feed
+          - https://api.ugc-marketplace.com/v1/search
+          - https://cdn.ugc-marketplace.com
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -142,3 +174,76 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
     scrape_interval: 30s
+    labels:
+      service: blackbox
+      type: http
+
+  # Blackbox TCP probes
+  - job_name: blackbox-tcp
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - postgres:5432
+          - redis:6379
+          - rabbitmq:5672
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+    scrape_interval: 30s
+    labels:
+      service: blackbox
+      type: tcp
+
+  # cAdvisor (container metrics)
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080
+    metrics_path: /metrics
+    scrape_interval: 30s
+    labels:
+      service: containers
+
+  # Kubernetes pod discovery (if running on K8s)
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+    scrape_interval: 30s
+
+# Remote write (optional - for long-term storage)
+# remote_write:
+#   - url: "http://thanos-receive:19291/api/v1/receive"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# Remote read (optional)
+# remote_read:
+#   - url: "http://thanos-query:10902/api/v1/read"
+#     read_recent: true
