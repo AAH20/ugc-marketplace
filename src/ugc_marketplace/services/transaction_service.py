@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TransactionError(Exception):
@@ -60,9 +60,9 @@ class Transaction:
     status: TransactionStatus
     created_at: datetime
     updated_at: datetime
-    description: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    refunds: List[Dict[str, Any]] = field(default_factory=list)
+    description: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    refunds: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def refunded_amount(self) -> float:
@@ -74,7 +74,7 @@ class Transaction:
         """Amount still eligible for refund."""
         return self.amount - self.refunded_amount
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize transaction to dictionary."""
         return {
             "id": self.id,
@@ -94,10 +94,10 @@ class Transaction:
 
 
 # In-memory store — replace with database integration in production
-_transactions: Dict[str, Transaction] = {}
+_transactions: dict[str, Transaction] = {}
 
 
-def _validate_transaction_data(data: Dict[str, Any]) -> None:
+def _validate_transaction_data(data: dict[str, Any]) -> None:
     """Validate transaction creation data.
 
     Raises:
@@ -106,9 +106,7 @@ def _validate_transaction_data(data: Dict[str, Any]) -> None:
     required_fields = ["buyer_id", "seller_id", "amount", "currency"]
     missing = [f for f in required_fields if f not in data]
     if missing:
-        raise TransactionValidationError(
-            f"Missing required fields: {', '.join(missing)}"
-        )
+        raise TransactionValidationError(f"Missing required fields: {', '.join(missing)}")
 
     if not isinstance(data["buyer_id"], str) or not data["buyer_id"].strip():
         raise TransactionValidationError("buyer_id must be a non-empty string")
@@ -144,15 +142,11 @@ def get_transaction(transaction_id: str) -> dict:
 
     transaction = _transactions.get(transaction_id)
     if transaction is None:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
     return transaction.to_dict()
 
 
-def list_transactions(
-    filters: dict, page: int, page_size: int
-) -> list[dict]:
+def list_transactions(filters: dict, page: int, page_size: int) -> list[dict]:
     """List transactions with optional filters and pagination.
 
     Args:
@@ -214,7 +208,7 @@ def create_transaction(data: dict) -> dict:
     """
     _validate_transaction_data(data)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     transaction = Transaction(
         id=str(uuid.uuid4()),
         buyer_id=data["buyer_id"],
@@ -253,18 +247,14 @@ def update_transaction_status(transaction_id: str, status: str) -> dict:
         new_status = TransactionStatus(status)
     except ValueError:
         valid = ", ".join(s.value for s in TransactionStatus)
-        raise TransactionValidationError(
-            f"Invalid status '{status}'. Valid statuses: {valid}"
-        )
+        raise TransactionValidationError(f"Invalid status '{status}'. Valid statuses: {valid}")
 
     transaction = _transactions.get(transaction_id)
     if transaction is None:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
 
     transaction.status = new_status
-    transaction.updated_at = datetime.now(timezone.utc)
+    transaction.updated_at = datetime.now(UTC)
     return transaction.to_dict()
 
 
@@ -285,9 +275,7 @@ def delete_transaction(transaction_id: str) -> bool:
         raise TransactionValidationError("transaction_id must be a non-empty string")
 
     if transaction_id not in _transactions:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
 
     del _transactions[transaction_id]
     return True
@@ -295,7 +283,7 @@ def delete_transaction(transaction_id: str) -> bool:
 
 def process_refund(
     transaction_id: str,
-    amount: Optional[float] = None,
+    amount: float | None = None,
     reason: RefundReason = RefundReason.OTHER,
 ) -> Transaction:
     """Process a refund for a transaction.
@@ -317,24 +305,17 @@ def process_refund(
     """
     transaction = _transactions.get(transaction_id)
     if transaction is None:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
 
     if transaction.status == TransactionStatus.REFUNDED:
-        raise TransactionStateError(
-            f"Transaction {transaction_id} has already been fully refunded"
-        )
+        raise TransactionStateError(f"Transaction {transaction_id} has already been fully refunded")
 
     if transaction.status == TransactionStatus.FAILED:
-        raise TransactionStateError(
-            f"Cannot refund failed transaction {transaction_id}"
-        )
+        raise TransactionStateError(f"Cannot refund failed transaction {transaction_id}")
 
     if transaction.status == TransactionStatus.PENDING:
         raise TransactionStateError(
-            f"Cannot refund pending transaction {transaction_id} — "
-            "complete or cancel it first"
+            f"Cannot refund pending transaction {transaction_id} — complete or cancel it first"
         )
 
     refund_amount = amount if amount is not None else transaction.remaining_amount
@@ -348,12 +329,14 @@ def process_refund(
             f"eligible amount {transaction.remaining_amount}"
         )
 
-    now = datetime.now(timezone.utc)
-    transaction.refunds.append({
-        "amount": refund_amount,
-        "reason": reason.value,
-        "processed_at": now.isoformat(),
-    })
+    now = datetime.now(UTC)
+    transaction.refunds.append(
+        {
+            "amount": refund_amount,
+            "reason": reason.value,
+            "processed_at": now.isoformat(),
+        }
+    )
     transaction.updated_at = now
 
     if transaction.refunded_amount >= transaction.amount:
@@ -379,18 +362,15 @@ def cancel_transaction(transaction_id: str) -> Transaction:
     """
     transaction = _transactions.get(transaction_id)
     if transaction is None:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
 
     if transaction.status != TransactionStatus.PENDING:
         raise TransactionStateError(
-            f"Cannot cancel transaction {transaction_id} "
-            f"with status {transaction.status.value}"
+            f"Cannot cancel transaction {transaction_id} with status {transaction.status.value}"
         )
 
     transaction.status = TransactionStatus.FAILED
-    transaction.updated_at = datetime.now(timezone.utc)
+    transaction.updated_at = datetime.now(UTC)
     return transaction
 
 
@@ -409,16 +389,13 @@ def complete_transaction(transaction_id: str) -> Transaction:
     """
     transaction = _transactions.get(transaction_id)
     if transaction is None:
-        raise TransactionNotFoundError(
-            f"Transaction not found: {transaction_id}"
-        )
+        raise TransactionNotFoundError(f"Transaction not found: {transaction_id}")
 
     if transaction.status != TransactionStatus.PENDING:
         raise TransactionStateError(
-            f"Cannot complete transaction {transaction_id} "
-            f"with status {transaction.status.value}"
+            f"Cannot complete transaction {transaction_id} with status {transaction.status.value}"
         )
 
     transaction.status = TransactionStatus.COMPLETED
-    transaction.updated_at = datetime.now(timezone.utc)
+    transaction.updated_at = datetime.now(UTC)
     return transaction

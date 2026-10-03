@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ContentType(str, Enum):
@@ -31,7 +31,7 @@ class ContentStatus(str, Enum):
 class ContentValidationError(Exception):
     """Raised when content data fails validation."""
 
-    def __init__(self, message: str, field: Optional[str] = None) -> None:
+    def __init__(self, message: str, field: str | None = None) -> None:
         self.field = field
         super().__init__(message)
 
@@ -54,10 +54,10 @@ class Content:
     content_type: ContentType
     status: ContentStatus
     creator_id: str
-    tags: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -80,18 +80,18 @@ class PaginationParams:
 class ContentFilters:
     """Filters for listing content."""
 
-    content_type: Optional[ContentType] = None
-    status: Optional[ContentStatus] = None
-    creator_id: Optional[str] = None
-    tags: Optional[List[str]] = None
-    search_query: Optional[str] = None
+    content_type: ContentType | None = None
+    status: ContentStatus | None = None
+    creator_id: str | None = None
+    tags: list[str] | None = None
+    search_query: str | None = None
 
 
 @dataclass
 class PaginatedResult:
     """Paginated result wrapper."""
 
-    items: List[Content]
+    items: list[Content]
     total: int
     page: int
     page_size: int
@@ -99,10 +99,10 @@ class PaginatedResult:
 
 
 # In-memory store for demonstration — replace with real database in production
-_content_store: Dict[str, Content] = {}
+_content_store: dict[str, Content] = {}
 
 
-def _validate_content_data(data: Dict[str, Any]) -> None:
+def _validate_content_data(data: dict[str, Any]) -> None:
     """Validate raw content data before creation.
 
     Args:
@@ -114,23 +114,17 @@ def _validate_content_data(data: Dict[str, Any]) -> None:
     required_fields = ["title", "description", "content_type", "creator_id"]
     for req_field in required_fields:
         if req_field not in data or data[req_field] is None:
-            raise ContentValidationError(
-                f"Missing required field: {req_field}", field=req_field
-            )
+            raise ContentValidationError(f"Missing required field: {req_field}", field=req_field)
 
     title = data.get("title", "")
     if not isinstance(title, str) or len(title.strip()) == 0:
         raise ContentValidationError("title must be a non-empty string", field="title")
     if len(title) > 200:
-        raise ContentValidationError(
-            "title must be at most 200 characters", field="title"
-        )
+        raise ContentValidationError("title must be at most 200 characters", field="title")
 
     description = data.get("description", "")
     if not isinstance(description, str) or len(description.strip()) == 0:
-        raise ContentValidationError(
-            "description must be a non-empty string", field="description"
-        )
+        raise ContentValidationError("description must be a non-empty string", field="description")
     if len(description) > 5000:
         raise ContentValidationError(
             "description must be at most 5000 characters", field="description"
@@ -145,9 +139,7 @@ def _validate_content_data(data: Dict[str, Any]) -> None:
 
     creator_id = data.get("creator_id", "")
     if not isinstance(creator_id, str) or len(creator_id.strip()) == 0:
-        raise ContentValidationError(
-            "creator_id must be a non-empty string", field="creator_id"
-        )
+        raise ContentValidationError("creator_id must be a non-empty string", field="creator_id")
 
     tags = data.get("tags", [])
     if tags is not None and not isinstance(tags, list):
@@ -155,12 +147,10 @@ def _validate_content_data(data: Dict[str, Any]) -> None:
     if tags is not None:
         for tag in tags:
             if not isinstance(tag, str):
-                raise ContentValidationError(
-                    "each tag must be a string", field="tags"
-                )
+                raise ContentValidationError("each tag must be a string", field="tags")
 
 
-def create_content(data: Dict[str, Any]) -> Content:
+def create_content(data: dict[str, Any]) -> Content:
     """Create a new content item with validation.
 
     Args:
@@ -181,7 +171,7 @@ def create_content(data: Dict[str, Any]) -> Content:
     _validate_content_data(data)
 
     content_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     content = Content(
         id=content_id,
@@ -224,8 +214,8 @@ def get_content(content_id: str) -> Content:
 
 
 def list_content(
-    filters: Optional[ContentFilters] = None,
-    pagination: Optional[PaginationParams] = None,
+    filters: ContentFilters | None = None,
+    pagination: PaginationParams | None = None,
 ) -> PaginatedResult:
     """List content items with optional filtering and pagination.
 
@@ -258,17 +248,11 @@ def list_content(
         items = [c for c in items if c.creator_id == filters.creator_id]
 
     if filters.tags:
-        items = [
-            c for c in items if any(tag in c.tags for tag in filters.tags)
-        ]
+        items = [c for c in items if any(tag in c.tags for tag in filters.tags)]
 
     if filters.search_query:
         query = filters.search_query.lower()
-        items = [
-            c
-            for c in items
-            if query in c.title.lower() or query in c.description.lower()
-        ]
+        items = [c for c in items if query in c.title.lower() or query in c.description.lower()]
 
     # Sort by creation date descending (newest first)
     items.sort(key=lambda c: c.created_at, reverse=True)
@@ -290,7 +274,7 @@ def list_content(
     )
 
 
-def update_content(content_id: str, data: Dict[str, Any]) -> Content:
+def update_content(content_id: str, data: dict[str, Any]) -> Content:
     """Update an existing content item.
 
     Args:
@@ -324,13 +308,9 @@ def update_content(content_id: str, data: Dict[str, Any]) -> Content:
     if "title" in data:
         title = data["title"]
         if not isinstance(title, str) or len(title.strip()) == 0:
-            raise ContentValidationError(
-                "title must be a non-empty string", field="title"
-            )
+            raise ContentValidationError("title must be a non-empty string", field="title")
         if len(title) > 200:
-            raise ContentValidationError(
-                "title must be at most 200 characters", field="title"
-            )
+            raise ContentValidationError("title must be at most 200 characters", field="title")
         content.title = title.strip()
 
     if "description" in data:
@@ -361,20 +341,16 @@ def update_content(content_id: str, data: Dict[str, Any]) -> Content:
         if tags is not None:
             for tag in tags:
                 if not isinstance(tag, str):
-                    raise ContentValidationError(
-                        "each tag must be a string", field="tags"
-                    )
+                    raise ContentValidationError("each tag must be a string", field="tags")
         content.tags = tags if tags is not None else []
 
     if "metadata" in data:
         metadata = data["metadata"]
         if metadata is not None and not isinstance(metadata, dict):
-            raise ContentValidationError(
-                "metadata must be a dictionary", field="metadata"
-            )
+            raise ContentValidationError("metadata must be a dictionary", field="metadata")
         content.metadata = metadata if metadata is not None else {}
 
-    content.updated_at = datetime.now(timezone.utc)
+    content.updated_at = datetime.now(UTC)
     return content
 
 

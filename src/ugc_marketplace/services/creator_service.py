@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-from uuid import UUID, uuid4
+from typing import Any
+from uuid import uuid4
 
 
 class CreatorValidationError(Exception):
@@ -24,9 +24,9 @@ class CreatorService:
             db: Database session or repository instance.
         """
         self._db = db
-        self._creators: Dict[str, Dict[str, Any]] = {}
+        self._creators: dict[str, dict[str, Any]] = {}
 
-    def create_creator(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_creator(self, data: dict[str, Any]) -> dict[str, Any]:
         """Create a new creator with validation.
 
         Args:
@@ -63,7 +63,7 @@ class CreatorService:
         self._creators[creator_id] = creator
         return creator
 
-    def get_creator(self, creator_id: str) -> Dict[str, Any]:
+    def get_creator(self, creator_id: str) -> dict[str, Any]:
         """Get a creator by ID.
 
         Args:
@@ -87,9 +87,9 @@ class CreatorService:
 
     def list_creators(
         self,
-        filters: Optional[Dict[str, Any]] = None,
-        pagination: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        filters: dict[str, Any] | None = None,
+        pagination: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """List creators with optional filtering and pagination.
 
         Args:
@@ -105,7 +105,7 @@ class CreatorService:
         page = max(1, int(pagination.get("page", 1)))
         per_page = min(100, max(1, int(pagination.get("per_page", 20))))
 
-        results: List[Dict[str, Any]] = list(self._creators.values())
+        results: list[dict[str, Any]] = list(self._creators.values())
 
         if "is_active" in filters:
             results = [c for c in results if c["is_active"] == filters["is_active"]]
@@ -128,7 +128,7 @@ class CreatorService:
             "per_page": per_page,
         }
 
-    def update_creator(self, creator_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def update_creator(self, creator_id: str, data: dict[str, Any]) -> dict[str, Any]:
         """Update an existing creator.
 
         Args:

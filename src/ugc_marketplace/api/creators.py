@@ -4,8 +4,9 @@ Creators API endpoints for UGC Marketplace.
 Provides listing with pagination/filtering and creation with validation.
 """
 
-from datetime import datetime, timezone
-from typing import Literal, Optional
+from datetime import UTC, datetime
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -212,7 +213,7 @@ class CreatorCreate(BaseModel):
         description="Unique handle starting with @",
     )
     tier: CreatorTier = Field(default="bronze", description="Creator tier level")
-    bio: Optional[str] = Field(default=None, max_length=500, description="Short bio")
+    bio: str | None = Field(default=None, max_length=500, description="Short bio")
     categories: list[str] = Field(
         default_factory=list,
         max_length=5,
@@ -236,7 +237,7 @@ class CreatorResponse(BaseModel):
     handle: str
     tier: CreatorTier
     status: CreatorStatus
-    bio: Optional[str] = None
+    bio: str | None = None
     followers: int = 0
     engagement_rate: float = 0.0
     categories: list[str] = Field(default_factory=list)
@@ -247,13 +248,15 @@ class CreatorResponse(BaseModel):
 class CreatorUpdate(BaseModel):
     """Payload for updating an existing creator — all fields optional."""
 
-    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
-    email: Optional[EmailStr] = None
-    handle: Optional[str] = Field(default=None, min_length=3, max_length=30, pattern=r"^@[a-zA-Z0-9_]+$")
-    tier: Optional[CreatorTier] = None
-    status: Optional[CreatorStatus] = None
-    bio: Optional[str] = Field(default=None, max_length=500)
-    categories: Optional[list[str]] = Field(default=None, max_length=5)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    email: EmailStr | None = None
+    handle: str | None = Field(
+        default=None, min_length=3, max_length=30, pattern=r"^@[a-zA-Z0-9_]+$"
+    )
+    tier: CreatorTier | None = None
+    status: CreatorStatus | None = None
+    bio: str | None = Field(default=None, max_length=500)
+    categories: list[str] | None = Field(default=None, max_length=5)
 
 
 class CreatorListResponse(BaseModel):
@@ -279,9 +282,9 @@ class CreatorListResponse(BaseModel):
 async def list_creators(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    tier: Optional[CreatorTier] = Query(default=None, description="Filter by tier"),
-    status: Optional[CreatorStatus] = Query(default=None, description="Filter by status"),
-    search: Optional[str] = Query(default=None, min_length=1, description="Search by name or handle"),
+    tier: CreatorTier | None = Query(default=None, description="Filter by tier"),
+    status: CreatorStatus | None = Query(default=None, description="Filter by status"),
+    search: str | None = Query(default=None, min_length=1, description="Search by name or handle"),
 ) -> dict:
     """
     Return a paginated list of creators.
@@ -298,11 +301,7 @@ async def list_creators(
 
     if search:
         q = search.lower()
-        filtered = [
-            c
-            for c in filtered
-            if q in c["name"].lower() or q in c["handle"].lower()
-        ]
+        filtered = [c for c in filtered if q in c["name"].lower() or q in c["handle"].lower()]
 
     total = len(filtered)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
@@ -364,7 +363,7 @@ async def create_creator(payload: CreatorCreate) -> dict:
         "followers": 0,
         "engagement_rate": 0.0,
         "categories": payload.categories,
-        "joined_at": datetime.now(timezone.utc).isoformat(),
+        "joined_at": datetime.now(UTC).isoformat(),
         "verified": False,
     }
 
@@ -417,7 +416,10 @@ async def update_creator(creator_id: str, payload: CreatorUpdate) -> dict:
     # Check for duplicate handle if handle is being updated
     if "handle" in update_data:
         for existing_id, existing in _creators_db.items():
-            if existing_id != creator_id and existing["handle"].lower() == update_data["handle"].lower():
+            if (
+                existing_id != creator_id
+                and existing["handle"].lower() == update_data["handle"].lower()
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"A creator with handle '{update_data['handle']}' already exists.",

@@ -18,23 +18,21 @@ class PartitionManager:
     def __init__(self, engine: Any) -> None:
         self.engine = engine
 
-    async def create_monthly_partition(
-        self, table_name: str, year: int, month: int
-    ) -> str:
+    async def create_monthly_partition(self, table_name: str, year: int, month: int) -> str:
         """Create a new monthly partition."""
         partition_name = f"{table_name}_{year}_{month:02d}"
         start_date = datetime(year, month, 1)
-        end_date = (
-            datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
-        )
+        end_date = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
 
         async with self.engine.begin() as conn:
-            await conn.execute(text(f"""
+            await conn.execute(
+                text(f"""
                     CREATE TABLE IF NOT EXISTS {partition_name}
                     PARTITION OF {table_name}
                     FOR VALUES FROM ('{start_date.isoformat()}')
                     TO ('{end_date.isoformat()}')
-                """))
+                """)
+            )
         logger.info("Created partition", partition=partition_name)
         return partition_name
 
@@ -56,9 +54,7 @@ class PartitionManager:
             )
         return partitions
 
-    async def drop_old_partitions(
-        self, table_name: str, retention_months: int = 12
-    ) -> list[str]:
+    async def drop_old_partitions(self, table_name: str, retention_months: int = 12) -> list[str]:
         """Drop partitions older than retention period."""
         cutoff_date = datetime.utcnow() - timedelta(days=30 * retention_months)
         dropped: list[str] = []
@@ -101,9 +97,7 @@ class PartitionManager:
                 for row in result
             ]
 
-    async def ensure_future_partitions(
-        self, table_name: str, months_ahead: int = 3
-    ) -> list[str]:
+    async def ensure_future_partitions(self, table_name: str, months_ahead: int = 3) -> list[str]:
         """Ensure partitions exist for future months."""
         now = datetime.utcnow()
         end_date = now + timedelta(days=30 * months_ahead)

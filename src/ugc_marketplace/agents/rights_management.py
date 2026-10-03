@@ -7,10 +7,9 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Enums & Constants
@@ -59,7 +58,7 @@ class RightsRecord:
         """Check if the rights grant is still valid (not expired)."""
         if self.expires_at is None:
             return True
-        return datetime.now(timezone.utc) < self.expires_at
+        return datetime.now(UTC) < self.expires_at
 
 
 @dataclass
@@ -71,7 +70,7 @@ class AccessCheckResult:
     decision: AccessDecision
     granted_rights: set[RightType]
     reason: str
-    checked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    checked_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -84,7 +83,7 @@ class GrantResult:
     user_id: str
     rights: set[RightType]
     message: str
-    granted_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    granted_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ---------------------------------------------------------------------------
@@ -107,23 +106,23 @@ _MOCK_RIGHTS_DB: dict[tuple[str, str], RightsRecord] = {
         user_id="user-viewer-10",
         rights={RightType.VIEW, RightType.DOWNLOAD},
         granted_by="user-admin-01",
-        granted_at=datetime(2026, 9, 1, 10, 0, tzinfo=timezone.utc),
-        expires_at=datetime(2027, 9, 1, 10, 0, tzinfo=timezone.utc),
+        granted_at=datetime(2026, 9, 1, 10, 0, tzinfo=UTC),
+        expires_at=datetime(2027, 9, 1, 10, 0, tzinfo=UTC),
     ),
     ("content-002", "user-viewer-10"): RightsRecord(
         content_id="content-002",
         user_id="user-viewer-10",
         rights={RightType.VIEW},
         granted_by="user-creator-42",
-        granted_at=datetime(2026, 9, 15, 14, 30, tzinfo=timezone.utc),
-        expires_at=datetime(2026, 10, 15, 14, 30, tzinfo=timezone.utc),
+        granted_at=datetime(2026, 9, 15, 14, 30, tzinfo=UTC),
+        expires_at=datetime(2026, 10, 15, 14, 30, tzinfo=UTC),
     ),
     ("content-003", "user-editor-77"): RightsRecord(
         content_id="content-003",
         user_id="user-editor-77",
         rights={RightType.VIEW, RightType.EDIT, RightType.SHARE},
         granted_by="user-creator-42",
-        granted_at=datetime(2026, 8, 20, 9, 0, tzinfo=timezone.utc),
+        granted_at=datetime(2026, 8, 20, 9, 0, tzinfo=UTC),
         expires_at=None,
     ),
     ("content-004", "user-commercial-55"): RightsRecord(
@@ -136,8 +135,8 @@ _MOCK_RIGHTS_DB: dict[tuple[str, str], RightsRecord] = {
             RightType.ATTRIBUTION,
         },
         granted_by="user-admin-01",
-        granted_at=datetime(2026, 7, 1, 0, 0, tzinfo=timezone.utc),
-        expires_at=datetime(2027, 7, 1, 0, 0, tzinfo=timezone.utc),
+        granted_at=datetime(2026, 7, 1, 0, 0, tzinfo=UTC),
+        expires_at=datetime(2027, 7, 1, 0, 0, tzinfo=UTC),
         metadata={"license_type": "commercial", "territory": "worldwide"},
     ),
 }
@@ -182,7 +181,7 @@ class RightsManagementAgent:
         Returns:
             AccessCheckResult with the decision and supporting details.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Check if there is a pending approval request
         if (content_id, user_id) in self._pending_requests:
@@ -277,7 +276,7 @@ class RightsManagementAgent:
         Returns:
             GrantResult indicating success or failure with details.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Validate inputs
         if not rights:
@@ -329,13 +328,8 @@ class RightsManagementAgent:
         self._pending_requests.discard((content_id, user_id))
 
         rights_str = ", ".join(sorted(r.value for r in rights))
-        expiry_str = (
-            f" (expires {expires_at.isoformat()})" if expires_at else " (no expiration)"
-        )
-        message = (
-            f"Granted rights [{rights_str}] to {user_id} on {content_id}"
-            f"{expiry_str}."
-        )
+        expiry_str = f" (expires {expires_at.isoformat()})" if expires_at else " (no expiration)"
+        message = f"Granted rights [{rights_str}] to {user_id} on {content_id}{expiry_str}."
 
         return GrantResult(
             success=True,
@@ -497,8 +491,7 @@ def check_content_rights(content_id: str, usage_type: str) -> dict[str, Any]:
     valid_usage_types = {"commercial", "non-commercial", "editorial", "personal"}
     if usage_type not in valid_usage_types:
         raise ValueError(
-            f"Unsupported usage_type '{usage_type}'. "
-            f"Valid types: {sorted(valid_usage_types)}"
+            f"Unsupported usage_type '{usage_type}'. Valid types: {sorted(valid_usage_types)}"
         )
 
     # Check if content exists in the ownership registry
@@ -508,7 +501,7 @@ def check_content_rights(content_id: str, usage_type: str) -> dict[str, Any]:
             "usage_type": usage_type,
             "allowed": False,
             "reason": "Content not found in the registry.",
-            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "checked_at": datetime.now(UTC).isoformat(),
         }
 
     # In a real implementation this would query a rights database.
@@ -518,13 +511,11 @@ def check_content_rights(content_id: str, usage_type: str) -> dict[str, Any]:
         "usage_type": usage_type,
         "allowed": True,
         "reason": "Content is cleared for the requested usage type.",
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "checked_at": datetime.now(UTC).isoformat(),
     }
 
 
-def license_content(
-    content_id: str, licensee: str, terms: dict[str, Any]
-) -> dict[str, Any]:
+def license_content(content_id: str, licensee: str, terms: dict[str, Any]) -> dict[str, Any]:
     """License content to a licensee under specified terms.
 
     Args:
@@ -562,15 +553,12 @@ def license_content(
     required_keys = {"usage_type", "duration_days", "territory", "exclusive"}
     missing = required_keys - terms.keys()
     if missing:
-        raise ValueError(
-            f"Missing required license terms: {sorted(missing)}"
-        )
+        raise ValueError(f"Missing required license terms: {sorted(missing)}")
 
     valid_usage_types = {"commercial", "non-commercial", "editorial", "personal"}
     if terms["usage_type"] not in valid_usage_types:
         raise ValueError(
-            f"Invalid usage_type '{terms['usage_type']}'. "
-            f"Valid types: {sorted(valid_usage_types)}"
+            f"Invalid usage_type '{terms['usage_type']}'. Valid types: {sorted(valid_usage_types)}"
         )
 
     if not isinstance(terms["duration_days"], int) or terms["duration_days"] <= 0:
@@ -580,7 +568,7 @@ def license_content(
         raise ValueError("exclusive must be a boolean")
 
     license_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
 
     license_record = {
         "license_id": license_id,
@@ -620,6 +608,6 @@ def revoke_license(license_id: str) -> bool:
         return False
 
     license_record["status"] = "revoked"
-    license_record["revoked_at"] = datetime.now(timezone.utc).isoformat()
+    license_record["revoked_at"] = datetime.now(UTC).isoformat()
 
     return True

@@ -5,12 +5,10 @@ Provides personalized content recommendations and trending content discovery.
 
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Enums & Data Classes
@@ -442,9 +440,7 @@ class ContentDiscoveryAgent:
                 timeframe = TrendingTimeframe(timeframe.lower())
             except ValueError:
                 valid = [t.value for t in TrendingTimeframe]
-                raise ValueError(
-                    f"Invalid timeframe '{timeframe}'. Valid options: {valid}"
-                )
+                raise ValueError(f"Invalid timeframe '{timeframe}'. Valid options: {valid}")
 
         # Normalize category
         cat_filter: ContentCategory | None = None
@@ -454,9 +450,7 @@ class ContentDiscoveryAgent:
                     cat_filter = ContentCategory(category.lower())
                 except ValueError:
                     valid = [c.value for c in ContentCategory]
-                    raise ValueError(
-                        f"Invalid category '{category}'. Valid options: {valid}"
-                    )
+                    raise ValueError(f"Invalid category '{category}'. Valid options: {valid}")
             else:
                 cat_filter = category
 
@@ -480,9 +474,8 @@ class ContentDiscoveryAgent:
             # Recency decay: newer items get a boost within the window
             recency_factor = max(0.0, 1.0 - (age_hours / window_hours))
             # Engagement velocity: interactions per hour since publish
-            engagement_velocity = (
-                (item.likes + item.shares * 2 + item.comments * 3)
-                / max(age_hours, 1.0)
+            engagement_velocity = (item.likes + item.shares * 2 + item.comments * 3) / max(
+                age_hours, 1.0
             )
             # Combined trending score
             adjusted_score = (
@@ -553,9 +546,7 @@ class ContentDiscoveryAgent:
         Returns:
             A list of content item dictionaries.
         """
-        sorted_pool = sorted(
-            self._content_pool, key=lambda item: item.trending_score, reverse=True
-        )
+        sorted_pool = sorted(self._content_pool, key=lambda item: item.trending_score, reverse=True)
         results: list[dict[str, Any]] = []
         for item in sorted_pool[:limit]:
             item.relevance_score = item.trending_score
@@ -643,9 +634,7 @@ def search_content(query: str, filters: dict[str, Any]) -> list[dict[str, Any]]:
                     cat_filter = ContentCategory(cat_filter.lower())
                 except ValueError:
                     valid = [c.value for c in ContentCategory]
-                    raise ValueError(
-                        f"Invalid category '{cat_filter}'. Valid options: {valid}"
-                    )
+                    raise ValueError(f"Invalid category '{cat_filter}'. Valid options: {valid}")
             if item.category != cat_filter:
                 continue
 
@@ -688,8 +677,6 @@ def get_trending_content(category: str, limit: int = 10) -> list[dict[str, Any]]
         cat_enum = ContentCategory(category.lower())
     except ValueError:
         valid = [c.value for c in ContentCategory]
-        raise ValueError(
-            f"Invalid category '{category}'. Valid options: {valid}"
-        )
+        raise ValueError(f"Invalid category '{category}'. Valid options: {valid}")
 
     return _default_agent.trending_content(category=cat_enum, limit=limit)

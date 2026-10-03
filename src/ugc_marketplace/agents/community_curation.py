@@ -5,12 +5,10 @@ Provides content curation and ranking capabilities using mock data.
 
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Enums & Data Classes
@@ -309,7 +307,9 @@ class CommunityCurationAgent:
             content_pool: List of ContentItem objects to curate from.
                          Defaults to MOCK_CONTENT_DB if not provided.
         """
-        self._content_pool: list[ContentItem] = content_pool if content_pool is not None else list(MOCK_CONTENT_DB)
+        self._content_pool: list[ContentItem] = (
+            content_pool if content_pool is not None else list(MOCK_CONTENT_DB)
+        )
 
     # ------------------------------------------------------------------
     # Public API
@@ -406,8 +406,7 @@ class CommunityCurationAgent:
         tag_filters: list[str] | None = criteria.get("tag_filters")
         if tag_filters:
             candidates = [
-                item for item in candidates
-                if any(tag in item.tags for tag in tag_filters)
+                item for item in candidates if any(tag in item.tags for tag in tag_filters)
             ]
 
         # Apply category filter if specified
@@ -452,9 +451,7 @@ class CommunityCurationAgent:
             quality = _QUALITY_SCORES.get(item.quality, 0.5)
 
             score = (
-                engagement_weight * engagement
-                + recency_weight * recency
-                + quality_weight * quality
+                engagement_weight * engagement + recency_weight * recency + quality_weight * quality
             )
 
             if item.is_featured:
@@ -505,22 +502,21 @@ class CommunityCurationAgent:
         featured_boost = 1.2 if item.is_featured else 1.0
 
         score = (
-            preferences.engagement_weight * engagement
-            + preferences.recency_weight * recency
-            + (1.0 - preferences.engagement_weight - preferences.recency_weight) * quality
-        ) * category_boost * featured_boost
+            (
+                preferences.engagement_weight * engagement
+                + preferences.recency_weight * recency
+                + (1.0 - preferences.engagement_weight - preferences.recency_weight) * quality
+            )
+            * category_boost
+            * featured_boost
+        )
 
         return round(score, 4)
 
     @staticmethod
     def _engagement_score(item: ContentItem) -> float:
         """Compute raw engagement score from likes, comments, shares, views."""
-        return float(
-            item.likes * 3.0
-            + item.comments * 5.0
-            + item.shares * 8.0
-            + item.views * 0.1
-        )
+        return float(item.likes * 3.0 + item.comments * 5.0 + item.shares * 8.0 + item.views * 0.1)
 
 
 # ---------------------------------------------------------------------------
@@ -595,9 +591,7 @@ def curate_community_content(community_id: str) -> list[dict[str, Any]]:
         'Amazing UGC Content'
     """
     if not community_id or not isinstance(community_id, str):
-        raise ValueError(
-            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
-        )
+        raise ValueError(f"Invalid community_id: {community_id!r}. Must be a non-empty string.")
 
     try:
         agent = CommunityCurationAgent()
@@ -607,21 +601,21 @@ def curate_community_content(community_id: str) -> list[dict[str, Any]]:
 
         curated: list[dict[str, Any]] = []
         for item in content_items:
-            curated.append({
-                "content_id": item.content_id,
-                "title": item.title,
-                "author_id": item.author_id,
-                "score": agent._compute_curation_score(item, prefs),
-                "featured": item.is_featured,
-                "created_at": item.created_at.isoformat(),
-            })
+            curated.append(
+                {
+                    "content_id": item.content_id,
+                    "title": item.title,
+                    "author_id": item.author_id,
+                    "score": agent._compute_curation_score(item, prefs),
+                    "featured": item.is_featured,
+                    "created_at": item.created_at.isoformat(),
+                }
+            )
 
         return curated
 
     except Exception as exc:
-        raise RuntimeError(
-            f"Curation failed for community {community_id!r}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Curation failed for community {community_id!r}: {exc}") from exc
 
 
 def feature_content(content_id: str, community_id: str) -> bool:
@@ -648,13 +642,9 @@ def feature_content(content_id: str, community_id: str) -> bool:
         True
     """
     if not content_id or not isinstance(content_id, str):
-        raise ValueError(
-            f"Invalid content_id: {content_id!r}. Must be a non-empty string."
-        )
+        raise ValueError(f"Invalid content_id: {content_id!r}. Must be a non-empty string.")
     if not community_id or not isinstance(community_id, str):
-        raise ValueError(
-            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
-        )
+        raise ValueError(f"Invalid community_id: {community_id!r}. Must be a non-empty string.")
 
     try:
         agent = CommunityCurationAgent()
@@ -668,8 +658,7 @@ def feature_content(content_id: str, community_id: str) -> bool:
 
     except Exception as exc:
         raise RuntimeError(
-            f"Featuring content {content_id!r} in community {community_id!r} "
-            f"failed: {exc}"
+            f"Featuring content {content_id!r} in community {community_id!r} failed: {exc}"
         ) from exc
 
 
@@ -705,13 +694,9 @@ def get_curated_feed(community_id: str, limit: int = 20) -> list[dict[str, Any]]
         10
     """
     if not community_id or not isinstance(community_id, str):
-        raise ValueError(
-            f"Invalid community_id: {community_id!r}. Must be a non-empty string."
-        )
+        raise ValueError(f"Invalid community_id: {community_id!r}. Must be a non-empty string.")
     if not isinstance(limit, int) or limit <= 0:
-        raise ValueError(
-            f"Invalid limit: {limit!r}. Must be a positive integer."
-        )
+        raise ValueError(f"Invalid limit: {limit!r}. Must be a positive integer.")
 
     try:
         agent = CommunityCurationAgent()
@@ -720,14 +705,16 @@ def get_curated_feed(community_id: str, limit: int = 20) -> list[dict[str, Any]]
 
         feed: list[dict[str, Any]] = []
         for item in content_items:
-            feed.append({
-                "content_id": item.content_id,
-                "title": item.title,
-                "author_id": item.author_id,
-                "score": agent._compute_curation_score(item, prefs),
-                "featured": item.is_featured,
-                "created_at": item.created_at.isoformat(),
-            })
+            feed.append(
+                {
+                    "content_id": item.content_id,
+                    "title": item.title,
+                    "author_id": item.author_id,
+                    "score": agent._compute_curation_score(item, prefs),
+                    "featured": item.is_featured,
+                    "created_at": item.created_at.isoformat(),
+                }
+            )
 
         return feed
 

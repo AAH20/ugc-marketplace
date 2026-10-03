@@ -93,9 +93,7 @@ class TakedownAgent(BaseAgent[dict[str, Any], "TakedownRequest"]):
         return {"content_id": content_id, "removed": True}
 
     @staticmethod
-    async def _notify_stakeholders(
-        content_id: str, request_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _notify_stakeholders(content_id: str, request_data: dict[str, Any]) -> dict[str, Any]:
         """Notify stakeholders of takedown.
 
         Args:

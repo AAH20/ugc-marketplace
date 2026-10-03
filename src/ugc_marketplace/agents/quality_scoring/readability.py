@@ -85,14 +85,10 @@ class ReadabilityScorerAgent(BaseScoringAgent["DimensionScore"]):
         total_sentences = len(sentences)
         total_syllables = sum(self._count_syllables(w) for w in words)
 
-        avg_sentence_length = (
-            total_words / total_sentences if total_sentences > 0 else 0
-        )
+        avg_sentence_length = total_words / total_sentences if total_sentences > 0 else 0
         avg_syllables_per_word = total_syllables / total_words if total_words > 0 else 0
 
-        flesch = (
-            206.835 - (1.015 * avg_sentence_length) - (84.6 * avg_syllables_per_word)
-        )
+        flesch = 206.835 - (1.015 * avg_sentence_length) - (84.6 * avg_syllables_per_word)
         flesch = max(0, min(100, flesch))
 
         complex_words = sum(1 for w in words if self._count_syllables(w) > 2)

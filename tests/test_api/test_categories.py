@@ -759,11 +759,14 @@ class TestUpdateCategory:
     def test_update_category_empty_body(
         self, client: TestClient, created_category: dict
     ) -> None:
-        """PUT with empty body returns 422."""
+        """PUT with empty body returns 200 (all fields are optional in update)."""
         category_id = created_category["id"]
         response = client.put(f"/api/v1/categories/{category_id}", json={})
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == category_id
+        assert data["name"] == created_category["name"]
 
     def test_update_category_no_body(
         self, client: TestClient, created_category: dict

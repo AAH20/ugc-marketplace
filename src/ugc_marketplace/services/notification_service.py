@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class NotificationService:
             "user_id": user_id,
             "message": message,
             "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         try:
@@ -59,9 +59,7 @@ class NotificationService:
                 self._notifications.setdefault(user_id, []).append(notification)
         except Exception as exc:
             logger.error("Failed to send notification to user %s: %s", user_id, exc)
-            raise NotificationError(
-                f"Failed to send notification to user {user_id}"
-            ) from exc
+            raise NotificationError(f"Failed to send notification to user {user_id}") from exc
 
         logger.info("Notification sent to user %s", user_id)
         return notification
@@ -88,9 +86,7 @@ class NotificationService:
             return list(self._notifications.get(user_id, []))
         except Exception as exc:
             logger.error("Failed to get notifications for user %s: %s", user_id, exc)
-            raise NotificationError(
-                f"Failed to get notifications for user {user_id}"
-            ) from exc
+            raise NotificationError(f"Failed to get notifications for user {user_id}") from exc
 
     def mark_as_read(self, notification_id: str) -> dict[str, Any]:
         """Mark a notification as read.

@@ -88,9 +88,7 @@ class DatabaseManager:
         finally:
             await session.close()
 
-    async def execute_with_retry(
-        self, operation: Any, *args: Any, **kwargs: Any
-    ) -> Any:
+    async def execute_with_retry(self, operation: Any, *args: Any, **kwargs: Any) -> Any:
         """Execute database operation with exponential backoff retry."""
         last_exception = None
         delay = self.retry_delay
@@ -143,9 +141,7 @@ class DatabaseManager:
 
             return result
         except TimeoutError:
-            logger.error(
-                "Query timeout", timeout=self.query_timeout, query=str(query)[:200]
-            )
+            logger.error("Query timeout", timeout=self.query_timeout, query=str(query)[:200])
             raise
 
     async def close(self) -> None:

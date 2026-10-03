@@ -193,9 +193,7 @@ def _generate_decision(content_id: str) -> ModerationDecision:
     if category != ViolationCategory.NONE:
         confidence = rng.uniform(0.75, 0.98)
         status = (
-            ModerationStatus.REJECTED
-            if confidence > 0.85
-            else ModerationStatus.FLAGGED_FOR_REVIEW
+            ModerationStatus.REJECTED if confidence > 0.85 else ModerationStatus.FLAGGED_FOR_REVIEW
         )
         reasons = [
             f"Detected {category.value.replace('_', ' ')} indicators",
@@ -304,9 +302,7 @@ def moderate_content(content: str) -> dict[str, Any]:
         ValueError: If content is empty or whitespace-only.
     """
     if not isinstance(content, str):
-        raise TypeError(
-            f"content must be a string, got {type(content).__name__}"
-        )
+        raise TypeError(f"content must be a string, got {type(content).__name__}")
     if not content.strip():
         raise ValueError("content must not be empty or whitespace-only")
 
@@ -346,13 +342,9 @@ def flag_content(content_id: str, reason: str) -> bool:
         ValueError: If content_id or reason is empty or whitespace-only.
     """
     if not isinstance(content_id, str):
-        raise TypeError(
-            f"content_id must be a string, got {type(content_id).__name__}"
-        )
+        raise TypeError(f"content_id must be a string, got {type(content_id).__name__}")
     if not isinstance(reason, str):
-        raise TypeError(
-            f"reason must be a string, got {type(reason).__name__}"
-        )
+        raise TypeError(f"reason must be a string, got {type(reason).__name__}")
     if not content_id.strip():
         raise ValueError("content_id must not be empty or whitespace-only")
     if not reason.strip():
@@ -393,15 +385,11 @@ def get_moderation_status(content_id: str) -> dict[str, Any]:
         KeyError: If the content_id has not been flagged or moderated.
     """
     if not isinstance(content_id, str):
-        raise TypeError(
-            f"content_id must be a string, got {type(content_id).__name__}"
-        )
+        raise TypeError(f"content_id must be a string, got {type(content_id).__name__}")
     if not content_id.strip():
         raise ValueError("content_id must not be empty or whitespace-only")
 
     if content_id not in _moderation_statuses:
-        raise KeyError(
-            f"No moderation status found for content_id: {content_id}"
-        )
+        raise KeyError(f"No moderation status found for content_id: {content_id}")
 
     return dict(_moderation_statuses[content_id])

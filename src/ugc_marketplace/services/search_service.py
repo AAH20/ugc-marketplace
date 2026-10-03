@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 class SearchFilters:
     """Filters applicable to search queries."""
 
-    category: Optional[str] = None
-    min_price: Optional[float] = None
-    max_price: Optional[float] = None
-    rating_min: Optional[float] = None
-    tags: List[str] = field(default_factory=list)
+    category: str | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+    rating_min: float | None = None
+    tags: list[str] = field(default_factory=list)
     sort_by: str = "relevance"
     limit: int = 20
     offset: int = 0
@@ -45,14 +45,14 @@ class SearchResult:
     title: str
     type: str
     score: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class SearchResponse:
     """Paginated search response."""
 
-    results: List[SearchResult]
+    results: list[SearchResult]
     total: int
     query: str
     filters: SearchFilters
@@ -64,7 +64,7 @@ class Suggestion:
 
     text: str
     type: str
-    highlight: Optional[str] = None
+    highlight: str | None = None
 
 
 class SearchServiceError(Exception):
@@ -78,7 +78,7 @@ class SearchBackendError(SearchServiceError):
 class SearchService:
     """Service for searching content, creators, and providing suggestions."""
 
-    def __init__(self, backend: Optional[Any] = None) -> None:
+    def __init__(self, backend: Any | None = None) -> None:
         """Initialize the search service.
 
         Args:
@@ -86,9 +86,7 @@ class SearchService:
         """
         self._backend = backend
 
-    def search_content(
-        self, query: str, filters: Optional[SearchFilters] = None
-    ) -> SearchResponse:
+    def search_content(self, query: str, filters: SearchFilters | None = None) -> SearchResponse:
         """Perform full-text search over marketplace content.
 
         Args:
@@ -134,9 +132,7 @@ class SearchService:
             filters=filters,
         )
 
-    def search_creators(
-        self, query: str, filters: Optional[SearchFilters] = None
-    ) -> SearchResponse:
+    def search_creators(self, query: str, filters: SearchFilters | None = None) -> SearchResponse:
         """Search for creators by name, bio, or skills.
 
         Args:
@@ -182,7 +178,7 @@ class SearchService:
             filters=filters,
         )
 
-    def get_search_suggestions(self, query: str) -> List[Suggestion]:
+    def get_search_suggestions(self, query: str) -> list[Suggestion]:
         """Get autocomplete suggestions for a partial query.
 
         Args:
@@ -221,23 +217,19 @@ class SearchService:
     # Backend interaction (override or inject a real backend)
     # ------------------------------------------------------------------
 
-    def _execute_content_search(
-        self, query: str, filters: SearchFilters
-    ) -> List[Dict[str, Any]]:
+    def _execute_content_search(self, query: str, filters: SearchFilters) -> list[dict[str, Any]]:
         """Execute content search against the backend."""
         if self._backend is None:
             return []
         return self._backend.search_content(query, filters.__dict__)
 
-    def _execute_creator_search(
-        self, query: str, filters: SearchFilters
-    ) -> List[Dict[str, Any]]:
+    def _execute_creator_search(self, query: str, filters: SearchFilters) -> list[dict[str, Any]]:
         """Execute creator search against the backend."""
         if self._backend is None:
             return []
         return self._backend.search_creators(query, filters.__dict__)
 
-    def _execute_suggestions(self, query: str) -> List[Dict[str, Any]]:
+    def _execute_suggestions(self, query: str) -> list[dict[str, Any]]:
         """Execute suggestion fetch against the backend."""
         if self._backend is None:
             return []
@@ -248,9 +240,7 @@ class SearchService:
 _default_service = SearchService()
 
 
-def search_content(
-    query: str, filters: Optional[SearchFilters] = None
-) -> SearchResponse:
+def search_content(query: str, filters: SearchFilters | None = None) -> SearchResponse:
     """Perform full-text search over marketplace content.
 
     Args:
@@ -267,9 +257,7 @@ def search_content(
     return _default_service.search_content(query, filters)
 
 
-def search_creators(
-    query: str, filters: Optional[SearchFilters] = None
-) -> SearchResponse:
+def search_creators(query: str, filters: SearchFilters | None = None) -> SearchResponse:
     """Search for creators by name, bio, or skills.
 
     Args:
@@ -286,7 +274,7 @@ def search_creators(
     return _default_service.search_creators(query, filters)
 
 
-def get_search_suggestions(query: str) -> List[Suggestion]:
+def get_search_suggestions(query: str) -> list[Suggestion]:
     """Get autocomplete suggestions for a partial query.
 
     Args:

@@ -7,7 +7,7 @@ content engagement, and revenue tracking.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def _parse_time_range(time_range: str) -> tuple[datetime, datetime]:
     Raises:
         ValueError: If *time_range* is not a recognised value.
     """
-    end = datetime.now(timezone.utc)
+    end = datetime.now(UTC)
     delta_map = {
         "7d": timedelta(days=7),
         "30d": timedelta(days=30),
@@ -35,7 +35,7 @@ def _parse_time_range(time_range: str) -> tuple[datetime, datetime]:
         "12m": timedelta(days=365),
     }
     if time_range == "all":
-        start = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        start = datetime(1970, 1, 1, tzinfo=UTC)
     elif time_range in delta_map:
         start = end - delta_map[time_range]
     else:

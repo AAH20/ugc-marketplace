@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -81,7 +82,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         except AppError as exc:
             return self._build_response(exc.status_code, exc.error_code, exc.message, exc.details)
-        except Exception as exc:
+        except Exception:
             logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
             return self._build_response(
                 500,

@@ -22,9 +22,7 @@ async def metrics() -> dict:
 
 
 @router.post("/score")
-async def score_content(
-    content: str, content_type: ContentType = ContentType.TEXT
-) -> dict:
+async def score_content(content: str, content_type: ContentType = ContentType.TEXT) -> dict:
     """Score content quality across all dimensions.
 
     Args:

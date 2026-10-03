@@ -8,10 +8,9 @@ using realistic mock data for development and testing.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Data Models
@@ -338,9 +337,7 @@ def get_creator_metrics(creator_id: str, period: str) -> dict[str, Any]:
 
     supported_periods = {"7d", "30d", "90d", "1y"}
     if period not in supported_periods:
-        raise ValueError(
-            f"Unsupported period '{period}'. Must be one of: {supported_periods}"
-        )
+        raise ValueError(f"Unsupported period '{period}'. Must be one of: {supported_periods}")
 
     rng = _seeded_random(creator_id)
 

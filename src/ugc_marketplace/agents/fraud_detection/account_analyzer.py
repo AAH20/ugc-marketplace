@@ -64,11 +64,7 @@ class AccountAnalyzerAgent:
         try:
             self._last_activity = datetime.utcnow()
             result = await self._agent.ainvoke(
-                {
-                    "input": (
-                        f"Analyze account for fraud risk: " f"Account ID={account_id}"
-                    )
-                }
+                {"input": (f"Analyze account for fraud risk: Account ID={account_id}")}
             )
 
             analysis = self._parse_analysis(result, account_id)

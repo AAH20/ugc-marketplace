@@ -441,11 +441,7 @@ def _score_ip_reputation(txn: dict[str, Any]) -> FraudFlag | None:
 def _score_behavior_pattern(txn: dict[str, Any]) -> FraudFlag | None:
     """Detect suspicious behavior patterns."""
     # Pattern: new account + high velocity + large amount
-    if (
-        txn["account_age_days"] < 14
-        and txn["txn_count_24h"] > 5
-        and txn["amount"] > 100
-    ):
+    if txn["account_age_days"] < 14 and txn["txn_count_24h"] > 5 and txn["amount"] > 100:
         return FraudFlag(
             flag_type=FraudFlagType.BEHAVIOR_PATTERN,
             severity=0.65,
@@ -566,34 +562,39 @@ def investigate_fraud(transaction_id: str) -> InvestigationReport:
 
     # Add fraud detection events
     for flag in fraud_score.flags:
-        timeline.append({
-            "event": f"flag_raised_{flag.flag_type.value}",
-            "timestamp": (txn_time + timedelta(minutes=5)).isoformat(),
-            "details": flag.description,
-        })
+        timeline.append(
+            {
+                "event": f"flag_raised_{flag.flag_type.value}",
+                "timestamp": (txn_time + timedelta(minutes=5)).isoformat(),
+                "details": flag.description,
+            }
+        )
 
-    timeline.append({
-        "event": "investigation_completed",
-        "timestamp": datetime.utcnow().isoformat(),
-        "details": f"Risk level assessed as {fraud_score.risk_level.value}",
-    })
+    timeline.append(
+        {
+            "event": "investigation_completed",
+            "timestamp": datetime.utcnow().isoformat(),
+            "details": f"Risk level assessed as {fraud_score.risk_level.value}",
+        }
+    )
 
     # Find related transactions (same user or same device)
     related: list[dict[str, Any]] = []
     for mock_id, mock_txn in _MOCK_TRANSACTIONS.items():
         if mock_id == transaction_id:
             continue
-        if (
-            mock_txn["user_id"] == txn["user_id"]
-            or mock_txn["device_id"] == txn["device_id"]
-        ):
-            related.append({
-                "transaction_id": mock_id,
-                "amount": mock_txn["amount"],
-                "timestamp": mock_txn["timestamp"],
-                "seller_id": mock_txn["seller_id"],
-                "relationship": "same_user" if mock_txn["user_id"] == txn["user_id"] else "same_device",
-            })
+        if mock_txn["user_id"] == txn["user_id"] or mock_txn["device_id"] == txn["device_id"]:
+            related.append(
+                {
+                    "transaction_id": mock_id,
+                    "amount": mock_txn["amount"],
+                    "timestamp": mock_txn["timestamp"],
+                    "seller_id": mock_txn["seller_id"],
+                    "relationship": "same_user"
+                    if mock_txn["user_id"] == txn["user_id"]
+                    else "same_device",
+                }
+            )
 
     # Generate recommendations based on flags
     recommendations: list[str] = []
@@ -739,9 +740,7 @@ def flag_suspicious_activity(user_id: str, activity: dict[str, Any]) -> bool:
         raise
     except Exception as exc:
         logger.exception("Error flagging activity for user %s", user_id)
-        raise FraudDetectionError(
-            f"Failed to flag activity for user '{user_id}': {exc}"
-        ) from exc
+        raise FraudDetectionError(f"Failed to flag activity for user '{user_id}': {exc}") from exc
 
 
 def get_fraud_score(user_id: str) -> float:
@@ -854,9 +853,7 @@ def _compute_user_fraud_score(activities: list[dict[str, Any]]) -> float:
     if not activities:
         return 0.0
 
-    suspicious_count = sum(
-        1 for a in activities if _evaluate_suspicious_activity(a)
-    )
+    suspicious_count = sum(1 for a in activities if _evaluate_suspicious_activity(a))
     total_count = len(activities)
 
     # Base score from suspicious ratio

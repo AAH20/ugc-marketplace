@@ -15,9 +15,7 @@ class RevenueStream(BaseModel):
     """A revenue stream configuration."""
 
     name: str = Field(..., description="Revenue stream name")
-    type: str = Field(
-        ..., description="Stream type (subscription, tips, merchandise, etc.)"
-    )
+    type: str = Field(..., description="Stream type (subscription, tips, merchandise, etc.)")
     monthly_amount: Decimal = Field(default=Decimal("0"), ge=0)
     growth_rate: float = Field(default=0.0, ge=-1.0, le=10.0)
 
@@ -29,9 +27,7 @@ class OptimizationSuggestion(BaseModel):
     title: str = Field(..., description="Suggestion title")
     description: str = Field(..., description="Detailed description")
     potential_impact: Decimal = Field(..., description="Estimated monthly impact")
-    effort_level: str = Field(
-        ..., description="Implementation effort (low, medium, high)"
-    )
+    effort_level: str = Field(..., description="Implementation effort (low, medium, high)")
     priority: int = Field(default=5, ge=1, le=10)
 
 
@@ -94,9 +90,7 @@ class RevenueOptimizerAgent:
             "streams": [s.model_dump() for s in streams],
         }
 
-    async def generate_suggestions(
-        self, creator_id: str
-    ) -> list[OptimizationSuggestion]:
+    async def generate_suggestions(self, creator_id: str) -> list[OptimizationSuggestion]:
         """Generate optimization suggestions for a creator.
 
         Args:
@@ -149,9 +143,7 @@ class RevenueOptimizerAgent:
                 )
 
         self._suggestions[creator_id] = suggestions
-        logger.info(
-            "Suggestions generated", creator_id=creator_id, count=len(suggestions)
-        )
+        logger.info("Suggestions generated", creator_id=creator_id, count=len(suggestions))
         return suggestions
 
     def get_suggestions(self, creator_id: str) -> list[OptimizationSuggestion]:

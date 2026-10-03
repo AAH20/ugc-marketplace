@@ -66,9 +66,7 @@ class BaseIntegration(ABC):
         ...
 
     @abstractmethod
-    async def fetch_content_performance(
-        self, content_ids: list[str]
-    ) -> list[dict[str, Any]]:
+    async def fetch_content_performance(self, content_ids: list[str]) -> list[dict[str, Any]]:
         """Fetch content performance data.
 
         Args:

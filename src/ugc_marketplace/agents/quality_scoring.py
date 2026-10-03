@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -466,9 +465,7 @@ def compare_quality(content_ids: list[str]) -> ComparativeAnalysis:
     True
     """
     if len(content_ids) < 2:
-        raise ValueError(
-            f"compare_quality requires at least 2 content IDs, got {len(content_ids)}"
-        )
+        raise ValueError(f"compare_quality requires at least 2 content IDs, got {len(content_ids)}")
 
     scores: dict[str, QualityScore] = {}
     for cid in content_ids:
@@ -536,9 +533,7 @@ def _synthetic_content(content_id: str) -> dict[str, Any]:
     }
 
 
-def _build_summary(
-    ranked: list[QualityScore], avg: float, spread: float
-) -> str:
+def _build_summary(ranked: list[QualityScore], avg: float, spread: float) -> str:
     """Build a human-readable summary string."""
     best = ranked[0]
     worst = ranked[-1]
@@ -662,10 +657,7 @@ def flag_low_quality(content_id: str) -> bool:
     score_result = score_content(content_id)
     metrics = get_quality_metrics(content_id)
 
-    should_flag = (
-        score_result.overall_score < 60.0
-        or metrics["report_count"] >= 3
-    )
+    should_flag = score_result.overall_score < 60.0 or metrics["report_count"] >= 3
 
     if should_flag:
         logger.warning(

@@ -79,9 +79,7 @@ class SEOScorerAgent(BaseScoringAgent["DimensionScore"]):
 
         keyword_score = 0.0
         if target_keywords:
-            keyword_matches = sum(
-                1 for kw in target_keywords if kw.lower() in content.lower()
-            )
+            keyword_matches = sum(1 for kw in target_keywords if kw.lower() in content.lower())
             keyword_score = keyword_matches / len(target_keywords)
 
         score_value = 0.3

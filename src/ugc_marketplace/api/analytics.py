@@ -1,7 +1,7 @@
 """Analytics API endpoints for the UGC Marketplace."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 # ---------------------------------------------------------------------------
 # Pydantic Models
 # ---------------------------------------------------------------------------
+
 
 class DashboardMetrics(BaseModel):
     """Top-level marketplace dashboard metrics."""
@@ -65,13 +66,13 @@ class RevenueAnalytics(BaseModel):
     total_revenue: float = Field(..., description="Total revenue in period")
     total_transactions: int = Field(..., description="Total transactions in period")
     avg_transaction_value: float = Field(..., description="Average transaction value")
-    top_earning_creators: List[Dict[str, Any]] = Field(
+    top_earning_creators: list[dict[str, Any]] = Field(
         default_factory=list, description="Top earning creators"
     )
-    revenue_by_content_type: Dict[str, float] = Field(
+    revenue_by_content_type: dict[str, float] = Field(
         default_factory=dict, description="Revenue breakdown by content type"
     )
-    daily_revenue: List[Dict[str, Any]] = Field(
+    daily_revenue: list[dict[str, Any]] = Field(
         default_factory=list, description="Daily revenue time series"
     )
     period_start: datetime = Field(..., description="Period start")
@@ -82,13 +83,14 @@ class AnalyticsResponse(BaseModel):
     """Generic analytics response wrapper."""
 
     success: bool = True
-    data: Optional[Any] = None
-    message: Optional[str] = None
+    data: Any | None = None
+    message: str | None = None
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get(
     "",
@@ -130,11 +132,13 @@ async def get_dashboard_analytics() -> AnalyticsResponse:
 )
 async def get_creator_analytics(
     limit: int = Query(default=50, ge=1, le=200, description="Max creators to return"),
-    sort_by: str = Query(default="revenue", description="Sort field (revenue, engagement, followers)"),
+    sort_by: str = Query(
+        default="revenue", description="Sort field (revenue, engagement, followers)"
+    ),
 ) -> AnalyticsResponse:
     """Retrieve creator analytics."""
     try:
-        creators: List[CreatorAnalytics] = []
+        creators: list[CreatorAnalytics] = []
         return AnalyticsResponse(data=creators)
     except Exception as exc:
         raise HTTPException(
@@ -152,11 +156,11 @@ async def get_creator_analytics(
 )
 async def get_content_analytics(
     limit: int = Query(default=50, ge=1, le=200, description="Max content items to return"),
-    content_type: Optional[str] = Query(default=None, description="Filter by content type"),
+    content_type: str | None = Query(default=None, description="Filter by content type"),
 ) -> AnalyticsResponse:
     """Retrieve content analytics."""
     try:
-        content: List[ContentAnalytics] = []
+        content: list[ContentAnalytics] = []
         return AnalyticsResponse(data=content)
     except Exception as exc:
         raise HTTPException(

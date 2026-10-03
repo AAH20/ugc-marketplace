@@ -42,9 +42,7 @@ async def close_redis() -> None:
         logger.info("Redis client closed")
 
 
-async def cache_transaction(
-    transaction_id: str, data: dict[str, Any], ttl: int = 3600
-) -> None:
+async def cache_transaction(transaction_id: str, data: dict[str, Any], ttl: int = 3600) -> None:
     """Cache transaction data.
 
     Args:

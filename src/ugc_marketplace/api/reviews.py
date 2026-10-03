@@ -6,8 +6,7 @@ Provides:
   POST /reviews  — create a new review with validation
 """
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -19,8 +18,10 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
+
 class ReviewCreate(BaseModel):
     """Payload for creating a new review."""
+
     product_id: int = Field(..., gt=0, description="ID of the product being reviewed")
     user_id: int = Field(..., gt=0, description="ID of the user writing the review")
     rating: int = Field(..., ge=1, le=5, description="Star rating from 1 to 5")
@@ -30,6 +31,7 @@ class ReviewCreate(BaseModel):
 
 class ReviewResponse(BaseModel):
     """Review representation returned by the API."""
+
     id: int
     product_id: int
     user_id: int
@@ -44,6 +46,7 @@ class ReviewResponse(BaseModel):
 
 class ReviewListResponse(BaseModel):
     """Paginated list of reviews."""
+
     data: list[ReviewResponse]
     total: int
     page: int
@@ -161,11 +164,12 @@ _next_id = max(r["id"] for r in MOCK_REVIEWS) + 1
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("", response_model=ReviewListResponse)
 async def list_reviews(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    rating: Optional[int] = Query(None, ge=1, le=5, description="Filter by star rating"),
+    rating: int | None = Query(None, ge=1, le=5, description="Filter by star rating"),
 ) -> dict:
     """
     List reviews with optional rating filter and pagination.
@@ -198,7 +202,7 @@ async def create_review(payload: ReviewCreate) -> dict:
     """
     global _next_id
 
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     review = {
         "id": _next_id,
@@ -222,9 +226,11 @@ async def create_review(payload: ReviewCreate) -> dict:
 class ReviewUpdate(BaseModel):
     """Payload for updating an existing review (all fields optional)."""
 
-    rating: Optional[int] = Field(None, ge=1, le=5, description="Star rating from 1 to 5")
-    title: Optional[str] = Field(None, min_length=1, max_length=120, description="Short review headline")
-    body: Optional[str] = Field(None, min_length=1, max_length=2000, description="Full review text")
+    rating: int | None = Field(None, ge=1, le=5, description="Star rating from 1 to 5")
+    title: str | None = Field(
+        None, min_length=1, max_length=120, description="Short review headline"
+    )
+    body: str | None = Field(None, min_length=1, max_length=2000, description="Full review text")
 
 
 @router.get("/{review_id}", response_model=ReviewResponse)
@@ -247,7 +253,7 @@ async def update_review(review_id: int, payload: ReviewUpdate) -> dict:
         if review["id"] == review_id:
             update_data = payload.model_dump(exclude_unset=True)
             review.update(update_data)
-            review["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            review["updated_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             return review
 
     raise HTTPException(

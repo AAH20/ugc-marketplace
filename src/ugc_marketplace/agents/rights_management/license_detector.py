@@ -14,9 +14,7 @@ from ugc_marketplace.agents.rights_management.types import (
 )
 
 
-class LicenseDetectorAgent(
-    BaseAgent["LicenseDetectionRequest", "LicenseDetectionResult"]
-):
+class LicenseDetectorAgent(BaseAgent["LicenseDetectionRequest", "LicenseDetectionResult"]):
     """Agent that detects and validates content licenses.
 
     Analyzes content to determine licensing status, detect
@@ -45,9 +43,7 @@ class LicenseDetectorAgent(
         )
         return agent
 
-    async def execute(
-        self, input_data: LicenseDetectionRequest
-    ) -> LicenseDetectionResult:
+    async def execute(self, input_data: LicenseDetectionRequest) -> LicenseDetectionResult:
         """Execute license detection.
 
         Args:

@@ -103,9 +103,7 @@ class RiskScorerAgent:
                 score_id=str(uuid.uuid4()),
                 transaction_id=transaction.transaction_id,
                 overall_score=0.5,
-                factors=[
-                    RiskFactor(name="error", contribution=0.5, description=str(exc))
-                ],
+                factors=[RiskFactor(name="error", contribution=0.5, description=str(exc))],
             )
 
     def _parse_risk_score(self, result: Any, transaction: Transaction) -> RiskScore:

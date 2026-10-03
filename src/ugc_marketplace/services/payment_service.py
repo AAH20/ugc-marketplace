@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -49,11 +49,11 @@ class PaymentNotFoundError(PaymentError):
 
 # In-memory store for demonstration purposes.
 # In production, replace with actual database calls.
-_payments_store: Dict[str, Dict[str, Any]] = {}
-_user_balances: Dict[str, float] = {}
+_payments_store: dict[str, dict[str, Any]] = {}
+_user_balances: dict[str, float] = {}
 
 
-def _validate_payment_data(data: Dict[str, Any]) -> None:
+def _validate_payment_data(data: dict[str, Any]) -> None:
     """Validate payment data before processing.
 
     Args:
@@ -66,9 +66,7 @@ def _validate_payment_data(data: Dict[str, Any]) -> None:
     missing_fields = [field for field in required_fields if field not in data]
 
     if missing_fields:
-        raise InvalidPaymentDataError(
-            f"Missing required fields: {', '.join(missing_fields)}"
-        )
+        raise InvalidPaymentDataError(f"Missing required fields: {', '.join(missing_fields)}")
 
     if not isinstance(data["amount"], (int, float)) or data["amount"] <= 0:
         raise InvalidPaymentDataError("Amount must be a positive number")
@@ -83,7 +81,7 @@ def _validate_payment_data(data: Dict[str, Any]) -> None:
         raise InvalidPaymentDataError("payment_method must be a non-empty string")
 
 
-def process_payment(data: Dict[str, Any]) -> Dict[str, Any]:
+def process_payment(data: dict[str, Any]) -> dict[str, Any]:
     """Process a payment transaction.
 
     Args:
@@ -115,15 +113,15 @@ def process_payment(data: Dict[str, Any]) -> Dict[str, Any]:
         amount: float = float(data["amount"])
         currency: str = data["currency"].upper()
         payment_method: str = data["payment_method"]
-        description: Optional[str] = data.get("description")
-        metadata: Optional[Dict[str, Any]] = data.get("metadata")
+        description: str | None = data.get("description")
+        metadata: dict[str, Any] | None = data.get("metadata")
 
         payment_id: str = str(uuid4())
-        created_at: str = datetime.now(timezone.utc).isoformat()
+        created_at: str = datetime.now(UTC).isoformat()
 
         # Simulate payment processing logic
         # In production, integrate with a payment gateway (Stripe, PayPal, etc.)
-        payment_record: Dict[str, Any] = {
+        payment_record: dict[str, Any] = {
             "payment_id": payment_id,
             "user_id": user_id,
             "amount": amount,
@@ -158,7 +156,7 @@ def process_payment(data: Dict[str, Any]) -> Dict[str, Any]:
         raise PaymentError(f"Payment processing failed: {exc}") from exc
 
 
-def initiate_payout(creator_id: str, amount: float) -> Dict[str, Any]:
+def initiate_payout(creator_id: str, amount: float) -> dict[str, Any]:
     """Initiate a payout to a creator.
 
     Args:
@@ -195,12 +193,12 @@ def initiate_payout(creator_id: str, amount: float) -> Dict[str, Any]:
             )
 
         payout_id: str = str(uuid4())
-        created_at: str = datetime.now(timezone.utc).isoformat()
+        created_at: str = datetime.now(UTC).isoformat()
 
         # Deduct from balance
         _user_balances[creator_id] = available_balance - amount
 
-        payout_record: Dict[str, Any] = {
+        payout_record: dict[str, Any] = {
             "payout_id": payout_id,
             "creator_id": creator_id,
             "amount": amount,
@@ -227,7 +225,7 @@ def initiate_payout(creator_id: str, amount: float) -> Dict[str, Any]:
         raise PayoutError(f"Payout initiation failed: {exc}") from exc
 
 
-def get_payment_history(user_id: str) -> List[Dict[str, Any]]:
+def get_payment_history(user_id: str) -> list[dict[str, Any]]:
     """Retrieve the payment history for a given user.
 
     Args:
@@ -246,7 +244,7 @@ def get_payment_history(user_id: str) -> List[Dict[str, Any]]:
         if not isinstance(user_id, str) or not user_id.strip():
             raise InvalidPaymentDataError("user_id must be a non-empty string")
 
-        user_payments: List[Dict[str, Any]] = [
+        user_payments: list[dict[str, Any]] = [
             record
             for record in _payments_store.values()
             if record.get("user_id") == user_id or record.get("creator_id") == user_id
@@ -270,7 +268,7 @@ def get_payment_history(user_id: str) -> List[Dict[str, Any]]:
         raise PaymentError(f"Failed to retrieve payment history: {exc}") from exc
 
 
-def get_payment(payment_id: str) -> Dict[str, Any]:
+def get_payment(payment_id: str) -> dict[str, Any]:
     """Get a payment by its ID.
 
     Args:
@@ -302,9 +300,7 @@ def get_payment(payment_id: str) -> Dict[str, Any]:
         raise PaymentError(f"Failed to retrieve payment: {exc}") from exc
 
 
-def list_payments(
-    filters: Dict[str, Any], page: int, page_size: int
-) -> List[Dict[str, Any]]:
+def list_payments(filters: dict[str, Any], page: int, page_size: int) -> list[dict[str, Any]]:
     """List payments with optional filters and pagination.
 
     Args:
@@ -329,7 +325,7 @@ def list_payments(
             raise InvalidPaymentDataError("page_size must be a positive integer")
 
         # Filter payments
-        filtered: List[Dict[str, Any]] = []
+        filtered: list[dict[str, Any]] = []
         for record in _payments_store.values():
             match = True
             for key, value in filters.items():
@@ -364,7 +360,7 @@ def list_payments(
         raise PaymentError(f"Failed to list payments: {exc}") from exc
 
 
-def create_payment(data: Dict[str, Any]) -> Dict[str, Any]:
+def create_payment(data: dict[str, Any]) -> dict[str, Any]:
     """Create a new payment.
 
     Args:
@@ -391,13 +387,13 @@ def create_payment(data: Dict[str, Any]) -> Dict[str, Any]:
         amount: float = float(data["amount"])
         currency: str = data["currency"].upper()
         payment_method: str = data["payment_method"]
-        description: Optional[str] = data.get("description")
-        metadata: Optional[Dict[str, Any]] = data.get("metadata")
+        description: str | None = data.get("description")
+        metadata: dict[str, Any] | None = data.get("metadata")
 
         payment_id: str = str(uuid4())
-        created_at: str = datetime.now(timezone.utc).isoformat()
+        created_at: str = datetime.now(UTC).isoformat()
 
-        payment_record: Dict[str, Any] = {
+        payment_record: dict[str, Any] = {
             "payment_id": payment_id,
             "user_id": user_id,
             "amount": amount,
@@ -428,7 +424,7 @@ def create_payment(data: Dict[str, Any]) -> Dict[str, Any]:
         raise PaymentError(f"Failed to create payment: {exc}") from exc
 
 
-def update_payment_status(payment_id: str, status: str) -> Dict[str, Any]:
+def update_payment_status(payment_id: str, status: str) -> dict[str, Any]:
     """Update the status of an existing payment.
 
     Args:
@@ -458,7 +454,7 @@ def update_payment_status(payment_id: str, status: str) -> Dict[str, Any]:
             raise PaymentNotFoundError(f"Payment with ID '{payment_id}' not found")
 
         payment["status"] = status
-        payment["updated_at"] = datetime.now(timezone.utc).isoformat()
+        payment["updated_at"] = datetime.now(UTC).isoformat()
 
         logger.info("Updated payment %s status to %s", payment_id, status)
         return payment

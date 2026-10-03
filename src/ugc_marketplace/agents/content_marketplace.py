@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +60,12 @@ class MarketplaceFilters:
 
     content_types: list[ContentType] = field(default_factory=list)
     categories: list[ContentCategory] = field(default_factory=list)
-    min_price: Optional[float] = None
-    max_price: Optional[float] = None
-    min_rating: Optional[float] = None
-    max_rating: Optional[float] = None
+    min_price: float | None = None
+    max_price: float | None = None
+    min_rating: float | None = None
+    max_rating: float | None = None
     tags: list[str] = field(default_factory=list)
-    creator_verified: Optional[bool] = None
+    creator_verified: bool | None = None
     sort_by: SortOrder = SortOrder.RELEVANCE
     limit: int = 20
     offset: int = 0
@@ -105,7 +105,7 @@ class ContentItem:
     is_active: bool
     license_type: str
     file_size_mb: float
-    preview_url: Optional[str] = None
+    preview_url: str | None = None
 
 
 @dataclass
@@ -652,7 +652,7 @@ class ContentMarketplaceAgent:
     In production, this would connect to the marketplace API or database.
     """
 
-    def __init__(self, items: Optional[list[ContentItem]] = None) -> None:
+    def __init__(self, items: list[ContentItem] | None = None) -> None:
         """Initialize the agent with mock or provided items.
 
         Args:
@@ -670,7 +670,7 @@ class ContentMarketplaceAgent:
     def search_marketplace(
         self,
         query: str,
-        filters: Optional[MarketplaceFilters] = None,
+        filters: MarketplaceFilters | None = None,
     ) -> SearchResult:
         """Search the marketplace for content items matching the query and filters.
 
@@ -807,15 +807,11 @@ class ContentMarketplaceAgent:
         verified_creators = sum(1 for c in self._creators.values() if c.verified)
 
         # Simulate "last 30 days" metrics (using a deterministic subset)
-        new_items_last_30_days = sum(
-            1 for item in active_items if item.created_at >= "2025-09-01"
-        )
+        new_items_last_30_days = sum(1 for item in active_items if item.created_at >= "2025-09-01")
         sales_last_30_days = sum(
             item.sales_count // 4 for item in active_items
         )  # Approximate quarterly sales
-        revenue_last_30_days = sum(
-            (item.price * item.sales_count) / 4 for item in active_items
-        )
+        revenue_last_30_days = sum((item.price * item.sales_count) / 4 for item in active_items)
 
         # Category stats
         category_map: dict[ContentCategory, list[ContentItem]] = {}
@@ -872,9 +868,7 @@ class ContentMarketplaceAgent:
     # Private Helpers
     # ------------------------------------------------------------------
 
-    def _sort_items(
-        self, items: list[ContentItem], sort_by: SortOrder
-    ) -> list[ContentItem]:
+    def _sort_items(self, items: list[ContentItem], sort_by: SortOrder) -> list[ContentItem]:
         """Sort items by the specified criteria.
 
         Args:
@@ -895,9 +889,7 @@ class ContentMarketplaceAgent:
         elif sort_by == SortOrder.POPULARITY:
             return sorted(items, key=lambda i: i.sales_count, reverse=True)
         else:  # RELEVANCE — default sort by rating then sales
-            return sorted(
-                items, key=lambda i: (i.rating, i.sales_count), reverse=True
-            )
+            return sorted(items, key=lambda i: (i.rating, i.sales_count), reverse=True)
 
 
 # ---------------------------------------------------------------------------
@@ -905,9 +897,7 @@ class ContentMarketplaceAgent:
 # ---------------------------------------------------------------------------
 
 
-def search_marketplace(
-    query: str, filters: Optional[MarketplaceFilters] = None
-) -> SearchResult:
+def search_marketplace(query: str, filters: MarketplaceFilters | None = None) -> SearchResult:
     """Convenience function to search the marketplace.
 
     Creates a default ContentMarketplaceAgent and performs the search.
@@ -1010,12 +1000,8 @@ def list_marketplace_items(filters: dict[str, Any]) -> list[dict[str, Any]]:
         agent = ContentMarketplaceAgent()
         # Use empty query to match all items, apply filters via MarketplaceFilters
         marketplace_filters = MarketplaceFilters(
-            content_types=[
-                ContentType(ct) for ct in filters.get("content_types", [])
-            ],
-            categories=[
-                ContentCategory(c) for c in filters.get("categories", [])
-            ],
+            content_types=[ContentType(ct) for ct in filters.get("content_types", [])],
+            categories=[ContentCategory(c) for c in filters.get("categories", [])],
             min_price=filters.get("min_price"),
             max_price=filters.get("max_price"),
             min_rating=filters.get("min_rating"),
@@ -1028,27 +1014,29 @@ def list_marketplace_items(filters: dict[str, Any]) -> list[dict[str, Any]]:
         result = agent.search_marketplace("", marketplace_filters)
         items: list[dict[str, Any]] = []
         for item in result.items:
-            items.append({
-                "id": item.item_id,
-                "title": item.title,
-                "description": item.description,
-                "content_type": item.content_type.value,
-                "category": item.category.value,
-                "price": item.price,
-                "currency": item.currency,
-                "rating": item.rating,
-                "review_count": item.review_count,
-                "sales_count": item.sales_count,
-                "tags": item.tags,
-                "seller_id": item.creator.creator_id,
-                "thumbnail_url": item.thumbnail_url,
-                "created_at": item.created_at,
-                "updated_at": item.updated_at,
-                "is_active": item.is_active,
-                "license_type": item.license_type,
-                "file_size_mb": item.file_size_mb,
-                "preview_url": item.preview_url,
-            })
+            items.append(
+                {
+                    "id": item.item_id,
+                    "title": item.title,
+                    "description": item.description,
+                    "content_type": item.content_type.value,
+                    "category": item.category.value,
+                    "price": item.price,
+                    "currency": item.currency,
+                    "rating": item.rating,
+                    "review_count": item.review_count,
+                    "sales_count": item.sales_count,
+                    "tags": item.tags,
+                    "seller_id": item.creator.creator_id,
+                    "thumbnail_url": item.thumbnail_url,
+                    "created_at": item.created_at,
+                    "updated_at": item.updated_at,
+                    "is_active": item.is_active,
+                    "license_type": item.license_type,
+                    "file_size_mb": item.file_size_mb,
+                    "preview_url": item.preview_url,
+                }
+            )
         logger.info("Listed %d marketplace items", len(items))
         return items
     except Exception as exc:
@@ -1090,6 +1078,7 @@ def purchase_content(content_id: str, buyer_id: str) -> dict[str, Any]:
 
         # Placeholder: replace with actual purchase transaction
         import uuid
+
         result: dict[str, Any] = {
             "purchase_id": str(uuid.uuid4()),
             "content_id": content_id,

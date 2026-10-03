@@ -38,9 +38,7 @@ class AnalyticsAgent:
         self._reports: dict[str, dict[str, Any]] = {}
         self._metrics: dict[str, list[MetricPoint]] = {}
 
-    async def record_metric(
-        self, name: str, value: float, label: str | None = None
-    ) -> MetricPoint:
+    async def record_metric(self, name: str, value: float, label: str | None = None) -> MetricPoint:
         """Record a metric data point.
 
         Args:
@@ -106,8 +104,7 @@ class AnalyticsAgent:
             "creator_id": creator_id,
             "period": period.model_dump(),
             "metrics": {
-                name: [p.model_dump() for p in points]
-                for name, points in period_metrics.items()
+                name: [p.model_dump() for p in points] for name, points in period_metrics.items()
             },
             "summary": summary,
             "insights": insights,
@@ -140,9 +137,7 @@ class AnalyticsAgent:
             if summary["subscribers_total"] > 1000:
                 insights.append("Large subscriber base - focus on retention strategies")
             elif summary["subscribers_total"] < 50:
-                insights.append(
-                    "Growing subscriber base - consider promotional campaigns"
-                )
+                insights.append("Growing subscriber base - consider promotional campaigns")
 
         if "churn_rate_avg" in summary:
             if summary["churn_rate_avg"] > 0.1:
@@ -154,9 +149,7 @@ class AnalyticsAgent:
             if summary["engagement_rate_avg"] < 0.05:
                 insights.append("Low engagement - experiment with content formats")
             elif summary["engagement_rate_avg"] > 0.15:
-                insights.append(
-                    "Strong engagement - leverage for upselling opportunities"
-                )
+                insights.append("Strong engagement - leverage for upselling opportunities")
 
         if not insights:
             insights.append("Performance within normal ranges")

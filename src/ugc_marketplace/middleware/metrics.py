@@ -114,18 +114,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                     "count": len(sorted_latencies),
                     "min": round(min(sorted_latencies) * 1000, 2),
                     "max": round(max(sorted_latencies) * 1000, 2),
-                    "mean": round(
-                        (sum(sorted_latencies) / len(sorted_latencies)) * 1000, 2
-                    ),
-                    "p50": round(
-                        sorted_latencies[int(len(sorted_latencies) * 0.5)] * 1000, 2
-                    ),
-                    "p95": round(
-                        sorted_latencies[int(len(sorted_latencies) * 0.95)] * 1000, 2
-                    ),
-                    "p99": round(
-                        sorted_latencies[int(len(sorted_latencies) * 0.99)] * 1000, 2
-                    ),
+                    "mean": round((sum(sorted_latencies) / len(sorted_latencies)) * 1000, 2),
+                    "p50": round(sorted_latencies[int(len(sorted_latencies) * 0.5)] * 1000, 2),
+                    "p95": round(sorted_latencies[int(len(sorted_latencies) * 0.95)] * 1000, 2),
+                    "p99": round(sorted_latencies[int(len(sorted_latencies) * 0.99)] * 1000, 2),
                 }
 
         return metrics
@@ -143,31 +135,23 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         lines.append("# TYPE http_requests_total counter")
         for key, count in self.request_count.items():
             method, route = key.split(":", 1)
-            lines.append(
-                f'http_requests_total{{method="{method}",route="{route}"}} {count}'
-            )
+            lines.append(f'http_requests_total{{method="{method}",route="{route}"}} {count}')
 
         # Error count
         lines.append("# HELP http_errors_total Total number of HTTP errors.")
         lines.append("# TYPE http_errors_total counter")
         for key, count in self.error_count.items():
             method, route = key.split(":", 1)
-            lines.append(
-                f'http_errors_total{{method="{method}",route="{route}"}} {count}'
-            )
+            lines.append(f'http_errors_total{{method="{method}",route="{route}"}} {count}')
 
         # Status codes
-        lines.append(
-            "# HELP http_responses_total Total number of HTTP responses by status code."
-        )
+        lines.append("# HELP http_responses_total Total number of HTTP responses by status code.")
         lines.append("# TYPE http_responses_total counter")
         for code, count in self.status_codes.items():
             lines.append(f'http_responses_total{{status_code="{code}"}} {count}')
 
         # Latency
-        lines.append(
-            "# HELP http_request_duration_ms HTTP request duration in milliseconds."
-        )
+        lines.append("# HELP http_request_duration_ms HTTP request duration in milliseconds.")
         lines.append("# TYPE http_request_duration_ms summary")
         for key, latency in self.get_metrics()["latency"].items():
             method, route = key.split(":", 1)

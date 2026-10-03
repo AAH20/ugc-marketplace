@@ -16,9 +16,7 @@ from ugc_marketplace.agents.community_curation.types import (
 logger = structlog.get_logger(__name__)
 
 
-class QualityFilterAgent(
-    BaseCurationAgent[list["ContentItem"], list["QualityAssessment"]]
-):
+class QualityFilterAgent(BaseCurationAgent[list["ContentItem"], list["QualityAssessment"]]):
     """Agent that filters content based on quality criteria.
 
     Evaluates content against quality thresholds and

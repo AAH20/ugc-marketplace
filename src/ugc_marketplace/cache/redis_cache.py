@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import redis
 
@@ -17,7 +17,7 @@ class RedisCache:
         host: str = "localhost",
         port: int = 6379,
         db: int = 0,
-        password: Optional[str] = None,
+        password: str | None = None,
         key_prefix: str = "ugc_marketplace:",
         socket_timeout: float = 5.0,
         socket_connect_timeout: float = 5.0,
@@ -39,7 +39,7 @@ class RedisCache:
     def _prefixed(self, key: str) -> str:
         return f"{self._key_prefix}{key}"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get cached value by key. Returns None if not found or on error."""
         try:
             raw = self._client.get(self._prefixed(key))
@@ -54,9 +54,7 @@ class RedisCache:
         """Set cached value with TTL in seconds. Returns True on success."""
         try:
             serialized = json.dumps(value)
-            return bool(
-                self._client.set(self._prefixed(key), serialized, ex=ttl)
-            )
+            return bool(self._client.set(self._prefixed(key), serialized, ex=ttl))
         except (redis.RedisError, TypeError) as exc:
             logger.warning("Cache set failed for key %s: %s", key, exc)
             return False

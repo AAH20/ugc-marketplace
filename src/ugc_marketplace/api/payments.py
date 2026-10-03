@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi import status as http_status
 from pydantic import BaseModel, Field, field_validator
 
@@ -16,16 +16,23 @@ router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
 # Pydantic Models
 # ---------------------------------------------------------------------------
 
+
 class PaymentCreate(BaseModel):
     """Schema for creating a new payment."""
 
     order_id: UUID = Field(..., description="Associated order ID")
     amount: float = Field(..., gt=0, description="Payment amount in currency units")
-    currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
-    method: str = Field(..., description="Payment method (e.g., credit_card, paypal, bank_transfer)")
+    currency: str = Field(
+        default="USD", min_length=3, max_length=3, description="ISO 4217 currency code"
+    )
+    method: str = Field(
+        ..., description="Payment method (e.g., credit_card, paypal, bank_transfer)"
+    )
     payer_id: UUID = Field(..., description="ID of the user making the payment")
     payee_id: UUID = Field(..., description="ID of the user receiving the payment")
-    description: Optional[str] = Field(default=None, max_length=500, description="Optional payment description")
+    description: str | None = Field(
+        default=None, max_length=500, description="Optional payment description"
+    )
 
     @field_validator("currency")
     @classmethod
@@ -37,8 +44,8 @@ class PaymentUpdate(BaseModel):
     """Schema for updating a payment's status."""
 
     status: str = Field(..., description="New payment status")
-    transaction_id: Optional[str] = Field(default=None, description="External transaction reference")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional payment metadata")
+    transaction_id: str | None = Field(default=None, description="External transaction reference")
+    metadata: dict[str, Any] | None = Field(default=None, description="Additional payment metadata")
 
     @field_validator("status")
     @classmethod
@@ -60,9 +67,9 @@ class PaymentResponse(BaseModel):
     status: str
     payer_id: UUID
     payee_id: UUID
-    description: Optional[str] = None
-    transaction_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    description: str | None = None
+    transaction_id: str | None = None
+    metadata: dict[str, Any] | None = None
     created_at: str
     updated_at: str
 
@@ -72,7 +79,7 @@ class PaymentResponse(BaseModel):
 class PaymentListResponse(BaseModel):
     """Schema for paginated payment list response."""
 
-    items: List[PaymentResponse]
+    items: list[PaymentResponse]
     total: int
     page: int
     page_size: int
@@ -89,12 +96,13 @@ class ErrorResponse(BaseModel):
 # In-memory store (replace with database in production)
 # ---------------------------------------------------------------------------
 
-_payments_store: Dict[UUID, Dict[str, Any]] = {}
+_payments_store: dict[UUID, dict[str, Any]] = {}
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get(
     "",
@@ -106,11 +114,11 @@ _payments_store: Dict[UUID, Dict[str, Any]] = {}
 async def list_payments(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    status: Optional[str] = Query(default=None, description="Filter by payment status"),
+    status: str | None = Query(default=None, description="Filter by payment status"),
 ) -> PaymentListResponse:
     """List payments with optional filtering and pagination."""
     try:
-        all_payments: List[Dict[str, Any]] = list(_payments_store.values())
+        all_payments: list[dict[str, Any]] = list(_payments_store.values())
 
         if status:
             all_payments = [p for p in all_payments if p["status"] == status]
@@ -155,7 +163,7 @@ async def create_payment(payment: PaymentCreate) -> PaymentResponse:
         payment_id = uuid4()
         now = "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
 
-        payment_data: Dict[str, Any] = {
+        payment_data: dict[str, Any] = {
             "id": payment_id,
             "order_id": payment.order_id,
             "amount": payment.amount,
@@ -239,7 +247,9 @@ async def update_payment(payment_id: UUID, update: PaymentUpdate) -> PaymentResp
             payment_data["transaction_id"] = update.transaction_id
         if update.metadata is not None:
             payment_data["metadata"] = update.metadata
-        payment_data["updated_at"] = "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+        payment_data["updated_at"] = (
+            "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+        )
 
         return PaymentResponse(**payment_data)
     except HTTPException:

@@ -6,11 +6,11 @@ from ugc_marketplace.agents.fraud_detection.pattern_detector import PatternDetec
 from ugc_marketplace.agents.fraud_detection.risk_scorer import RiskScorerAgent
 from ugc_marketplace.agents.fraud_detection.transaction_monitor import TransactionMonitorAgent
 from ugc_marketplace.agents.fraud_detection.types import (
-                                                          AccountAnalysis,
-                                                          Anomaly,
-                                                          Pattern,
-                                                          RiskScore,
-                                                          Transaction,
+    AccountAnalysis,
+    Anomaly,
+    Pattern,
+    RiskScore,
+    Transaction,
 )
 
 __all__ = [

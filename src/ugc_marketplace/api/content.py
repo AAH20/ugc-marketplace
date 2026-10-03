@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
 # ─── Mock data store ────────────────────────────────────────────────────────
 
-MOCK_CONTENT: List[Dict[str, Any]] = [
+MOCK_CONTENT: list[dict[str, Any]] = [
     {
         "id": "c-001",
         "title": "Summer Collection Showcase",
@@ -198,9 +198,9 @@ class ContentCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     type: str = Field(..., description="Content type: image, video, or review")
     author_id: str = Field(..., min_length=1, max_length=50)
-    description: Optional[str] = Field(None, max_length=2000)
-    tags: List[str] = Field(default_factory=list)
-    media_url: Optional[str] = Field(None, max_length=500)
+    description: str | None = Field(None, max_length=2000)
+    tags: list[str] = Field(default_factory=list)
+    media_url: str | None = Field(None, max_length=500)
 
     @field_validator("type")
     @classmethod
@@ -211,7 +211,7 @@ class ContentCreate(BaseModel):
 
     @field_validator("tags")
     @classmethod
-    def validate_tags(cls, v: List[str]) -> List[str]:
+    def validate_tags(cls, v: list[str]) -> list[str]:
         if len(v) > 20:
             raise ValueError("maximum 20 tags allowed")
         for tag in v:
@@ -223,30 +223,30 @@ class ContentCreate(BaseModel):
 class ContentUpdate(BaseModel):
     """Schema for updating existing content."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    type: Optional[str] = Field(None, description="Content type: image, video, or review")
-    status: Optional[str] = Field(None, description="Content status")
-    description: Optional[str] = Field(None, max_length=2000)
-    tags: Optional[List[str]] = None
-    media_url: Optional[str] = Field(None, max_length=500)
+    title: str | None = Field(None, min_length=1, max_length=200)
+    type: str | None = Field(None, description="Content type: image, video, or review")
+    status: str | None = Field(None, description="Content status")
+    description: str | None = Field(None, max_length=2000)
+    tags: list[str] | None = None
+    media_url: str | None = Field(None, max_length=500)
 
     @field_validator("type")
     @classmethod
-    def validate_type(cls, v: Optional[str]) -> Optional[str]:
+    def validate_type(cls, v: str | None) -> str | None:
         if v is not None and v not in VALID_TYPES:
             raise ValueError(f"type must be one of: {', '.join(sorted(VALID_TYPES))}")
         return v
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+    def validate_status(cls, v: str | None) -> str | None:
         if v is not None and v not in VALID_STATUSES:
             raise ValueError(f"status must be one of: {', '.join(sorted(VALID_STATUSES))}")
         return v
 
     @field_validator("tags")
     @classmethod
-    def validate_tags(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+    def validate_tags(cls, v: list[str] | None) -> list[str] | None:
         if v is not None:
             if len(v) > 20:
                 raise ValueError("maximum 20 tags allowed")
@@ -264,9 +264,9 @@ class ContentResponse(BaseModel):
     type: str
     status: str
     author_id: str
-    tags: List[str]
-    media_url: Optional[str]
-    description: Optional[str]
+    tags: list[str]
+    media_url: str | None
+    description: str | None
     created_at: str
     updated_at: str
     views: int
@@ -276,7 +276,7 @@ class ContentResponse(BaseModel):
 class ContentListResponse(BaseModel):
     """Schema for paginated content list response."""
 
-    items: List[ContentResponse]
+    items: list[ContentResponse]
     total: int
     page: int
     page_size: int
@@ -290,9 +290,9 @@ class ContentListResponse(BaseModel):
 async def list_content(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    type: Optional[str] = Query(None, description="Filter by content type"),
-    status: Optional[str] = Query(None, description="Filter by content status"),
-) -> Dict[str, Any]:
+    type: str | None = Query(None, description="Filter by content type"),
+    status: str | None = Query(None, description="Filter by content status"),
+) -> dict[str, Any]:
     """
     List content with pagination and optional filtering by type and/or status.
     """
@@ -332,14 +332,14 @@ async def list_content(
 
 
 @router.post("", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)
-async def create_content(payload: ContentCreate) -> Dict[str, Any]:
+async def create_content(payload: ContentCreate) -> dict[str, Any]:
     """
     Create new content with validation. Returns the created content object.
     """
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     new_id = f"c-{str(uuid.uuid4())[:8]}"
 
-    new_content: Dict[str, Any] = {
+    new_content: dict[str, Any] = {
         "id": new_id,
         "title": payload.title,
         "type": payload.type,
@@ -361,7 +361,7 @@ async def create_content(payload: ContentCreate) -> Dict[str, Any]:
 
 
 @router.get("/{content_id}", response_model=ContentResponse)
-async def get_content(content_id: str) -> Dict[str, Any]:
+async def get_content(content_id: str) -> dict[str, Any]:
     """
     Get a single content item by ID.
     """
@@ -376,7 +376,7 @@ async def get_content(content_id: str) -> Dict[str, Any]:
 
 
 @router.put("/{content_id}", response_model=ContentResponse)
-async def update_content(content_id: str, payload: ContentUpdate) -> Dict[str, Any]:
+async def update_content(content_id: str, payload: ContentUpdate) -> dict[str, Any]:
     """
     Update an existing content item. Returns the updated content object.
     """
@@ -385,7 +385,7 @@ async def update_content(content_id: str, payload: ContentUpdate) -> Dict[str, A
             update_data = payload.model_dump(exclude_unset=True)
             for field, value in update_data.items():
                 item[field] = value
-            item["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            item["updated_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             return item
 
     raise HTTPException(

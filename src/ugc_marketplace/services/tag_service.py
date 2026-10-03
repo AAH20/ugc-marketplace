@@ -51,9 +51,7 @@ class TagService:
             logger.error("Failed to get tag %s: %s", tag_id, exc)
             raise TagServiceError(f"Failed to get tag: {exc}") from exc
 
-    def list_tags(
-        self, filters: dict, page: int, page_size: int
-    ) -> list[dict]:
+    def list_tags(self, filters: dict, page: int, page_size: int) -> list[dict]:
         """List tags with optional filters and pagination.
 
         Args:
@@ -75,9 +73,11 @@ class TagService:
 
         try:
             offset = (page - 1) * page_size
-            tags = self._db.list_tags(
-                filters=filters, offset=offset, limit=page_size
-            ) if self._db else []
+            tags = (
+                self._db.list_tags(filters=filters, offset=offset, limit=page_size)
+                if self._db
+                else []
+            )
             return [dict(tag) for tag in tags]
         except Exception as exc:
             logger.error("Failed to list tags: %s", exc)

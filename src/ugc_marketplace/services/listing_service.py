@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Protocol, Union
-
+from typing import Any, Protocol
 
 # ---------------------------------------------------------------------------
 # Domain types
 # ---------------------------------------------------------------------------
+
 
 class ListingStatus(str, Enum):
     """Lifecycle status of a listing."""
@@ -63,43 +63,41 @@ class Listing:
     category: ListingCategory
     price: Money
     status: ListingStatus = ListingStatus.DRAFT
-    tags: List[str] = field(default_factory=list)
-    media_urls: List[str] = field(default_factory=list)
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    updated_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    media_urls: list[str] = field(default_factory=list)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
 # Repository protocol (dependency-inversion)
 # ---------------------------------------------------------------------------
 
+
 class ListingRepository(Protocol):
     """Persistence contract the service depends on."""
 
     def save(self, listing: Listing) -> Listing: ...
-    def get_by_id(self, listing_id: str) -> Optional[Listing]: ...
+    def get_by_id(self, listing_id: str) -> Listing | None: ...
     def search(
         self,
         query: str,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
         limit: int,
         offset: int,
-    ) -> List[Listing]: ...
+    ) -> list[Listing]: ...
     def count(
         self,
         query: str,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
     ) -> int: ...
 
 
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 class ListingValidationError(Exception):
     """Raised when listing data fails validation."""
@@ -122,6 +120,7 @@ class ListingNotFoundError(Exception):
 # Service
 # ---------------------------------------------------------------------------
 
+
 class ListingService:
     """High-level service for listing operations."""
 
@@ -143,7 +142,7 @@ class ListingService:
 
     # -- public API --------------------------------------------------------
 
-    def create_listing(self, data: Dict[str, Any]) -> Listing:
+    def create_listing(self, data: dict[str, Any]) -> Listing:
         """Create a new listing from raw input data.
 
         Parameters
@@ -194,11 +193,11 @@ class ListingService:
     def search_listings(
         self,
         query: str = "",
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         *,
         limit: int = _DEFAULT_PAGE_SIZE,
         offset: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search listings with optional filters and pagination.
 
         Parameters
@@ -265,7 +264,7 @@ class ListingService:
 
     # -- private helpers ---------------------------------------------------
 
-    def _validate_and_build(self, data: Dict[str, Any]) -> Listing:
+    def _validate_and_build(self, data: dict[str, Any]) -> Listing:
         """Validate raw data and return an unsaved Listing instance."""
 
         if not isinstance(data, dict):
@@ -284,9 +283,7 @@ class ListingService:
             category = ListingCategory(category_raw)
         except ValueError:
             valid = ", ".join(c.value for c in ListingCategory)
-            raise ListingValidationError(
-                "category", f"must be one of: {valid}"
-            ) from None
+            raise ListingValidationError("category", f"must be one of: {valid}") from None
 
         # --- price ---
         price_raw = data.get("price")
@@ -300,32 +297,24 @@ class ListingService:
             status = ListingStatus(status_raw)
         except ValueError:
             valid = ", ".join(s.value for s in ListingStatus)
-            raise ListingValidationError(
-                "status", f"must be one of: {valid}"
-            ) from None
+            raise ListingValidationError("status", f"must be one of: {valid}") from None
 
         # --- tags ---
         tags = data.get("tags", [])
         if not isinstance(tags, list):
             raise ListingValidationError("tags", "must be a list of strings")
         if len(tags) > self._MAX_TAGS:
-            raise ListingValidationError(
-                "tags", f"cannot exceed {self._MAX_TAGS} tags"
-            )
+            raise ListingValidationError("tags", f"cannot exceed {self._MAX_TAGS} tags")
         for i, tag in enumerate(tags):
             if not isinstance(tag, str) or not tag.strip():
-                raise ListingValidationError(
-                    "tags", f"tag at index {i} must be a non-empty string"
-                )
+                raise ListingValidationError("tags", f"tag at index {i} must be a non-empty string")
 
         # --- media_urls ---
         media_urls = data.get("media_urls", [])
         if not isinstance(media_urls, list):
             raise ListingValidationError("media_urls", "must be a list of strings")
         if len(media_urls) > self._MAX_MEDIA:
-            raise ListingValidationError(
-                "media_urls", f"cannot exceed {self._MAX_MEDIA} URLs"
-            )
+            raise ListingValidationError("media_urls", f"cannot exceed {self._MAX_MEDIA} URLs")
         for i, url in enumerate(media_urls):
             if not isinstance(url, str) or not url.strip():
                 raise ListingValidationError(
@@ -378,7 +367,7 @@ class ListingService:
     # -- small validation utilities ----------------------------------------
 
     @staticmethod
-    def _require_str(data: Dict[str, Any], key: str) -> str:
+    def _require_str(data: dict[str, Any], key: str) -> str:
         value = data.get(key)
         if value is None:
             raise ListingValidationError(key, "is required")
@@ -395,14 +384,10 @@ class ListingService:
             )
         amount = raw.get("amount_cents")
         if not isinstance(amount, int) or amount < 0:
-            raise ListingValidationError(
-                "price.amount_cents", "must be a non-negative integer"
-            )
+            raise ListingValidationError("price.amount_cents", "must be a non-negative integer")
         currency = raw.get("currency", "USD")
         if not isinstance(currency, str) or not re.fullmatch(r"[A-Z]{3}", currency):
-            raise ListingValidationError(
-                "price.currency", "must be a 3-letter ISO 4217 code"
-            )
+            raise ListingValidationError("price.currency", "must be a 3-letter ISO 4217 code")
         return Money(amount_cents=amount, currency=currency)
 
 
@@ -461,9 +446,7 @@ def get_listing(listing_id: str) -> dict:
     }
 
 
-def list_listings(
-    filters: dict, page: int, page_size: int
-) -> list[dict]:
+def list_listings(filters: dict, page: int, page_size: int) -> list[dict]:
     """List listings with optional filters and pagination.
 
     Args:

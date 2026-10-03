@@ -43,9 +43,7 @@ class TierRecommenderAgent:
         """Initialize the tier recommender agent."""
         self._tiers: dict[str, list[dict[str, Any]]] = {}
 
-    async def recommend_tiers(
-        self, profile: CreatorProfile
-    ) -> list[TierRecommendation]:
+    async def recommend_tiers(self, profile: CreatorProfile) -> list[TierRecommendation]:
         """Generate tier recommendations for a creator.
 
         Args:
@@ -117,9 +115,7 @@ class TierRecommenderAgent:
         )
         return recommendations
 
-    def _calculate_base_price(
-        self, profile: CreatorProfile, multiplier: float
-    ) -> Decimal:
+    def _calculate_base_price(self, profile: CreatorProfile, multiplier: float) -> Decimal:
         """Calculate base price for a tier.
 
         Args:

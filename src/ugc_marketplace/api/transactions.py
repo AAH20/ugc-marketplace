@@ -11,12 +11,12 @@ Provides:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
@@ -60,11 +60,19 @@ class TransactionBase(BaseModel):
     buyer_id: UUID = Field(..., description="UUID of the buyer")
     seller_id: UUID = Field(..., description="UUID of the seller")
     amount: float = Field(..., gt=0, description="Transaction amount in currency units")
-    currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
+    currency: str = Field(
+        default="USD", min_length=3, max_length=3, description="ISO 4217 currency code"
+    )
     type: TransactionType = Field(..., description="Type of transaction")
-    status: TransactionStatus = Field(default=TransactionStatus.PENDING, description="Current transaction status")
-    description: Optional[str] = Field(default=None, max_length=500, description="Optional transaction description")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional transaction metadata")
+    status: TransactionStatus = Field(
+        default=TransactionStatus.PENDING, description="Current transaction status"
+    )
+    description: str | None = Field(
+        default=None, max_length=500, description="Optional transaction description"
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Additional transaction metadata"
+    )
 
 
 class TransactionCreate(BaseModel):
@@ -73,18 +81,24 @@ class TransactionCreate(BaseModel):
     buyer_id: UUID = Field(..., description="UUID of the buyer")
     seller_id: UUID = Field(..., description="UUID of the seller")
     amount: float = Field(..., gt=0, description="Transaction amount in currency units")
-    currency: str = Field(default="USD", min_length=3, max_length=3, description="ISO 4217 currency code")
+    currency: str = Field(
+        default="USD", min_length=3, max_length=3, description="ISO 4217 currency code"
+    )
     type: TransactionType = Field(..., description="Type of transaction")
-    description: Optional[str] = Field(default=None, max_length=500, description="Optional transaction description")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional transaction metadata")
+    description: str | None = Field(
+        default=None, max_length=500, description="Optional transaction description"
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Additional transaction metadata"
+    )
 
 
 class TransactionUpdate(BaseModel):
     """Model for updating an existing transaction."""
 
     status: TransactionStatus = Field(..., description="New transaction status")
-    description: Optional[str] = Field(default=None, max_length=500, description="Updated description")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Updated metadata")
+    description: str | None = Field(default=None, max_length=500, description="Updated description")
+    metadata: dict[str, Any] | None = Field(default=None, description="Updated metadata")
 
 
 class TransactionResponse(TransactionBase):
@@ -92,13 +106,13 @@ class TransactionResponse(TransactionBase):
 
     id: UUID = Field(..., description="Unique transaction identifier")
     created_at: datetime = Field(..., description="Transaction creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
 
 
 class TransactionListResponse(BaseModel):
     """Paginated list of transactions."""
 
-    items: List[TransactionResponse] = Field(..., description="List of transactions")
+    items: list[TransactionResponse] = Field(..., description="List of transactions")
     total: int = Field(..., description="Total number of transactions matching the query")
     page: int = Field(..., description="Current page number")
     page_size: int = Field(..., description="Number of items per page")
@@ -109,14 +123,14 @@ class ErrorResponse(BaseModel):
     """Standard error response model."""
 
     detail: str = Field(..., description="Error description")
-    code: Optional[str] = Field(default=None, description="Machine-readable error code")
+    code: str | None = Field(default=None, description="Machine-readable error code")
 
 
 # ---------------------------------------------------------------------------
 # In-memory store (replace with actual database in production)
 # ---------------------------------------------------------------------------
 
-_transactions: Dict[UUID, Dict[str, Any]] = {}
+_transactions: dict[UUID, dict[str, Any]] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +138,7 @@ _transactions: Dict[UUID, Dict[str, Any]] = {}
 # ---------------------------------------------------------------------------
 
 
-def _get_transaction_or_404(transaction_id: UUID) -> Dict[str, Any]:
+def _get_transaction_or_404(transaction_id: UUID) -> dict[str, Any]:
     """Retrieve a transaction by ID or raise a 404 error."""
     transaction = _transactions.get(transaction_id)
     if transaction is None:
@@ -136,10 +150,10 @@ def _get_transaction_or_404(transaction_id: UUID) -> Dict[str, Any]:
 
 
 def _paginate_items(
-    items: List[Dict[str, Any]],
+    items: list[dict[str, Any]],
     page: int,
     page_size: int,
-) -> tuple[List[Dict[str, Any]], int, int]:
+) -> tuple[list[dict[str, Any]], int, int]:
     """Paginate a list of items and return the slice along with pagination metadata."""
     total = len(items)
     pages = (total + page_size - 1) // page_size if total > 0 else 1
@@ -166,10 +180,14 @@ def _paginate_items(
 async def list_transactions(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=20, ge=1, le=100, description="Number of items per page"),
-    status_filter: Optional[TransactionStatus] = Query(default=None, alias="status", description="Filter by transaction status"),
-    type_filter: Optional[TransactionType] = Query(default=None, alias="type", description="Filter by transaction type"),
-    buyer_id: Optional[UUID] = Query(default=None, description="Filter by buyer UUID"),
-    seller_id: Optional[UUID] = Query(default=None, description="Filter by seller UUID"),
+    status_filter: TransactionStatus | None = Query(
+        default=None, alias="status", description="Filter by transaction status"
+    ),
+    type_filter: TransactionType | None = Query(
+        default=None, alias="type", description="Filter by transaction type"
+    ),
+    buyer_id: UUID | None = Query(default=None, description="Filter by buyer UUID"),
+    seller_id: UUID | None = Query(default=None, description="Filter by seller UUID"),
 ) -> TransactionListResponse:
     """
     List all transactions with pagination and optional filters.
@@ -186,7 +204,7 @@ async def list_transactions(
         Paginated list of transactions.
     """
     # Collect all transactions
-    all_transactions: List[Dict[str, Any]] = list(_transactions.values())
+    all_transactions: list[dict[str, Any]] = list(_transactions.values())
 
     # Apply filters
     if status_filter is not None:
@@ -234,10 +252,10 @@ async def create_transaction(payload: TransactionCreate) -> TransactionResponse:
     Returns:
         The newly created transaction.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     transaction_id = uuid4()
 
-    transaction_data: Dict[str, Any] = {
+    transaction_data: dict[str, Any] = {
         "id": str(transaction_id),
         "buyer_id": str(payload.buyer_id),
         "seller_id": str(payload.seller_id),
@@ -314,7 +332,7 @@ async def update_transaction(
         transaction["description"] = payload.description
     if payload.metadata is not None:
         transaction["metadata"] = payload.metadata
-    transaction["updated_at"] = datetime.now(timezone.utc)
+    transaction["updated_at"] = datetime.now(UTC)
 
     _transactions[transaction_id] = transaction
 

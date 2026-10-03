@@ -51,9 +51,7 @@ class SearchExplainerAgent(
         )
         return agent
 
-    async def execute(
-        self, input_data: tuple[SearchRequest, SearchResponse]
-    ) -> SearchExplanation:
+    async def execute(self, input_data: tuple[SearchRequest, SearchResponse]) -> SearchExplanation:
         """Execute search explanation.
 
         Args:

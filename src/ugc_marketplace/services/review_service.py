@@ -45,9 +45,7 @@ def get_review(review_id: str) -> dict[str, Any]:
         raise
 
 
-def list_reviews(
-    filters: dict[str, Any], page: int, page_size: int
-) -> list[dict[str, Any]]:
+def list_reviews(filters: dict[str, Any], page: int, page_size: int) -> list[dict[str, Any]]:
     """List reviews with optional filters and pagination.
 
     Args:

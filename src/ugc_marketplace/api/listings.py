@@ -5,8 +5,8 @@ Provides CRUD operations for product/service listings with pagination,
 filtering, and validation.
 """
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
@@ -219,7 +219,9 @@ class ListingCreate(BaseModel):
 
     seller_id: str = Field(..., min_length=1, max_length=64, description="Seller's user ID")
     title: str = Field(..., min_length=5, max_length=200, description="Listing title")
-    description: str = Field(..., min_length=20, max_length=5000, description="Detailed description")
+    description: str = Field(
+        ..., min_length=20, max_length=5000, description="Detailed description"
+    )
     category: str = Field(..., description="Listing category")
     price: float = Field(..., gt=0, le=100000, description="Price in USD")
     currency: str = Field(default="USD", pattern="^[A-Z]{3}$", description="ISO 4217 currency code")
@@ -276,14 +278,17 @@ class ListingListResponse(BaseModel):
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
+
 @router.get("/", response_model=ListingListResponse, summary="List all listings")
 async def list_listings(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    category: Optional[str] = Query(default=None, description="Filter by category"),
-    min_price: Optional[float] = Query(default=None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(default=None, ge=0, description="Maximum price filter"),
-    search: Optional[str] = Query(default=None, min_length=2, description="Search in title/description"),
+    category: str | None = Query(default=None, description="Filter by category"),
+    min_price: float | None = Query(default=None, ge=0, description="Minimum price filter"),
+    max_price: float | None = Query(default=None, ge=0, description="Maximum price filter"),
+    search: str | None = Query(
+        default=None, min_length=2, description="Search in title/description"
+    ),
     sort_by: str = Query(default="created_at", pattern="^(created_at|price|rating|title)$"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
 ) -> dict:
@@ -314,7 +319,8 @@ async def list_listings(
     if search:
         search_lower = search.lower()
         filtered = [
-            l for l in filtered
+            l
+            for l in filtered
             if search_lower in l["title"].lower() or search_lower in l["description"].lower()
         ]
 
@@ -357,7 +363,7 @@ async def create_listing(payload: ListingCreate) -> dict:
 
     Returns the newly created listing with generated ID and timestamps.
     """
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Generate a new listing ID
     max_id = 0
@@ -407,7 +413,7 @@ async def update_listing(listing_id: str, payload: ListingCreate) -> dict:
     """Update an existing listing. Replaces all fields with the provided values."""
     for i, listing in enumerate(MOCK_LISTINGS):
         if listing["id"] == listing_id:
-            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             updated = {
                 "id": listing_id,
                 "seller_id": payload.seller_id,

@@ -35,9 +35,7 @@ class ForecastRequest(BaseModel):
     """Request model for forecasting a metric."""
 
     name: str = Field(..., description="Metric name to forecast")
-    days: int = Field(
-        default=30, ge=1, le=365, description="Number of days to forecast"
-    )
+    days: int = Field(default=30, ge=1, le=365, description="Number of days to forecast")
 
 
 class RevenueReportResponse(BaseModel):
@@ -78,9 +76,7 @@ async def record_metric(request: MetricRecordRequest) -> dict[str, Any]:
         _metrics[request.name] = []
     _metrics[request.name].append(point)
 
-    logger.debug(
-        "Metric recorded", extra={"name": request.name, "value": request.value}
-    )
+    logger.debug("Metric recorded", extra={"name": request.name, "value": request.value})
     return {"name": request.name, "recorded": True, "point": point}
 
 
@@ -93,9 +89,7 @@ async def list_metrics() -> dict[str, Any]:
     }
 
 
-@router.post(
-    "/reports", response_model=dict[str, Any], status_code=status.HTTP_201_CREATED
-)
+@router.post("/reports", response_model=dict[str, Any], status_code=status.HTTP_201_CREATED)
 async def generate_report(request: ReportRequest) -> dict[str, Any]:
     """Generate an analytics report."""
     if request.report_id in _reports:
@@ -115,9 +109,7 @@ async def generate_report(request: ReportRequest) -> dict[str, Any]:
         filtered = [
             p
             for p in points
-            if request.period_start
-            <= datetime.fromisoformat(p["timestamp"])
-            <= request.period_end
+            if request.period_start <= datetime.fromisoformat(p["timestamp"]) <= request.period_end
         ]
         if filtered:
             period_metrics[name] = filtered

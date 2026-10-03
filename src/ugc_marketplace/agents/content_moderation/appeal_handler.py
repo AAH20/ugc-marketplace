@@ -71,7 +71,5 @@ class AppealHandlerAgent(BaseModerationAgent):
                 "action": "escalate",
                 "confidence": 0.5,
                 "categories": ["parse_error"],
-                "reasons": [
-                    "Could not parse LLM response, escalating for human review"
-                ],
+                "reasons": ["Could not parse LLM response, escalating for human review"],
             }

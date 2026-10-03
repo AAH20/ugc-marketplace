@@ -78,9 +78,7 @@ def create_app() -> FastAPI:
     )
 
     @app.exception_handler(Exception)
-    async def global_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle uncaught exceptions.
 
         Args:
@@ -104,30 +102,18 @@ def create_app() -> FastAPI:
     api_prefix = settings.api_prefix
 
     app.include_router(health_router, prefix=api_prefix, tags=["Health"])
-    app.include_router(
-        moderation_router, prefix=f"{api_prefix}/moderation", tags=["Moderation"]
-    )
+    app.include_router(moderation_router, prefix=f"{api_prefix}/moderation", tags=["Moderation"])
     app.include_router(
         monetization_router, prefix=f"{api_prefix}/monetization", tags=["Monetization"]
     )
-    app.include_router(
-        discovery_router, prefix=f"{api_prefix}/discovery", tags=["Discovery"]
-    )
+    app.include_router(discovery_router, prefix=f"{api_prefix}/discovery", tags=["Discovery"])
     app.include_router(rights_router, prefix=f"{api_prefix}/rights", tags=["Rights"])
     app.include_router(quality_router, prefix=f"{api_prefix}/quality", tags=["Quality"])
     app.include_router(fraud_router, prefix=f"{api_prefix}/fraud", tags=["Fraud"])
-    app.include_router(
-        analytics_router, prefix=f"{api_prefix}/analytics", tags=["Analytics"]
-    )
-    app.include_router(
-        licensing_router, prefix=f"{api_prefix}/licensing", tags=["Licensing"]
-    )
-    app.include_router(
-        curation_router, prefix=f"{api_prefix}/curation", tags=["Curation"]
-    )
-    app.include_router(
-        marketplace_router, prefix=f"{api_prefix}/marketplace", tags=["Marketplace"]
-    )
+    app.include_router(analytics_router, prefix=f"{api_prefix}/analytics", tags=["Analytics"])
+    app.include_router(licensing_router, prefix=f"{api_prefix}/licensing", tags=["Licensing"])
+    app.include_router(curation_router, prefix=f"{api_prefix}/curation", tags=["Curation"])
+    app.include_router(marketplace_router, prefix=f"{api_prefix}/marketplace", tags=["Marketplace"])
 
     return app
 

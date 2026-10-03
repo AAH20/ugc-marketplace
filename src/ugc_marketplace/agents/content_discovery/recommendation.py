@@ -47,9 +47,7 @@ class RecommendationAgent(BaseAgent["RecommendationRequest", "RecommendationResp
         )
         return agent
 
-    async def execute(
-        self, input_data: RecommendationRequest
-    ) -> RecommendationResponse:
+    async def execute(self, input_data: RecommendationRequest) -> RecommendationResponse:
         """Execute recommendation generation.
 
         Args:
@@ -69,9 +67,7 @@ class RecommendationAgent(BaseAgent["RecommendationRequest", "RecommendationResp
         return result
 
     @staticmethod
-    async def _get_similar_content(
-        content_id: str, limit: int = 10
-    ) -> list[dict[str, Any]]:
+    async def _get_similar_content(content_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get content similar to the given content.
 
         Args:

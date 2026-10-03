@@ -153,9 +153,7 @@ def calculate_payout(creator_id: str, period: str) -> dict[str, Any]:
     except (ValueError, CreatorNotFoundError):
         raise
     except Exception as exc:
-        raise PayoutError(
-            f"Failed to calculate payout for creator {creator_id}: {exc}"
-        ) from exc
+        raise PayoutError(f"Failed to calculate payout for creator {creator_id}: {exc}") from exc
 
 
 def get_monetization_tier(creator_id: str) -> dict[str, Any]:
@@ -236,16 +234,12 @@ def process_payout(creator_id: str, amount: float) -> bool:
         raise ValueError("amount must be positive")
 
     try:
-        logger.info(
-            "Processing payout of $%.2f for creator %s", amount, creator_id
-        )
+        logger.info("Processing payout of $%.2f for creator %s", amount, creator_id)
         # Placeholder: would integrate with payment processor in production
         # e.g., Stripe Connect, PayPal, etc.
         return True
     except Exception as exc:
-        raise PayoutError(
-            f"Failed to process payout for creator {creator_id}: {exc}"
-        ) from exc
+        raise PayoutError(f"Failed to process payout for creator {creator_id}: {exc}") from exc
 
 
 def _resolve_tier(total_earnings: float) -> str:

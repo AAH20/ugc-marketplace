@@ -82,9 +82,7 @@ class PaymentGateway(ABC):
 class StripePaymentGateway(PaymentGateway):
     """Stripe payment gateway integration."""
 
-    def __init__(
-        self, api_key: str, base_url: str = "https://api.stripe.com/v1"
-    ) -> None:
+    def __init__(self, api_key: str, base_url: str = "https://api.stripe.com/v1") -> None:
         """Initialize Stripe payment gateway.
 
         Args:

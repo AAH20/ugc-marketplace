@@ -83,9 +83,7 @@ class OriginalityScorerAgent(BaseScoringAgent["DimensionScore"]):
             re.search(r"\b(for example|for instance|such as)\b", content, re.IGNORECASE)
         )
         has_data = bool(
-            re.search(
-                r"\b(\d+%|\d+ percent|study|research|data)\b", content, re.IGNORECASE
-            )
+            re.search(r"\b(\d+%|\d+ percent|study|research|data)\b", content, re.IGNORECASE)
         )
 
         score_value = uniqueness_ratio * 0.5

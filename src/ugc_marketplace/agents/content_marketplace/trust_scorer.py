@@ -124,7 +124,5 @@ class TrustScorerAgent:
         Returns:
             List of top trust scores.
         """
-        sorted_scores = sorted(
-            self._scores.values(), key=lambda x: x.score, reverse=True
-        )
+        sorted_scores = sorted(self._scores.values(), key=lambda x: x.score, reverse=True)
         return sorted_scores[:limit]

@@ -48,9 +48,7 @@ class PayoutManagerAgent:
             Schedule confirmation data.
         """
         self._schedules[creator_id] = schedule
-        logger.info(
-            "Payout scheduled", creator_id=creator_id, frequency=schedule.frequency
-        )
+        logger.info("Payout scheduled", creator_id=creator_id, frequency=schedule.frequency)
         return {
             "creator_id": creator_id,
             "schedule": schedule.model_dump(),
@@ -217,15 +215,9 @@ class PayoutManagerAgent:
         Returns:
             Balance summary data.
         """
-        creator_payouts = [
-            p for p in self._payouts.values() if p["creator_id"] == creator_id
-        ]
-        total = sum(
-            Decimal(p["amount"]) for p in creator_payouts if p["status"] == "completed"
-        )
-        pending = sum(
-            Decimal(p["amount"]) for p in creator_payouts if p["status"] == "pending"
-        )
+        creator_payouts = [p for p in self._payouts.values() if p["creator_id"] == creator_id]
+        total = sum(Decimal(p["amount"]) for p in creator_payouts if p["status"] == "completed")
+        pending = sum(Decimal(p["amount"]) for p in creator_payouts if p["status"] == "pending")
 
         return {
             "creator_id": creator_id,

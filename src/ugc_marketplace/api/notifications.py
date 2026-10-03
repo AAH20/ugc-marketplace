@@ -9,9 +9,9 @@ Provides:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
@@ -23,8 +23,10 @@ router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 # Enums & Models
 # ---------------------------------------------------------------------------
 
+
 class NotificationType(str, Enum):
     """Types of notifications supported by the marketplace."""
+
     ORDER_PLACED = "order_placed"
     ORDER_SHIPPED = "order_shipped"
     ORDER_DELIVERED = "order_delivered"
@@ -37,6 +39,7 @@ class NotificationType(str, Enum):
 
 class NotificationPriority(str, Enum):
     """Priority levels for notifications."""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -45,17 +48,22 @@ class NotificationPriority(str, Enum):
 
 class NotificationBase(BaseModel):
     """Shared fields for a notification."""
+
     user_id: str = Field(..., min_length=1, description="Recipient user ID")
     title: str = Field(..., min_length=1, max_length=200, description="Notification title")
     message: str = Field(..., min_length=1, max_length=2000, description="Notification body")
     type: NotificationType = Field(..., description="Category of notification")
     priority: NotificationPriority = Field(default=NotificationPriority.NORMAL)
-    link: Optional[str] = Field(default=None, max_length=500, description="Deep link to related resource")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Arbitrary key-value metadata")
+    link: str | None = Field(
+        default=None, max_length=500, description="Deep link to related resource"
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Arbitrary key-value metadata"
+    )
 
     @field_validator("link")
     @classmethod
-    def validate_link(cls, v: Optional[str]) -> Optional[str]:
+    def validate_link(cls, v: str | None) -> str | None:
         if v is not None and not v.startswith(("http://", "https://", "/")):
             raise ValueError("link must be a valid URL or relative path")
         return v
@@ -63,15 +71,17 @@ class NotificationBase(BaseModel):
 
 class NotificationCreate(NotificationBase):
     """Payload for creating a new notification."""
+
     pass
 
 
 class Notification(NotificationBase):
     """Full notification representation (includes server-generated fields)."""
+
     id: str = Field(..., description="Unique notification ID")
     is_read: bool = Field(default=False, description="Whether the notification has been read")
     created_at: datetime = Field(..., description="ISO-8601 creation timestamp")
-    read_at: Optional[datetime] = Field(default=None, description="ISO-8601 read timestamp")
+    read_at: datetime | None = Field(default=None, description="ISO-8601 read timestamp")
 
     class Config:
         from_attributes = True
@@ -79,7 +89,8 @@ class Notification(NotificationBase):
 
 class NotificationListResponse(BaseModel):
     """Paginated list response wrapper."""
-    data: List[Notification]
+
+    data: list[Notification]
     total: int
     page: int
     page_size: int
@@ -91,7 +102,7 @@ class NotificationListResponse(BaseModel):
 # Mock Data Store
 # ---------------------------------------------------------------------------
 
-MOCK_NOTIFICATIONS: List[Dict[str, Any]] = [
+MOCK_NOTIFICATIONS: list[dict[str, Any]] = [
     {
         "id": "n-001",
         "user_id": "user-101",
@@ -152,7 +163,11 @@ MOCK_NOTIFICATIONS: List[Dict[str, Any]] = [
         "type": "promotion",
         "priority": "low",
         "link": "/marketplace?promo=FLASH30",
-        "metadata": {"promo_code": "FLASH30", "discount_pct": 30, "expires": "2026-10-05T23:59:59Z"},
+        "metadata": {
+            "promo_code": "FLASH30",
+            "discount_pct": 30,
+            "expires": "2026-10-05T23:59:59Z",
+        },
         "is_read": True,
         "created_at": "2026-10-01T00:00:00Z",
         "read_at": "2026-10-01T06:30:00Z",
@@ -203,6 +218,7 @@ MOCK_NOTIFICATIONS: List[Dict[str, Any]] = [
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "",
     response_model=NotificationListResponse,
@@ -212,8 +228,10 @@ MOCK_NOTIFICATIONS: List[Dict[str, Any]] = [
 async def list_notifications(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    is_read: Optional[bool] = Query(default=None, description="Filter by read status (true=read, false=unread)"),
-    user_id: Optional[str] = Query(default=None, description="Filter by recipient user ID"),
+    is_read: bool | None = Query(
+        default=None, description="Filter by read status (true=read, false=unread)"
+    ),
+    user_id: str | None = Query(default=None, description="Filter by recipient user ID"),
 ) -> NotificationListResponse:
     """
     List notifications with pagination and optional read-status filtering.
@@ -253,7 +271,7 @@ async def create_notification(payload: NotificationCreate) -> Notification:
     Create a new notification with full validation.
     Returns the created notification with server-generated ID and timestamps.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     new_notification = {
         "id": f"n-{uuid.uuid4().hex[:8]}",
@@ -274,7 +292,7 @@ async def create_notification(payload: NotificationCreate) -> Notification:
     return Notification(**new_notification)
 
 
-def _find_notification(notification_id: str) -> Dict[str, Any]:
+def _find_notification(notification_id: str) -> dict[str, Any]:
     """Return the notification dict or raise 404."""
     for n in MOCK_NOTIFICATIONS:
         if n["id"] == notification_id:
@@ -311,7 +329,7 @@ async def update_notification(
     record = _find_notification(notification_id)
     record["is_read"] = is_read
     if is_read:
-        record["read_at"] = datetime.now(timezone.utc).isoformat()
+        record["read_at"] = datetime.now(UTC).isoformat()
     else:
         record["read_at"] = None
     return Notification(**record)

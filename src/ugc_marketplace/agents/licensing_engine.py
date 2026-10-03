@@ -9,17 +9,18 @@ from __future__ import annotations
 import hashlib
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Enums & Constants
 # ---------------------------------------------------------------------------
 
+
 class LicenseType(str, Enum):
     """Supported license types."""
+
     PERSONAL = "personal"
     COMMERCIAL = "commercial"
     EXCLUSIVE = "exclusive"
@@ -29,6 +30,7 @@ class LicenseType(str, Enum):
 
 class LicenseStatus(str, Enum):
     """Lifecycle status of a license."""
+
     ACTIVE = "active"
     EXPIRED = "expired"
     REVOKED = "revoked"
@@ -38,6 +40,7 @@ class LicenseStatus(str, Enum):
 
 class UsageType(str, Enum):
     """Types of usage that can be validated."""
+
     VIEW = "view"
     DOWNLOAD = "download"
     MODIFY = "modify"
@@ -48,6 +51,7 @@ class UsageType(str, Enum):
 
 class ValidationResult(str, Enum):
     """Outcome of a license validation check."""
+
     VALID = "valid"
     INVALID = "invalid"
     EXPIRED = "expired"
@@ -61,9 +65,11 @@ class ValidationResult(str, Enum):
 # Data Classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LicenseTerms:
     """Terms and conditions attached to a license."""
+
     license_type: LicenseType
     max_usage_count: int | None = None
     allowed_usages: list[UsageType] = field(default_factory=list)
@@ -71,7 +77,7 @@ class LicenseTerms:
     allows_modification: bool = False
     allows_redistribution: bool = False
     territory_restrictions: list[str] = field(default_factory=list)
-    valid_from: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    valid_from: datetime = field(default_factory=lambda: datetime.now(UTC))
     valid_until: datetime | None = None
     royalty_percentage: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -80,6 +86,7 @@ class LicenseTerms:
 @dataclass
 class License:
     """Represents a content license."""
+
     license_id: str
     content_id: str
     licensor_id: str
@@ -87,20 +94,21 @@ class License:
     terms: LicenseTerms
     status: LicenseStatus
     usage_count: int = 0
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     license_hash: str = ""
 
 
 @dataclass
 class ValidationReport:
     """Result of validating a license against a usage request."""
+
     result: ValidationResult
     license_id: str
     usage: UsageType
     message: str
     details: dict[str, Any] = field(default_factory=dict)
-    checked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    checked_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ---------------------------------------------------------------------------
@@ -156,9 +164,10 @@ _LICENSE_STORE: dict[str, License] = {}
 # Helper Functions
 # ---------------------------------------------------------------------------
 
+
 def _generate_license_id() -> str:
     """Generate a unique license identifier."""
-    raw = f"{uuid.uuid4().hex}-{datetime.now(timezone.utc).isoformat()}"
+    raw = f"{uuid.uuid4().hex}-{datetime.now(UTC).isoformat()}"
     return f"LIC-{hashlib.sha256(raw.encode()).hexdigest()[:16].upper()}"
 
 
@@ -185,6 +194,7 @@ def _get_user_info(user_id: str) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def _create_license_impl(
     content_id: str,
@@ -289,7 +299,7 @@ def _validate_license_impl(license_id: str, usage: UsageType) -> ValidationRepor
         )
 
     # Check temporal validity
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if license_obj.terms.valid_until and now > license_obj.terms.valid_until:
         license_obj.status = LicenseStatus.EXPIRED
         return ValidationReport(
@@ -361,6 +371,7 @@ def _validate_license_impl(license_id: str, usage: UsageType) -> ValidationRepor
 # Public API — Simple dict-based interface
 # ---------------------------------------------------------------------------
 
+
 def create_license(content_id: str, licensee: str, terms: dict) -> dict:
     """Create a content license.
 
@@ -389,7 +400,7 @@ def create_license(content_id: str, licensee: str, terms: dict) -> dict:
         "content_id": content_id,
         "licensee": licensee,
         "terms": terms,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "status": "active",
     }
     return license_record
@@ -418,14 +429,14 @@ def validate_license(license_id: str) -> dict:
             "license_id": license_id,
             "is_valid": False,
             "status": "not_found",
-            "validated_at": datetime.now(timezone.utc).isoformat(),
+            "validated_at": datetime.now(UTC).isoformat(),
         }
 
     return {
         "license_id": license_id,
         "is_valid": license_obj.status == LicenseStatus.ACTIVE,
         "status": license_obj.status.value,
-        "validated_at": datetime.now(timezone.utc).isoformat(),
+        "validated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -450,7 +461,7 @@ def get_license_terms(license_id: str) -> dict:
         return {
             "license_id": license_id,
             "terms": {},
-            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+            "retrieved_at": datetime.now(UTC).isoformat(),
         }
 
     return {
@@ -465,20 +476,19 @@ def get_license_terms(license_id: str) -> dict:
             "territory_restrictions": license_obj.terms.territory_restrictions,
             "valid_from": license_obj.terms.valid_from.isoformat(),
             "valid_until": (
-                license_obj.terms.valid_until.isoformat()
-                if license_obj.terms.valid_until
-                else None
+                license_obj.terms.valid_until.isoformat() if license_obj.terms.valid_until else None
             ),
             "royalty_percentage": license_obj.terms.royalty_percentage,
             "metadata": license_obj.terms.metadata,
         },
-        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "retrieved_at": datetime.now(UTC).isoformat(),
     }
 
 
 # ---------------------------------------------------------------------------
 # Convenience / Demo
 # ---------------------------------------------------------------------------
+
 
 def _demo() -> None:
     """Run a quick demonstration of the licensing engine."""
@@ -498,7 +508,7 @@ def _demo() -> None:
         requires_attribution=True,
         allows_modification=False,
         allows_redistribution=False,
-        valid_until=datetime.now(timezone.utc) + timedelta(days=365),
+        valid_until=datetime.now(UTC) + timedelta(days=365),
         royalty_percentage=5.0,
     )
 

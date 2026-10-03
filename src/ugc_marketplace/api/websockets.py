@@ -9,9 +9,9 @@ Provides real-time communication channels:
 import asyncio
 import json
 import logging
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class ConnectionManager:
     """Manages WebSocket connections with proper lifecycle handling."""
 
     def __init__(self) -> None:
-        self.active_connections: Dict[str, Set[WebSocket]] = {
+        self.active_connections: dict[str, set[WebSocket]] = {
             "notifications": set(),
             "activity": set(),
         }
@@ -49,9 +49,7 @@ class ConnectionManager:
             len(self.active_connections[channel]),
         )
 
-    async def send_personal_message(
-        self, message: Dict[str, Any], websocket: WebSocket
-    ) -> None:
+    async def send_personal_message(self, message: dict[str, Any], websocket: WebSocket) -> None:
         """Send a message to a specific client."""
         try:
             await websocket.send_json(message)
@@ -59,7 +57,7 @@ class ConnectionManager:
             logger.warning("Failed to send personal message: %s", exc)
 
     async def broadcast(
-        self, message: Dict[str, Any], channel: str, exclude: Optional[WebSocket] = None
+        self, message: dict[str, Any], channel: str, exclude: WebSocket | None = None
     ) -> None:
         """Broadcast a message to all connections on a channel."""
         disconnected: list[WebSocket] = []
@@ -79,7 +77,7 @@ class ConnectionManager:
                 for conn in disconnected:
                     self.active_connections[channel].discard(conn)
 
-    async def broadcast_to_all(self, message: Dict[str, Any]) -> None:
+    async def broadcast_to_all(self, message: dict[str, Any]) -> None:
         """Broadcast a message to all channels."""
         for channel in self.active_connections:
             await self.broadcast(message, channel)
@@ -214,23 +212,17 @@ async def websocket_activity(websocket: WebSocket) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def broadcast_notification(notification: Dict[str, Any]) -> None:
+async def broadcast_notification(notification: dict[str, Any]) -> None:
     """Broadcast a notification to all connected notification clients."""
-    await manager.broadcast(
-        {"type": "notification", "data": notification}, "notifications"
-    )
+    await manager.broadcast({"type": "notification", "data": notification}, "notifications")
 
 
-async def broadcast_activity(activity: Dict[str, Any]) -> None:
+async def broadcast_activity(activity: dict[str, Any]) -> None:
     """Broadcast an activity event to all connected activity clients."""
-    await manager.broadcast(
-        {"type": "activity", "data": activity}, "activity"
-    )
+    await manager.broadcast({"type": "activity", "data": activity}, "activity")
 
 
-async def send_notification_to_user(
-    user_id: str, notification: Dict[str, Any]
-) -> None:
+async def send_notification_to_user(user_id: str, notification: dict[str, Any]) -> None:
     """
     Send a notification to a specific user.
 

@@ -6,7 +6,6 @@ and input validation.
 """
 
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -28,9 +27,9 @@ class CategoryBase(BaseModel):
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
         description="URL-friendly identifier",
     )
-    description: Optional[str] = Field(None, max_length=500)
-    parent_id: Optional[int] = Field(None, description="Parent category ID for nesting")
-    icon: Optional[str] = Field(None, max_length=200, description="Icon URL or emoji")
+    description: str | None = Field(None, max_length=500)
+    parent_id: int | None = Field(None, description="Parent category ID for nesting")
+    icon: str | None = Field(None, max_length=200, description="Icon URL or emoji")
     is_active: bool = Field(True)
     sort_order: int = Field(0, ge=0, le=9999)
 
@@ -44,13 +43,13 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(BaseModel):
     """Schema for updating an existing category (all fields optional)."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    slug: Optional[str] = Field(None, min_length=1, max_length=120)
-    description: Optional[str] = Field(None, max_length=500)
-    parent_id: Optional[int] = None
-    icon: Optional[str] = Field(None, max_length=200)
-    is_active: Optional[bool] = None
-    sort_order: Optional[int] = Field(None, ge=0, le=9999)
+    name: str | None = Field(None, min_length=1, max_length=100)
+    slug: str | None = Field(None, min_length=1, max_length=120)
+    description: str | None = Field(None, max_length=500)
+    parent_id: int | None = None
+    icon: str | None = Field(None, max_length=200)
+    is_active: bool | None = None
+    sort_order: int | None = Field(None, ge=0, le=9999)
 
 
 class CategoryResponse(CategoryBase):
@@ -68,7 +67,7 @@ class CategoryResponse(CategoryBase):
 class PaginatedCategoryResponse(BaseModel):
     """Paginated list wrapper."""
 
-    items: List[CategoryResponse]
+    items: list[CategoryResponse]
     total: int
     page: int
     page_size: int
@@ -77,7 +76,7 @@ class PaginatedCategoryResponse(BaseModel):
 
 # ─── Mock Data Store ─────────────────────────────────────────────────────────
 
-MOCK_CATEGORIES: List[dict] = [
+MOCK_CATEGORIES: list[dict] = [
     {
         "id": 1,
         "name": "Digital Products",
@@ -265,9 +264,9 @@ def _get_category_or_404(category_id: int) -> dict:
 async def list_categories(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Filter by name or slug (case-insensitive)"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    parent_id: Optional[int] = Query(None, description="Filter by parent category ID"),
+    search: str | None = Query(None, description="Filter by name or slug (case-insensitive)"),
+    is_active: bool | None = Query(None, description="Filter by active status"),
+    parent_id: int | None = Query(None, description="Filter by parent category ID"),
 ) -> PaginatedCategoryResponse:
     """
     Return a paginated list of categories.
@@ -279,11 +278,7 @@ async def list_categories(
 
     if search:
         term = search.lower()
-        filtered = [
-            c
-            for c in filtered
-            if term in c["name"].lower() or term in c["slug"].lower()
-        ]
+        filtered = [c for c in filtered if term in c["name"].lower() or term in c["slug"].lower()]
 
     if is_active is not None:
         filtered = [c for c in filtered if c["is_active"] == is_active]

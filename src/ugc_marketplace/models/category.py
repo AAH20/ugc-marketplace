@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -24,8 +23,8 @@ class Category(Base):
         default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=True,
@@ -42,7 +41,7 @@ class Category(Base):
         nullable=False,
     )
 
-    parent: Mapped[Optional["Category"]] = relationship(
+    parent: Mapped[Category | None] = relationship(
         "Category",
         remote_side=[id],
         backref="children",

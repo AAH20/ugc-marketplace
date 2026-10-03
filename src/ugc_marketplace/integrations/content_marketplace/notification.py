@@ -56,9 +56,7 @@ class NotificationService(ABC):
 class EmailNotificationService(NotificationService):
     """Email notification service."""
 
-    def __init__(
-        self, api_key: str, from_email: str = "noreply@ugc-marketplace.com"
-    ) -> None:
+    def __init__(self, api_key: str, from_email: str = "noreply@ugc-marketplace.com") -> None:
         """Initialize email notification service.
 
         Args:

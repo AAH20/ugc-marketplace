@@ -82,9 +82,7 @@ class SubscriptionAgent:
         }
 
         self._subscriptions[sub_id] = subscription
-        logger.info(
-            "Subscription created", subscription_id=sub_id, creator_id=creator_id
-        )
+        logger.info("Subscription created", subscription_id=sub_id, creator_id=creator_id)
         return subscription
 
     async def cancel_subscription(self, subscription_id: str) -> dict[str, Any]:
@@ -175,9 +173,7 @@ class SubscriptionAgent:
         Returns:
             Subscription metrics.
         """
-        creator_subs = [
-            s for s in self._subscriptions.values() if s["creator_id"] == creator_id
-        ]
+        creator_subs = [s for s in self._subscriptions.values() if s["creator_id"] == creator_id]
         active = [s for s in creator_subs if s["status"] == "active"]
         cancelled = [s for s in creator_subs if s["status"] == "cancelled"]
 

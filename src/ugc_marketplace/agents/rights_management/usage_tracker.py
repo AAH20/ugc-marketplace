@@ -68,9 +68,7 @@ class UsageTrackerAgent(BaseAgent[dict[str, Any], "UsageRecord"]):
         return await self.execute(input_data)
 
     @staticmethod
-    async def _record_usage(
-        content_id: str, usage_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _record_usage(content_id: str, usage_data: dict[str, Any]) -> dict[str, Any]:
         """Record content usage.
 
         Args:

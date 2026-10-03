@@ -43,21 +43,15 @@ class CategoryService:
         try:
             category = self._db.get_category(category_id)
             if category is None:
-                raise CategoryNotFoundError(
-                    f"Category with id '{category_id}' not found"
-                )
+                raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
             return category
         except CategoryNotFoundError:
             raise
         except Exception as exc:
             logger.error("Failed to get category %s: %s", category_id, exc)
-            raise CategoryServiceError(
-                f"Failed to retrieve category '{category_id}'"
-            ) from exc
+            raise CategoryServiceError(f"Failed to retrieve category '{category_id}'") from exc
 
-    def list_categories(
-        self, filters: dict, page: int, page_size: int
-    ) -> list[dict]:
+    def list_categories(self, filters: dict, page: int, page_size: int) -> list[dict]:
         """List categories with optional filters and pagination.
 
         Args:
@@ -73,9 +67,7 @@ class CategoryService:
         """
         try:
             offset = (page - 1) * page_size
-            return self._db.list_categories(
-                filters=filters, offset=offset, limit=page_size
-            )
+            return self._db.list_categories(filters=filters, offset=offset, limit=page_size)
         except Exception as exc:
             logger.error("Failed to list categories: %s", exc)
             raise CategoryServiceError("Failed to list categories") from exc
@@ -116,17 +108,13 @@ class CategoryService:
         try:
             updated = self._db.update_category(category_id, data)
             if updated is None:
-                raise CategoryNotFoundError(
-                    f"Category with id '{category_id}' not found"
-                )
+                raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
             return updated
         except CategoryNotFoundError:
             raise
         except Exception as exc:
             logger.error("Failed to update category %s: %s", category_id, exc)
-            raise CategoryServiceError(
-                f"Failed to update category '{category_id}'"
-            ) from exc
+            raise CategoryServiceError(f"Failed to update category '{category_id}'") from exc
 
     def delete_category(self, category_id: str) -> bool:
         """Delete a category by its ID.
@@ -144,14 +132,10 @@ class CategoryService:
         try:
             deleted = self._db.delete_category(category_id)
             if not deleted:
-                raise CategoryNotFoundError(
-                    f"Category with id '{category_id}' not found"
-                )
+                raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
             return True
         except CategoryNotFoundError:
             raise
         except Exception as exc:
             logger.error("Failed to delete category %s: %s", category_id, exc)
-            raise CategoryServiceError(
-                f"Failed to delete category '{category_id}'"
-            ) from exc
+            raise CategoryServiceError(f"Failed to delete category '{category_id}'") from exc

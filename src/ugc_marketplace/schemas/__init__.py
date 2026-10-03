@@ -9,7 +9,6 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 
@@ -68,8 +67,8 @@ class CreatorBase(BaseModel):
 
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: EmailStr
-    display_name: Optional[str] = Field(None, max_length=100)
-    bio: Optional[str] = Field(None, max_length=500)
+    display_name: str | None = Field(None, max_length=100)
+    bio: str | None = Field(None, max_length=500)
     tier: CreatorTier = CreatorTier.BRONZE
     is_verified: bool = False
 
@@ -83,12 +82,12 @@ class CreatorCreate(CreatorBase):
 class CreatorUpdate(BaseModel):
     """Schema for updating an existing creator."""
 
-    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
-    email: Optional[EmailStr] = None
-    display_name: Optional[str] = Field(None, max_length=100)
-    bio: Optional[str] = Field(None, max_length=500)
-    tier: Optional[CreatorTier] = None
-    is_verified: Optional[bool] = None
+    username: str | None = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
+    email: EmailStr | None = None
+    display_name: str | None = Field(None, max_length=100)
+    bio: str | None = Field(None, max_length=500)
+    tier: CreatorTier | None = None
+    is_verified: bool | None = None
 
 
 class CreatorResponse(CreatorBase):
@@ -108,7 +107,7 @@ class ContentBase(BaseModel):
     """Shared content fields."""
 
     title: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
+    description: str | None = Field(None, max_length=5000)
     content_type: str = Field(..., min_length=1, max_length=50)
     tags: list[str] = Field(default_factory=list)
     status: ContentStatus = ContentStatus.DRAFT
@@ -125,13 +124,13 @@ class ContentCreate(ContentBase):
 class ContentUpdate(BaseModel):
     """Schema for updating existing content."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
-    content_type: Optional[str] = Field(None, min_length=1, max_length=50)
-    tags: Optional[list[str]] = None
-    status: Optional[ContentStatus] = None
-    is_premium: Optional[bool] = None
-    price: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
+    content_type: str | None = Field(None, min_length=1, max_length=50)
+    tags: list[str] | None = None
+    status: ContentStatus | None = None
+    is_premium: bool | None = None
+    price: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
 
 
 class ContentResponse(ContentBase):
@@ -152,7 +151,7 @@ class ListingBase(BaseModel):
     """Shared listing fields."""
 
     title: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
+    description: str | None = Field(None, max_length=5000)
     price: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
     currency: str = Field(default="USD", pattern=r"^[A-Z]{3}$")
     status: ListingStatus = ListingStatus.ACTIVE
@@ -163,18 +162,18 @@ class ListingCreate(ListingBase):
     """Schema for creating a new listing."""
 
     creator_id: int = Field(..., gt=0)
-    content_id: Optional[int] = Field(None, gt=0)
+    content_id: int | None = Field(None, gt=0)
 
 
 class ListingUpdate(BaseModel):
     """Schema for updating an existing listing."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
-    price: Optional[Decimal] = Field(None, gt=0, max_digits=10, decimal_places=2)
-    currency: Optional[str] = Field(None, pattern=r"^[A-Z]{3}$")
-    status: Optional[ListingStatus] = None
-    quantity: Optional[int] = Field(None, ge=1)
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
+    price: Decimal | None = Field(None, gt=0, max_digits=10, decimal_places=2)
+    currency: str | None = Field(None, pattern=r"^[A-Z]{3}$")
+    status: ListingStatus | None = None
+    quantity: int | None = Field(None, ge=1)
 
 
 class ListingResponse(ListingBase):
@@ -184,7 +183,7 @@ class ListingResponse(ListingBase):
 
     id: int
     creator_id: int
-    content_id: Optional[int] = None
+    content_id: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -211,9 +210,9 @@ class TransactionCreate(TransactionBase):
 class TransactionUpdate(BaseModel):
     """Schema for updating an existing transaction."""
 
-    amount: Optional[Decimal] = Field(None, gt=0, max_digits=10, decimal_places=2)
-    currency: Optional[str] = Field(None, pattern=r"^[A-Z]{3}$")
-    status: Optional[TransactionStatus] = None
+    amount: Decimal | None = Field(None, gt=0, max_digits=10, decimal_places=2)
+    currency: str | None = Field(None, pattern=r"^[A-Z]{3}$")
+    status: TransactionStatus | None = None
 
 
 class TransactionResponse(TransactionBase):
@@ -236,7 +235,7 @@ class ReviewBase(BaseModel):
     """Shared review fields."""
 
     rating: ReviewRating
-    comment: Optional[str] = Field(None, max_length=2000)
+    comment: str | None = Field(None, max_length=2000)
 
 
 class ReviewCreate(ReviewBase):
@@ -244,14 +243,14 @@ class ReviewCreate(ReviewBase):
 
     reviewer_id: int = Field(..., gt=0)
     creator_id: int = Field(..., gt=0)
-    transaction_id: Optional[int] = Field(None, gt=0)
+    transaction_id: int | None = Field(None, gt=0)
 
 
 class ReviewUpdate(BaseModel):
     """Schema for updating an existing review."""
 
-    rating: Optional[ReviewRating] = None
-    comment: Optional[str] = Field(None, max_length=2000)
+    rating: ReviewRating | None = None
+    comment: str | None = Field(None, max_length=2000)
 
 
 class ReviewResponse(ReviewBase):
@@ -262,6 +261,6 @@ class ReviewResponse(ReviewBase):
     id: int
     reviewer_id: int
     creator_id: int
-    transaction_id: Optional[int] = None
+    transaction_id: int | None = None
     created_at: datetime
     updated_at: datetime

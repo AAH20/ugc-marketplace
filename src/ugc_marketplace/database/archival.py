@@ -33,8 +33,7 @@ class ArchivalManager:
         """Archive analytics events older than retention period."""
         cutoff_date = datetime.utcnow() - timedelta(days=self.retention_days)
         archive_file = (
-            self.archive_dir
-            / f"analytics_events_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
+            self.archive_dir / f"analytics_events_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
         )
         async with self.engine.begin() as conn:
             result = await conn.execute(
@@ -65,14 +64,10 @@ class ArchivalManager:
     async def archive_old_audit_logs(self) -> dict[str, Any]:
         """Archive audit logs older than retention period."""
         cutoff_date = datetime.utcnow() - timedelta(days=self.retention_days)
-        archive_file = (
-            self.archive_dir / f"audit_log_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
-        )
+        archive_file = self.archive_dir / f"audit_log_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
         async with self.engine.begin() as conn:
             result = await conn.execute(
-                text(
-                    "SELECT * FROM audit_log WHERE changed_at < :cutoff_date ORDER BY changed_at"
-                ),
+                text("SELECT * FROM audit_log WHERE changed_at < :cutoff_date ORDER BY changed_at"),
                 {"cutoff_date": cutoff_date},
             )
             logs = [dict(row._mapping) for row in result]
