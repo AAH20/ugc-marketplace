@@ -8,8 +8,11 @@ Provides:
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -167,9 +170,11 @@ _next_id = max(r["id"] for r in MOCK_REVIEWS) + 1
 
 @router.get("", response_model=ReviewListResponse)
 async def list_reviews(
+    request: Request,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     rating: int | None = Query(None, ge=1, le=5, description="Filter by star rating"),
+    user=Depends(require_permission(Permission.REVIEW_READ)),
 ) -> dict:
     """
     List reviews with optional rating filter and pagination.
@@ -195,7 +200,11 @@ async def list_reviews(
 
 
 @router.post("", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
-async def create_review(payload: ReviewCreate) -> dict:
+async def create_review(
+    request: Request,
+    payload: ReviewCreate,
+    user=Depends(require_permission(Permission.REVIEW_CREATE)),
+) -> dict:
     """
     Create a new review. Validates rating (1-5), non-empty title/body,
     and positive product_id / user_id.
@@ -234,7 +243,11 @@ class ReviewUpdate(BaseModel):
 
 
 @router.get("/{review_id}", response_model=ReviewResponse)
-async def get_review(review_id: int) -> dict:
+async def get_review(
+    request: Request,
+    review_id: int,
+    user=Depends(require_permission(Permission.REVIEW_READ)),
+) -> dict:
     """Retrieve a single review by its unique identifier."""
     for review in MOCK_REVIEWS:
         if review["id"] == review_id:
@@ -247,7 +260,12 @@ async def get_review(review_id: int) -> dict:
 
 
 @router.put("/{review_id}", response_model=ReviewResponse)
-async def update_review(review_id: int, payload: ReviewUpdate) -> dict:
+async def update_review(
+    request: Request,
+    review_id: int,
+    payload: ReviewUpdate,
+    user=Depends(require_permission(Permission.REVIEW_UPDATE)),
+) -> dict:
     """Update an existing review by its unique identifier."""
     for review in MOCK_REVIEWS:
         if review["id"] == review_id:
@@ -263,7 +281,11 @@ async def update_review(review_id: int, payload: ReviewUpdate) -> dict:
 
 
 @router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_review(review_id: int) -> None:
+async def delete_review(
+    request: Request,
+    review_id: int,
+    user=Depends(require_permission(Permission.REVIEW_DELETE)),
+) -> None:
     """Delete a review by its unique identifier."""
     for i, review in enumerate(MOCK_REVIEWS):
         if review["id"] == review_id:

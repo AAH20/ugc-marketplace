@@ -7,8 +7,11 @@ and input validation.
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 
@@ -262,11 +265,13 @@ def _get_category_or_404(category_id: int) -> dict:
     description="Retrieve a paginated list of categories with optional filtering.",
 )
 async def list_categories(
+    request: Request,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     search: str | None = Query(None, description="Filter by name or slug (case-insensitive)"),
     is_active: bool | None = Query(None, description="Filter by active status"),
     parent_id: int | None = Query(None, description="Filter by parent category ID"),
+    user=Depends(require_permission(Permission.CATEGORY_READ)),
 ) -> PaginatedCategoryResponse:
     """
     Return a paginated list of categories.
@@ -312,7 +317,11 @@ async def list_categories(
     summary="Create a category",
     description="Create a new category with validated input.",
 )
-async def create_category(payload: CategoryCreate) -> CategoryResponse:
+async def create_category(
+    request: Request,
+    payload: CategoryCreate,
+    user=Depends(require_permission(Permission.CATEGORY_CREATE)),
+) -> CategoryResponse:
     """
     Create a new category.
 
@@ -365,7 +374,11 @@ async def create_category(payload: CategoryCreate) -> CategoryResponse:
     summary="Get a category by ID",
     description="Retrieve a single category by its numeric ID.",
 )
-async def get_category(category_id: int) -> CategoryResponse:
+async def get_category(
+    request: Request,
+    category_id: int,
+    user=Depends(require_permission(Permission.CATEGORY_READ)),
+) -> CategoryResponse:
     """
     Return a single category by ID.
 
@@ -381,7 +394,12 @@ async def get_category(category_id: int) -> CategoryResponse:
     summary="Update a category",
     description="Update an existing category. Only provided fields are modified.",
 )
-async def update_category(category_id: int, payload: CategoryUpdate) -> CategoryResponse:
+async def update_category(
+    request: Request,
+    category_id: int,
+    payload: CategoryUpdate,
+    user=Depends(require_permission(Permission.CATEGORY_UPDATE)),
+) -> CategoryResponse:
     """
     Update an existing category.
 
@@ -422,7 +440,11 @@ async def update_category(category_id: int, payload: CategoryUpdate) -> Category
     summary="Delete a category",
     description="Delete a category by ID. Returns 204 No Content on success.",
 )
-async def delete_category(category_id: int) -> None:
+async def delete_category(
+    request: Request,
+    category_id: int,
+    user=Depends(require_permission(Permission.CATEGORY_DELETE)),
+) -> None:
     """
     Delete a category by ID.
 

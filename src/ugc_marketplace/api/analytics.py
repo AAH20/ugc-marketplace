@@ -3,8 +3,11 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
@@ -99,7 +102,10 @@ class AnalyticsResponse(BaseModel):
     description="Returns high-level marketplace analytics including totals, "
     "30-day activity, and key performance indicators.",
 )
-async def get_dashboard_analytics() -> AnalyticsResponse:
+async def get_dashboard_analytics(
+    request: Request,
+    user=Depends(require_permission(Permission.ANALYTICS_READ)),
+) -> AnalyticsResponse:
     """Retrieve the marketplace analytics dashboard."""
     try:
         now = datetime.utcnow()
@@ -131,10 +137,12 @@ async def get_dashboard_analytics() -> AnalyticsResponse:
     "revenue, and ranking data.",
 )
 async def get_creator_analytics(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max creators to return"),
     sort_by: str = Query(
         default="revenue", description="Sort field (revenue, engagement, followers)"
     ),
+    user=Depends(require_permission(Permission.ANALYTICS_READ)),
 ) -> AnalyticsResponse:
     """Retrieve creator analytics."""
     try:
@@ -155,8 +163,10 @@ async def get_creator_analytics(
     "engagement, and revenue per item.",
 )
 async def get_content_analytics(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max content items to return"),
     content_type: str | None = Query(default=None, description="Filter by content type"),
+    user=Depends(require_permission(Permission.ANALYTICS_READ)),
 ) -> AnalyticsResponse:
     """Retrieve content analytics."""
     try:
@@ -177,7 +187,9 @@ async def get_content_analytics(
     "breakdowns by content type, and daily time series.",
 )
 async def get_revenue_analytics(
+    request: Request,
     days: int = Query(default=30, ge=1, le=365, description="Number of days to include"),
+    user=Depends(require_permission(Permission.ANALYTICS_READ)),
 ) -> AnalyticsResponse:
     """Retrieve revenue analytics."""
     try:

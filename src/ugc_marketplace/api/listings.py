@@ -7,8 +7,11 @@ filtering, and validation.
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/listings", tags=["listings"])
 
@@ -281,6 +284,7 @@ class ListingListResponse(BaseModel):
 
 @router.get("/", response_model=ListingListResponse, summary="List all listings")
 async def list_listings(
+    request: Request,
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
     category: str | None = Query(default=None, description="Filter by category"),
@@ -291,6 +295,7 @@ async def list_listings(
     ),
     sort_by: str = Query(default="created_at", pattern="^(created_at|price|rating|title)$"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    user=Depends(require_permission(Permission.LISTING_READ)),
 ) -> dict:
     """
     Get a paginated, filterable list of listings.
@@ -357,7 +362,11 @@ async def list_listings(
     status_code=status.HTTP_201_CREATED,
     summary="Create a new listing",
 )
-async def create_listing(payload: ListingCreate) -> dict:
+async def create_listing(
+    request: Request,
+    payload: ListingCreate,
+    user=Depends(require_permission(Permission.LISTING_CREATE)),
+) -> dict:
     """
     Create a new listing with validation.
 
@@ -397,7 +406,11 @@ async def create_listing(payload: ListingCreate) -> dict:
 
 
 @router.get("/{listing_id}", response_model=ListingResponse, summary="Get a listing by ID")
-async def get_listing(listing_id: str) -> dict:
+async def get_listing(
+    request: Request,
+    listing_id: str,
+    user=Depends(require_permission(Permission.LISTING_READ)),
+) -> dict:
     """Retrieve a single listing by its ID."""
     for listing in MOCK_LISTINGS:
         if listing["id"] == listing_id:
@@ -409,7 +422,12 @@ async def get_listing(listing_id: str) -> dict:
 
 
 @router.put("/{listing_id}", response_model=ListingResponse, summary="Update a listing")
-async def update_listing(listing_id: str, payload: ListingCreate) -> dict:
+async def update_listing(
+    request: Request,
+    listing_id: str,
+    payload: ListingCreate,
+    user=Depends(require_permission(Permission.LISTING_UPDATE)),
+) -> dict:
     """Update an existing listing. Replaces all fields with the provided values."""
     for i, listing in enumerate(MOCK_LISTINGS):
         if listing["id"] == listing_id:
@@ -438,7 +456,11 @@ async def update_listing(listing_id: str, payload: ListingCreate) -> dict:
 
 
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a listing")
-async def delete_listing(listing_id: str) -> None:
+async def delete_listing(
+    request: Request,
+    listing_id: str,
+    user=Depends(require_permission(Permission.LISTING_DELETE)),
+) -> None:
     """Delete a listing by its ID."""
     for i, listing in enumerate(MOCK_LISTINGS):
         if listing["id"] == listing_id:

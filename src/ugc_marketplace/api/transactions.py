@@ -16,8 +16,11 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
@@ -178,6 +181,7 @@ def _paginate_items(
     },
 )
 async def list_transactions(
+    request: Request,
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=20, ge=1, le=100, description="Number of items per page"),
     status_filter: TransactionStatus | None = Query(
@@ -188,6 +192,7 @@ async def list_transactions(
     ),
     buyer_id: UUID | None = Query(default=None, description="Filter by buyer UUID"),
     seller_id: UUID | None = Query(default=None, description="Filter by seller UUID"),
+    user=Depends(require_permission(Permission.TRANSACTION_READ)),
 ) -> TransactionListResponse:
     """
     List all transactions with pagination and optional filters.
@@ -242,7 +247,11 @@ async def list_transactions(
         422: {"model": ErrorResponse, "description": "Validation error in request body"},
     },
 )
-async def create_transaction(payload: TransactionCreate) -> TransactionResponse:
+async def create_transaction(
+    request: Request,
+    payload: TransactionCreate,
+    user=Depends(require_permission(Permission.TRANSACTION_CREATE)),
+) -> TransactionResponse:
     """
     Create a new transaction.
 
@@ -285,7 +294,11 @@ async def create_transaction(payload: TransactionCreate) -> TransactionResponse:
         422: {"model": ErrorResponse, "description": "Invalid UUID format"},
     },
 )
-async def get_transaction(transaction_id: UUID) -> TransactionResponse:
+async def get_transaction(
+    request: Request,
+    transaction_id: UUID,
+    user=Depends(require_permission(Permission.TRANSACTION_READ)),
+) -> TransactionResponse:
     """
     Get a transaction by its ID.
 
@@ -311,8 +324,10 @@ async def get_transaction(transaction_id: UUID) -> TransactionResponse:
     },
 )
 async def update_transaction(
+    request: Request,
     transaction_id: UUID,
     payload: TransactionUpdate,
+    user=Depends(require_permission(Permission.TRANSACTION_UPDATE)),
 ) -> TransactionResponse:
     """
     Update an existing transaction.
@@ -350,7 +365,11 @@ async def update_transaction(
         422: {"model": ErrorResponse, "description": "Invalid UUID format"},
     },
 )
-async def delete_transaction(transaction_id: UUID) -> None:
+async def delete_transaction(
+    request: Request,
+    transaction_id: UUID,
+    user=Depends(require_permission(Permission.TRANSACTION_DELETE)),
+) -> None:
     """
     Delete a transaction by its ID.
 

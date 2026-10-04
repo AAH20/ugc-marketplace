@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     port: int = 8000
     workers: int = 1
 
+    # Rate Limiting
+    rate_limit_requests_per_minute: int = 60
+    rate_limit_burst_size: int = 10
+    rate_limit_strategy: str = "sliding_window"
+
     @property
     def is_production(self) -> bool:
         """Check if running in production environment."""

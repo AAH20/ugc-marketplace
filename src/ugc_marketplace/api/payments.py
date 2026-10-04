@@ -5,9 +5,12 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi import status as http_status
 from pydantic import BaseModel, Field, field_validator
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
 
@@ -112,9 +115,11 @@ _payments_store: dict[UUID, dict[str, Any]] = {}
     description="Retrieve a paginated list of all payments.",
 )
 async def list_payments(
+    request: Request,
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     status: str | None = Query(default=None, description="Filter by payment status"),
+    user=Depends(require_permission(Permission.PAYMENT_READ)),
 ) -> PaymentListResponse:
     """List payments with optional filtering and pagination."""
     try:
@@ -157,7 +162,11 @@ async def list_payments(
     summary="Create payment",
     description="Create a new payment record.",
 )
-async def create_payment(payment: PaymentCreate) -> PaymentResponse:
+async def create_payment(
+    request: Request,
+    payment: PaymentCreate,
+    user=Depends(require_permission(Permission.PAYMENT_CREATE)),
+) -> PaymentResponse:
     """Create a new payment."""
     try:
         payment_id = uuid4()
@@ -201,7 +210,11 @@ async def create_payment(payment: PaymentCreate) -> PaymentResponse:
     summary="Get payment by ID",
     description="Retrieve a single payment by its unique identifier.",
 )
-async def get_payment(payment_id: UUID) -> PaymentResponse:
+async def get_payment(
+    request: Request,
+    payment_id: UUID,
+    user=Depends(require_permission(Permission.PAYMENT_READ)),
+) -> PaymentResponse:
     """Get a payment by ID."""
     try:
         payment_data = _payments_store.get(payment_id)
@@ -232,7 +245,12 @@ async def get_payment(payment_id: UUID) -> PaymentResponse:
     summary="Update payment status",
     description="Update the status and optional fields of an existing payment.",
 )
-async def update_payment(payment_id: UUID, update: PaymentUpdate) -> PaymentResponse:
+async def update_payment(
+    request: Request,
+    payment_id: UUID,
+    update: PaymentUpdate,
+    user=Depends(require_permission(Permission.PAYMENT_UPDATE)),
+) -> PaymentResponse:
     """Update a payment's status."""
     try:
         payment_data = _payments_store.get(payment_id)
@@ -272,7 +290,11 @@ async def update_payment(payment_id: UUID, update: PaymentUpdate) -> PaymentResp
     summary="Delete payment",
     description="Permanently delete a payment record.",
 )
-async def delete_payment(payment_id: UUID) -> None:
+async def delete_payment(
+    request: Request,
+    payment_id: UUID,
+    user=Depends(require_permission(Permission.PAYMENT_DELETE)),
+) -> None:
     """Delete a payment by ID."""
     try:
         if payment_id not in _payments_store:

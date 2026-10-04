@@ -6,9 +6,11 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
 
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 from ugc_marketplace.security.sanitization import sanitize_text
 
 router = APIRouter(prefix="/api/v1/content", tags=["content"])
@@ -290,10 +292,12 @@ class ContentListResponse(BaseModel):
 
 @router.get("", response_model=ContentListResponse)
 async def list_content(
+    request: Request,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     type: str | None = Query(None, description="Filter by content type"),
     status: str | None = Query(None, description="Filter by content status"),
+    user=Depends(require_permission(Permission.CONTENT_READ)),
 ) -> dict[str, Any]:
     """
     List content with pagination and optional filtering by type and/or status.
@@ -334,7 +338,11 @@ async def list_content(
 
 
 @router.post("", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)
-async def create_content(payload: ContentCreate) -> dict[str, Any]:
+async def create_content(
+    request: Request,
+    payload: ContentCreate,
+    user=Depends(require_permission(Permission.CONTENT_CREATE)),
+) -> dict[str, Any]:
     """
     Create new content with validation. Returns the created content object.
     """
@@ -363,7 +371,11 @@ async def create_content(payload: ContentCreate) -> dict[str, Any]:
 
 
 @router.get("/{content_id}", response_model=ContentResponse)
-async def get_content(content_id: str) -> dict[str, Any]:
+async def get_content(
+    request: Request,
+    content_id: str,
+    user=Depends(require_permission(Permission.CONTENT_READ)),
+) -> dict[str, Any]:
     """
     Get a single content item by ID.
     """
@@ -378,7 +390,12 @@ async def get_content(content_id: str) -> dict[str, Any]:
 
 
 @router.put("/{content_id}", response_model=ContentResponse)
-async def update_content(content_id: str, payload: ContentUpdate) -> dict[str, Any]:
+async def update_content(
+    request: Request,
+    content_id: str,
+    payload: ContentUpdate,
+    user=Depends(require_permission(Permission.CONTENT_UPDATE)),
+) -> dict[str, Any]:
     """
     Update an existing content item. Returns the updated content object.
     """
@@ -402,7 +419,11 @@ async def update_content(content_id: str, payload: ContentUpdate) -> dict[str, A
 
 
 @router.delete("/{content_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_content(content_id: str) -> None:
+async def delete_content(
+    request: Request,
+    content_id: str,
+    user=Depends(require_permission(Permission.CONTENT_DELETE)),
+) -> None:
     """
     Delete a content item by ID.
     """

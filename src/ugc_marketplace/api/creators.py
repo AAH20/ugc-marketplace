@@ -7,8 +7,11 @@ Provides listing with pagination/filtering and creation with validation.
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 from ugc_marketplace.security.sanitization import sanitize_text
 
@@ -282,11 +285,13 @@ class CreatorListResponse(BaseModel):
     summary="List creators with pagination and filtering",
 )
 async def list_creators(
+    request: Request,
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
     tier: CreatorTier | None = Query(default=None, description="Filter by tier"),
     status: CreatorStatus | None = Query(default=None, description="Filter by status"),
     search: str | None = Query(default=None, min_length=1, description="Search by name or handle"),
+    user=Depends(require_permission(Permission.CREATOR_READ)),
 ) -> dict:
     """
     Return a paginated list of creators.
@@ -327,7 +332,11 @@ async def list_creators(
     status_code=status.HTTP_201_CREATED,
     summary="Create a new creator",
 )
-async def create_creator(payload: CreatorCreate) -> dict:
+async def create_creator(
+    request: Request,
+    payload: CreatorCreate,
+    user=Depends(require_permission(Permission.CREATOR_CREATE)),
+) -> dict:
     """
     Create a new creator with validation.
 
@@ -379,7 +388,11 @@ async def create_creator(payload: CreatorCreate) -> dict:
     response_model=CreatorResponse,
     summary="Get a creator by ID",
 )
-async def get_creator(creator_id: str) -> dict:
+async def get_creator(
+    request: Request,
+    creator_id: str,
+    user=Depends(require_permission(Permission.CREATOR_READ)),
+) -> dict:
     """Retrieve a single creator by their unique ID."""
     creator = _creators_db.get(creator_id)
     if creator is None:
@@ -395,7 +408,12 @@ async def get_creator(creator_id: str) -> dict:
     response_model=CreatorResponse,
     summary="Update a creator",
 )
-async def update_creator(creator_id: str, payload: CreatorUpdate) -> dict:
+async def update_creator(
+    request: Request,
+    creator_id: str,
+    payload: CreatorUpdate,
+    user=Depends(require_permission(Permission.CREATOR_UPDATE)),
+) -> dict:
     """Update an existing creator. Only provided fields are modified."""
     creator = _creators_db.get(creator_id)
     if creator is None:
@@ -443,7 +461,11 @@ async def update_creator(creator_id: str, payload: CreatorUpdate) -> dict:
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a creator",
 )
-async def delete_creator(creator_id: str) -> None:
+async def delete_creator(
+    request: Request,
+    creator_id: str,
+    user=Depends(require_permission(Permission.CREATOR_DELETE)),
+) -> None:
     """Delete a creator by their unique ID."""
     if creator_id not in _creators_db:
         raise HTTPException(

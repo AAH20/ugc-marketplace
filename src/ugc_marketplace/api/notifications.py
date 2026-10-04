@@ -13,8 +13,11 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
@@ -226,12 +229,14 @@ MOCK_NOTIFICATIONS: list[dict[str, Any]] = [
     description="Retrieve a paginated list of notifications, optionally filtered by read status.",
 )
 async def list_notifications(
+    request: Request,
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
     is_read: bool | None = Query(
         default=None, description="Filter by read status (true=read, false=unread)"
     ),
     user_id: str | None = Query(default=None, description="Filter by recipient user ID"),
+    user=Depends(require_permission(Permission.NOTIFICATION_READ)),
 ) -> NotificationListResponse:
     """
     List notifications with pagination and optional read-status filtering.
@@ -266,7 +271,11 @@ async def list_notifications(
     summary="Create a notification",
     description="Create a new notification for a user. Validates all required fields.",
 )
-async def create_notification(payload: NotificationCreate) -> Notification:
+async def create_notification(
+    request: Request,
+    payload: NotificationCreate,
+    user=Depends(require_permission(Permission.NOTIFICATION_CREATE)),
+) -> Notification:
     """
     Create a new notification with full validation.
     Returns the created notification with server-generated ID and timestamps.
@@ -309,7 +318,11 @@ def _find_notification(notification_id: str) -> dict[str, Any]:
     summary="Get a notification by ID",
     description="Retrieve a single notification by its unique ID.",
 )
-async def get_notification(notification_id: str) -> Notification:
+async def get_notification(
+    request: Request,
+    notification_id: str,
+    user=Depends(require_permission(Permission.NOTIFICATION_READ)),
+) -> Notification:
     """Retrieve a single notification by its ID."""
     record = _find_notification(notification_id)
     return Notification(**record)
@@ -322,8 +335,10 @@ async def get_notification(notification_id: str) -> Notification:
     description="Update a notification (e.g. mark as read).",
 )
 async def update_notification(
+    request: Request,
     notification_id: str,
     is_read: bool = Query(..., description="New read status"),
+    user=Depends(require_permission(Permission.NOTIFICATION_UPDATE)),
 ) -> Notification:
     """Update a notification's read status."""
     record = _find_notification(notification_id)
@@ -341,7 +356,11 @@ async def update_notification(
     summary="Delete a notification",
     description="Delete a notification by its ID.",
 )
-async def delete_notification(notification_id: str) -> None:
+async def delete_notification(
+    request: Request,
+    notification_id: str,
+    user=Depends(require_permission(Permission.NOTIFICATION_DELETE)),
+) -> None:
     """Delete a notification by its ID."""
     record = _find_notification(notification_id)
     MOCK_NOTIFICATIONS.remove(record)

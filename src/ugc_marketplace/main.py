@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ugc_marketplace import __version__
+from ugc_marketplace.api.auth import router as auth_router
 from ugc_marketplace.api.community_curation import router as curation_router
 from ugc_marketplace.api.content_discovery import router as discovery_router
 from ugc_marketplace.api.content_marketplace import router as marketplace_router
@@ -25,6 +26,8 @@ from ugc_marketplace.api.quality_scoring import router as quality_router
 from ugc_marketplace.api.rights_management import router as rights_router
 from ugc_marketplace.config import get_settings
 from ugc_marketplace.config.logging_config import configure_logging
+from ugc_marketplace.security.auth import AuthMiddleware
+from ugc_marketplace.security.rate_limit import RateLimitMiddleware
 
 logger = structlog.get_logger(__name__)
 
@@ -70,6 +73,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Add security middleware (order matters - rate limit first, then auth)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(AuthMiddleware)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_hosts,
@@ -103,6 +110,7 @@ def create_app() -> FastAPI:
     api_prefix = settings.api_prefix
 
     app.include_router(health_router, prefix=api_prefix, tags=["Health"])
+    app.include_router(auth_router, prefix=f"{api_prefix}/auth", tags=["Auth"])
     app.include_router(moderation_router, prefix=f"{api_prefix}/moderation", tags=["Moderation"])
     app.include_router(
         monetization_router, prefix=f"{api_prefix}/monetization", tags=["Monetization"]

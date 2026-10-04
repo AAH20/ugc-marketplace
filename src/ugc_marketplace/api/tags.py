@@ -2,8 +2,11 @@
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+
+from ugc_marketplace.security.auth import get_current_user, require_auth
+from ugc_marketplace.security.authorization import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/tags", tags=["tags"])
 
@@ -273,9 +276,11 @@ def _tag_exists(name: str) -> bool:
 
 @router.get("/", response_model=TagListResponse, summary="List all tags with pagination")
 async def list_tags(
+    request: Request,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
     search: str | None = Query(None, description="Filter tags by name (case-insensitive)"),
+    user=Depends(require_permission(Permission.TAG_READ)),
 ):
     """
     Retrieve a paginated list of tags.
@@ -303,7 +308,11 @@ async def list_tags(
 
 
 @router.post("/", response_model=TagResponse, status_code=201, summary="Create a new tag")
-async def create_tag(payload: TagCreate):
+async def create_tag(
+    request: Request,
+    payload: TagCreate,
+    user=Depends(require_permission(Permission.TAG_CREATE)),
+):
     """
     Create a new tag with validation.
 
