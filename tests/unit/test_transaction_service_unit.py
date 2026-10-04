@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from ugc_marketplace.services.transaction_service import TransactionService
+from ugc_marketplace.services.transaction_service import create_transaction, get_transaction, list_transactions
 from ugc_marketplace.models.transaction import Transaction, TransactionStatus, TransactionType
 
 
