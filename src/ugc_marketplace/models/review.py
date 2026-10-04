@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ugc_marketplace.models.base import Base
+from ugc_marketplace.models import Base
 
 
 class Review(Base):

@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ugc_marketplace.models.base import Base
+from ugc_marketplace.models import Base
 
 
 class Content(Base):
