@@ -196,7 +196,7 @@ def _generate_decision(content_id: str) -> ModerationDecision:
             ModerationStatus.REJECTED if confidence > 0.85 else ModerationStatus.FLAGGED_FOR_REVIEW
         )
         reasons = [
-            (f"Detected {category.value.replace('_', ' ')} indicators",)
+            f"Detected {category.value.replace('_', ' ')} indicators",
             f"Matched patterns: {', '.join(matched_keywords)}",
         ]
     else:
