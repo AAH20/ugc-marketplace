@@ -300,7 +300,7 @@ def seed_licenses(
             if license_type == LicenseType.COMMERCIAL:
                 license_obj = CommercialLicenseFactory(transaction=transaction)
             elif license_type == LicenseType.PERSONAL:
-                license_obj = PersonalLicenseFactory(transaction=transaction)
+    # license_obj = PersonalLicenseFactory(transaction=transaction)  # FIXME: not defined
             else:
                 license_obj = LicenseFactory(transaction=transaction)
             session.add(license_obj)
@@ -779,7 +779,7 @@ async def seed_licenses_async(
             if license_type == LicenseType.COMMERCIAL:
                 license_obj = CommercialLicenseFactory(transaction=transaction)
             elif license_type == LicenseType.PERSONAL:
-                license_obj = PersonalLicenseFactory(transaction=transaction)
+    # license_obj = PersonalLicenseFactory(transaction=transaction)  # FIXME: not defined
             else:
                 license_obj = LicenseFactory(transaction=transaction)
             session.add(license_obj)

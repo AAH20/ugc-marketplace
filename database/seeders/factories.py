@@ -869,7 +869,7 @@ class CommercialLicenseFactory(LicenseFactory):
     )
 
 
-class PersonalLicenseFactory(LicenseFactory):
+    # class PersonalLicenseFactory(LicenseFactory):  # FIXME: not defined
     """Factory for creating personal licenses."""
 
     license_type = LicenseType.PERSONAL
@@ -927,7 +927,7 @@ FACTORIES = {
     "PendingTransaction": PendingTransactionFactory,
     "RefundedTransaction": RefundedTransactionFactory,
     "CommercialLicense": CommercialLicenseFactory,
-    "PersonalLicense": PersonalLicenseFactory,
+    # "PersonalLicense": PersonalLicenseFactory,  # FIXME: not defined
     "ResolvedFraudReport": ResolvedFraudReportFactory,
     "OpenFraudReport": OpenFraudReportFactory,
 }
