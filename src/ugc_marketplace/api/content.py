@@ -9,6 +9,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
+from ugc_marketplace.security.sanitization import sanitize_text
+
 router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
 
@@ -341,13 +343,13 @@ async def create_content(payload: ContentCreate) -> dict[str, Any]:
 
     new_content: dict[str, Any] = {
         "id": new_id,
-        "title": payload.title,
+        "title": sanitize_text(payload.title),
         "type": payload.type,
         "status": "draft",
-        "author_id": payload.author_id,
-        "tags": payload.tags,
-        "media_url": payload.media_url,
-        "description": payload.description,
+        "author_id": sanitize_text(payload.author_id),
+        "tags": [sanitize_text(t) for t in payload.tags],
+        "media_url": sanitize_text(payload.media_url),
+        "description": sanitize_text(payload.description),
         "created_at": now,
         "updated_at": now,
         "views": 0,
@@ -384,7 +386,12 @@ async def update_content(content_id: str, payload: ContentUpdate) -> dict[str, A
         if item["id"] == content_id:
             update_data = payload.model_dump(exclude_unset=True)
             for field, value in update_data.items():
-                item[field] = value
+                if isinstance(value, str):
+                    item[field] = sanitize_text(value)
+                elif isinstance(value, list):
+                    item[field] = [sanitize_text(v) if isinstance(v, str) else v for v in value]
+                else:
+                    item[field] = value
             item["updated_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             return item
 

@@ -10,6 +10,8 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from ugc_marketplace.security.sanitization import sanitize_text
+
 router = APIRouter(prefix="/creators", tags=["creators"])
 
 # ---------------------------------------------------------------------------
@@ -354,15 +356,15 @@ async def create_creator(payload: CreatorCreate) -> dict:
 
     new_creator = {
         "id": new_id,
-        "name": payload.name,
+        "name": sanitize_text(payload.name),
         "email": payload.email,
-        "handle": payload.handle,
+        "handle": sanitize_text(payload.handle),
         "tier": payload.tier,
         "status": "pending",
-        "bio": payload.bio,
+        "bio": sanitize_text(payload.bio),
         "followers": 0,
         "engagement_rate": 0.0,
-        "categories": payload.categories,
+        "categories": [sanitize_text(c) for c in payload.categories],
         "joined_at": datetime.now(UTC).isoformat(),
         "verified": False,
     }
@@ -403,6 +405,13 @@ async def update_creator(creator_id: str, payload: CreatorUpdate) -> dict:
         )
 
     update_data = payload.model_dump(exclude_unset=True)
+
+    # Sanitize string fields
+    for key in ("name", "handle", "bio"):
+        if key in update_data and isinstance(update_data[key], str):
+            update_data[key] = sanitize_text(update_data[key])
+    if "categories" in update_data and isinstance(update_data["categories"], list):
+        update_data["categories"] = [sanitize_text(c) for c in update_data["categories"]]
 
     # Check for duplicate email if email is being updated
     if "email" in update_data:
