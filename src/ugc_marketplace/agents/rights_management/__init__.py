@@ -1,54 +1,30 @@
-"""Agent implementations for rights management."""
+"""Rights Management agent."""
 
-from __future__ import annotations
+from ugc_marketplace.agents._rights_management import *  # noqa: F401,F403
+from ugc_marketplace.agents._rights_management import (  # noqa: F401
+    AccessCheckResult,
+    AccessDecision,
+    GrantResult,
+    RightType,
+    RightsManagementAgent,
+    RightsRecord,
+    _default_agent,
+    check_content_rights,
+    check_rights,
+    grant_rights,
+    license_content,
+    revoke_license,
+)
+from ugc_marketplace.agents.rights_management.infringement_detector import InfringementDetectorAgent  # noqa: F401
+from ugc_marketplace.agents.rights_management.license_detector import LicenseDetectorAgent  # noqa: F401
+from ugc_marketplace.agents.rights_management.rights_validator import RightsValidatorAgent  # noqa: F401
+from ugc_marketplace.agents.rights_management.takedown import TakedownAgent  # noqa: F401
+from ugc_marketplace.agents.rights_management.usage_tracker import UsageTrackerAgent  # noqa: F401
 
-import importlib.util
-import sys
-from pathlib import Path
-
-from ugc_marketplace.agents.rights_management.base import BaseAgent
-from ugc_marketplace.agents.rights_management.infringement_detector import InfringementDetectorAgent
-from ugc_marketplace.agents.rights_management.license_detector import LicenseDetectorAgent
-from ugc_marketplace.agents.rights_management.rights_validator import RightsValidatorAgent
-from ugc_marketplace.agents.rights_management.takedown import TakedownAgent
-from ugc_marketplace.agents.rights_management.usage_tracker import UsageTrackerAgent
-
-# Load the rights_management.py module (shadowed by this package)
-_module_path = Path(__file__).parent.parent / "rights_management.py"
-_spec = importlib.util.spec_from_file_location("_rights_management_module", _module_path)
-_rights_management_module = importlib.util.module_from_spec(_spec)
-sys.modules["_rights_management_module"] = _rights_management_module
-_spec.loader.exec_module(_rights_management_module)
-
-# Re-export data classes and functions from the module
-AccessCheckResult = _rights_management_module.AccessCheckResult
-AccessDecision = _rights_management_module.AccessDecision
-GrantResult = _rights_management_module.GrantResult
-RightType = _rights_management_module.RightType
-RightsManagementAgent = _rights_management_module.RightsManagementAgent
-RightsRecord = _rights_management_module.RightsRecord
-check_content_rights = _rights_management_module.check_content_rights
-check_rights = _rights_management_module.check_rights
-grant_rights = _rights_management_module.grant_rights
-license_content = _rights_management_module.license_content
-revoke_license = _rights_management_module.revoke_license
-
-__all__ = [
-    "BaseAgent",
-    "InfringementDetectorAgent",
-    "LicenseDetectorAgent",
-    "RightsValidatorAgent",
-    "TakedownAgent",
-    "UsageTrackerAgent",
-    "AccessCheckResult",
-    "AccessDecision",
-    "GrantResult",
-    "RightType",
-    "RightsManagementAgent",
-    "RightsRecord",
-    "check_content_rights",
-    "check_rights",
-    "grant_rights",
-    "license_content",
-    "revoke_license",
-]
+# Alias for backward compatibility with tests that import the old module name
+import sys as _sys
+import types as _types
+_rights_management_module = _types.ModuleType("ugc_marketplace.agents._rights_management")
+_rights_management_module.__dict__.update(globals())
+_sys.modules[__name__ + "._rights_management_module"] = _rights_management_module
+_sys.modules["ugc_marketplace.agents._rights_management"] = _rights_management_module

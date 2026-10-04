@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime, timedelta
 from typing import Any
 
-from src.ugc_marketplace.agents.content_discovery import (
+from ugc_marketplace.agents.content_discovery import (
     recommend_content,
     search_content,
     get_trending_content,

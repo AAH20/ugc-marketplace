@@ -1,17 +1,16 @@
-"""Agent implementations for community curation."""
+"""Community Curation agent."""
 
-from ugc_marketplace.agents.community_curation.base import BaseCurationAgent
-from ugc_marketplace.agents.community_curation.content_ranker import ContentRankerAgent
-from ugc_marketplace.agents.community_curation.curation_explainer import CurationExplainerAgent
-from ugc_marketplace.agents.community_curation.quality_filter import QualityFilterAgent
-from ugc_marketplace.agents.community_curation.topic_cluster import TopicClusterAgent
-from ugc_marketplace.agents.community_curation.trend_surfer import TrendSurferAgent
-
-__all__ = [
-    "BaseCurationAgent",
-    "ContentRankerAgent",
-    "CurationExplainerAgent",
-    "QualityFilterAgent",
-    "TopicClusterAgent",
-    "TrendSurferAgent",
-]
+from ugc_marketplace.agents._community_curation import *  # noqa: F401,F403
+from ugc_marketplace.agents._community_curation import (  # noqa: F401
+    CommunityCurationAgent,
+    ContentCategory,
+    ContentItem,
+    ContentQuality,
+    RankedContent,
+    UserPreferences,
+    curate_community_content,
+    curate_feed,
+    feature_content,
+    get_curated_feed,
+    rank_content,
+)

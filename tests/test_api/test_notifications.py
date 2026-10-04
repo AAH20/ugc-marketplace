@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Return a TestClient bound to the FastAPI application."""
-    from app.main import app  # type: ignore
+    from ugc_marketplace.main import app  # type: ignore
     return TestClient(app)
 
 

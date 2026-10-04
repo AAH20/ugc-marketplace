@@ -14,20 +14,20 @@ from typing import Any
 
 # Import the functions under test
 try:
-    from src.ugc_marketplace.agents.creator_analytics import (
+    from ugc_marketplace.agents.creator_analytics import (
         get_creator_metrics,
         get_creator_growth,
         get_creator_engagement,
     )
 except ImportError:
     try:
-        from src.ugc_marketplace.agents.analytics import (
+        from ugc_marketplace.agents.analytics import (
             get_creator_metrics,
             get_creator_growth,
             get_creator_engagement,
         )
     except ImportError:
-        from src.ugc_marketplace.agents import (
+        from ugc_marketplace.agents import (
             get_creator_metrics,
             get_creator_growth,
             get_creator_engagement,

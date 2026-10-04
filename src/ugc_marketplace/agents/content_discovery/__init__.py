@@ -1,18 +1,15 @@
-"""Agent implementations for content discovery."""
+"""Content Discovery agent."""
 
-from ugc_marketplace.agents.content_discovery.base import AgentExecutionError, BaseAgent
-from ugc_marketplace.agents.content_discovery.personalization import PersonalizationAgent
-from ugc_marketplace.agents.content_discovery.recommendation import RecommendationAgent
-from ugc_marketplace.agents.content_discovery.search_explainer import SearchExplainerAgent
-from ugc_marketplace.agents.content_discovery.semantic_search import SemanticSearchAgent
-from ugc_marketplace.agents.content_discovery.trend_detector import TrendDetectorAgent
-
-__all__ = [
-    "AgentExecutionError",
-    "BaseAgent",
-    "PersonalizationAgent",
-    "RecommendationAgent",
-    "SearchExplainerAgent",
-    "SemanticSearchAgent",
-    "TrendDetectorAgent",
-]
+from ugc_marketplace.agents._content_discovery import *  # noqa: F401,F403
+from ugc_marketplace.agents._content_discovery import (  # noqa: F401
+    ContentCategory,
+    ContentDiscoveryAgent,
+    ContentItem,
+    TrendingTimeframe,
+    UserProfile,
+    _default_agent,
+    get_trending_content,
+    recommend_content,
+    search_content,
+    trending_content,
+)

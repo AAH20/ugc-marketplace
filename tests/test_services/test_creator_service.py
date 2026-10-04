@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.ugc_marketplace.models.creator import Creator
-from src.ugc_marketplace.services.creator_service import CreatorService
+from ugc_marketplace.models.creator import Creator
+from ugc_marketplace.services.creator_service import CreatorService
 
 
 # ---------------------------------------------------------------------------

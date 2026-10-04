@@ -7,6 +7,7 @@ for content creators.
 from __future__ import annotations
 
 import logging
+from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,27 @@ class PayoutError(Exception):
 
 class CreatorNotFoundError(Exception):
     """Raised when a creator ID cannot be found."""
+
+
+class InsufficientFundsError(PayoutError):
+    """Raised when there are insufficient funds for a payout."""
+
+
+class PayoutStatus(Enum):
+    """Possible statuses for a payout."""
+
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class MonetizationTier(Enum):
+    """Monetization tier levels."""
+
+    FREE = "free"
+    BRONZE = "bronze"
+    SILVER = "silver"
+    GOLD = "gold"
 
 
 def _validate_creator_id(creator_id: str) -> None:

@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from typing import Any, Dict, List, Optional
 
-from src.ugc_marketplace.agents.quality_scoring import (
+from ugc_marketplace.agents.quality_scoring import (
     score_content_quality,
     get_quality_metrics,
     flag_low_quality,

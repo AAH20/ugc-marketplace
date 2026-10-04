@@ -19,7 +19,7 @@ _module_path = (
     / "src"
     / "ugc_marketplace"
     / "agents"
-    / "fraud_detection.py"
+    / "_fraud_detection.py"
 )
 _spec = importlib.util.spec_from_file_location("_fraud_detection_module", _module_path)
 _fraud_detection = importlib.util.module_from_spec(_spec)

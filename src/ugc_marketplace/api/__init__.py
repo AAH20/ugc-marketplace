@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from ugc_marketplace.api.routers import (
+from ugc_marketplace.api.routes import (
     analytics,
     categories,
     content,
@@ -17,13 +17,13 @@ from ugc_marketplace.api.routers import (
 
 api_router = APIRouter()
 
-api_router.include_router(creators.router, prefix="/creators", tags=["creators"])
-api_router.include_router(content.router, prefix="/content", tags=["content"])
-api_router.include_router(listings.router, prefix="/listings", tags=["listings"])
-api_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
-api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
-api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
-api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
-api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
-api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
-api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+api_router.include_router(creators, prefix="/creators", tags=["creators"])
+api_router.include_router(content, prefix="/content", tags=["content"])
+api_router.include_router(listings, prefix="/listings", tags=["listings"])
+api_router.include_router(transactions, prefix="/transactions", tags=["transactions"])
+api_router.include_router(notifications, prefix="/notifications", tags=["notifications"])
+api_router.include_router(payments, prefix="/payments", tags=["payments"])
+api_router.include_router(reviews, prefix="/reviews", tags=["reviews"])
+api_router.include_router(categories, prefix="/categories", tags=["categories"])
+api_router.include_router(tags, prefix="/tags", tags=["tags"])
+api_router.include_router(analytics, prefix="/analytics", tags=["analytics"])

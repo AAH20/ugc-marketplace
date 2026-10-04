@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.ugc_marketplace.agents.content_moderation import (
+from ugc_marketplace.agents.content_moderation import (
     moderate_content,
     flag_content,
     get_moderation_status,

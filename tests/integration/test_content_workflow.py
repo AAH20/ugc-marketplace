@@ -26,9 +26,9 @@ from ugc_marketplace.agents.licensing_engine import (
     _LICENSE_STORE,
     _validate_license_impl,
     create_license,
-    revoke_license,
     validate_license,
 )
+from ugc_marketplace.agents.rights_management import revoke_license
 
 
 # ---------------------------------------------------------------------------

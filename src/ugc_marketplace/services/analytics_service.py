@@ -201,3 +201,37 @@ def get_revenue_analytics(time_range: str) -> dict[str, Any]:
     except Exception as exc:
         logger.error("Failed to get revenue analytics: %s", exc)
         raise RuntimeError(f"Failed to get revenue analytics: {exc}") from exc
+
+
+class AnalyticsService:
+    """Service class for analytics operations.
+
+    Wraps the module-level analytics functions with a class-based interface
+    that accepts a database session and optional cache.
+    """
+
+    def __init__(self, db: Any, cache: Any = None) -> None:
+        """Initialize the AnalyticsService.
+
+        Args:
+            db: Database session for executing queries.
+            cache: Optional cache instance for caching results.
+        """
+        self.db = db
+        self.cache = cache
+
+    async def get_marketplace_metrics(self, time_range: str) -> dict[str, Any]:
+        """Get marketplace metrics for the given time range."""
+        return get_marketplace_metrics(time_range)
+
+    async def get_creator_analytics(self, time_range: str) -> dict[str, Any]:
+        """Get creator analytics for the given time range."""
+        return get_creator_analytics(time_range)
+
+    async def get_content_analytics(self, time_range: str) -> dict[str, Any]:
+        """Get content analytics for the given time range."""
+        return get_content_analytics(time_range)
+
+    async def get_revenue_analytics(self, time_range: str) -> dict[str, Any]:
+        """Get revenue analytics for the given time range."""
+        return get_revenue_analytics(time_range)

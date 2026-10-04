@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -12,6 +13,25 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from ugc_marketplace.models import Base
+
+
+class TransactionStatus(Enum):
+    """Transaction status values."""
+
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+
+
+class TransactionType(Enum):
+    """Transaction type values."""
+
+    PURCHASE = "purchase"
+    REFUND = "refund"
+    PAYOUT = "payout"
+    FEE = "fee"
 
 
 class Transaction(Base):

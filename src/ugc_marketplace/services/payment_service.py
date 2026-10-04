@@ -496,3 +496,50 @@ def delete_payment(payment_id: str) -> bool:
     except Exception as exc:
         logger.error("Failed to delete payment %s: %s", payment_id, exc)
         raise PaymentError(f"Failed to delete payment: {exc}") from exc
+
+
+class PaymentService:
+    """Service class for payment operations.
+
+    Wraps the module-level payment functions with a class-based interface
+    that accepts a database session, cache, and event bus.
+    """
+
+    def __init__(self, db: Any, cache: Any = None, event_bus: Any = None) -> None:
+        """Initialize the PaymentService.
+
+        Args:
+            db: Database session for executing queries.
+            cache: Optional cache instance for caching results.
+            event_bus: Optional event bus for publishing payment events.
+        """
+        self.db = db
+        self.cache = cache
+        self.event_bus = event_bus
+
+    def get_payment(self, payment_id: str) -> dict[str, Any]:
+        """Get a payment by its ID."""
+        return get_payment(payment_id)
+
+    def list_payments(
+        self,
+        filters: dict[str, Any] | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[dict[str, Any]]:
+        """List payments with optional filters and pagination."""
+        if filters is None:
+            filters = {}
+        return list_payments(filters, page, page_size)
+
+    def create_payment(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Create a new payment."""
+        return create_payment(data)
+
+    def update_payment_status(self, payment_id: str, status: str) -> dict[str, Any]:
+        """Update the status of a payment."""
+        return update_payment_status(payment_id, status)
+
+    def delete_payment(self, payment_id: str) -> bool:
+        """Delete a payment by its ID."""
+        return delete_payment(payment_id)

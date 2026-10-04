@@ -399,3 +399,46 @@ def complete_transaction(transaction_id: str) -> Transaction:
     transaction.status = TransactionStatus.COMPLETED
     transaction.updated_at = datetime.now(UTC)
     return transaction
+
+
+class TransactionService:
+    """Service class for transaction operations.
+
+    Wraps the module-level transaction functions with a class-based interface
+    that accepts a database session.
+    """
+
+    def __init__(self, db: Any) -> None:
+        """Initialize the TransactionService.
+
+        Args:
+            db: Database session for executing queries.
+        """
+        self.db = db
+
+    def get_transaction(self, transaction_id: str) -> dict:
+        """Get a transaction by its ID."""
+        return get_transaction(transaction_id)
+
+    def list_transactions(
+        self,
+        filters: dict | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[dict]:
+        """List transactions with optional filters and pagination."""
+        if filters is None:
+            filters = {}
+        return list_transactions(filters, page, page_size)
+
+    def create_transaction(self, data: dict) -> dict:
+        """Create a new transaction."""
+        return create_transaction(data)
+
+    def update_transaction_status(self, transaction_id: str, status: str) -> dict:
+        """Update the status of a transaction."""
+        return update_transaction_status(transaction_id, status)
+
+    def delete_transaction(self, transaction_id: str) -> bool:
+        """Delete a transaction by its ID."""
+        return delete_transaction(transaction_id)

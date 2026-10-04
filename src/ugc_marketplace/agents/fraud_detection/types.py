@@ -21,6 +21,16 @@ class Transaction:
 
 
 @dataclass
+class MonitoringSession:
+    """Represents a monitoring session."""
+
+    session_id: str
+    account_id: str
+    started_at: datetime = field(default_factory=datetime.now)
+    active: bool = True
+
+
+@dataclass
 class Anomaly:
     """Represents a detected anomaly."""
 

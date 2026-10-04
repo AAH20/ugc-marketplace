@@ -6,8 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from src.ugc_marketplace.main import app
-from src.ugc_marketplace.database import Base, get_db
+from ugc_marketplace.main import app
+from ugc_marketplace.database import Base, get_db
 
 
 # ---------------------------------------------------------------------------

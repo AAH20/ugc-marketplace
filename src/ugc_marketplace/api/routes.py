@@ -2,28 +2,26 @@
 
 from fastapi import APIRouter
 
-from ugc_marketplace.api.routers import (
-    analytics,
-    categories,
-    content,
-    creators,
-    listings,
-    notifications,
-    payments,
-    reviews,
-    tags,
-    transactions,
-)
+from ugc_marketplace.api.analytics import router as analytics
+from ugc_marketplace.api.categories import router as categories
+from ugc_marketplace.api.content import router as content
+from ugc_marketplace.api.creators import router as creators
+from ugc_marketplace.api.listings import router as listings
+from ugc_marketplace.api.notifications import router as notifications
+from ugc_marketplace.api.payments import router as payments
+from ugc_marketplace.api.reviews import router as reviews
+from ugc_marketplace.api.tags import router as tags
+from ugc_marketplace.api.transactions import router as transactions
 
 api_router = APIRouter()
 
-api_router.include_router(creators.router, prefix="/creators", tags=["creators"])
-api_router.include_router(content.router, prefix="/content", tags=["content"])
-api_router.include_router(listings.router, prefix="/listings", tags=["listings"])
-api_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
-api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
-api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
-api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
-api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
-api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
-api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
+api_router.include_router(creators, prefix="/creators", tags=["creators"])
+api_router.include_router(content, prefix="/content", tags=["content"])
+api_router.include_router(listings, prefix="/listings", tags=["listings"])
+api_router.include_router(transactions, prefix="/transactions", tags=["transactions"])
+api_router.include_router(notifications, prefix="/notifications", tags=["notifications"])
+api_router.include_router(analytics, prefix="/analytics", tags=["analytics"])
+api_router.include_router(payments, prefix="/payments", tags=["payments"])
+api_router.include_router(reviews, prefix="/reviews", tags=["reviews"])
+api_router.include_router(categories, prefix="/categories", tags=["categories"])
+api_router.include_router(tags, prefix="/tags", tags=["tags"])
