@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ugc_marketplace.db.base import Base
+from ugc_marketplace.models import Base
 
 
 class Creator(Base):
