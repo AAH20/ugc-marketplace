@@ -1,4 +1,5 @@
 """Agent implementations for rights management."""
+
 from __future__ import annotations
 
 import importlib.util
