@@ -20,6 +20,7 @@ from ugc_marketplace.api.creator_monetization import router as monetization_rout
 from ugc_marketplace.api.fraud_detection import router as fraud_router
 from ugc_marketplace.api.health import router as health_router
 from ugc_marketplace.api.licensing_engine import router as licensing_router
+from ugc_marketplace.api.routes import api_router
 from ugc_marketplace.api.quality_scoring import router as quality_router
 from ugc_marketplace.api.rights_management import router as rights_router
 from ugc_marketplace.config import get_settings
@@ -114,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(licensing_router, prefix=f"{api_prefix}/licensing", tags=["Licensing"])
     app.include_router(curation_router, prefix=f"{api_prefix}/curation", tags=["Curation"])
     app.include_router(marketplace_router, prefix=f"{api_prefix}/marketplace", tags=["Marketplace"])
+    app.include_router(api_router, prefix=api_prefix)
 
     return app
 
