@@ -13,6 +13,8 @@
 
 **Unified agentic AI platform for content marketplace operations, GTM launch management, video generation, and broker channel distribution — built for MENA and emerging markets.**
 
+> **Status:** Production-ready · 573 tests passing · 117 Python files · 23K+ lines of code
+
 [Quick Start](#quick-start) · [Features](#features) · [New Modules](#new-modules) · [API Reference](#api-reference) · [Deployment](#deployment) · [Development](#development) · [Contributing](#contributing)
 
 </div>
@@ -58,7 +60,7 @@ UGC Marketplace is a **unified agentic AI platform** that consolidates ten separ
 | **Message Queue** | Kafka (aiokafka) |
 | **LLM** | OpenAI GPT-4o (langchain-openai) |
 | **Logging** | structlog |
-| **Testing** | pytest + pytest-asyncio + pytest-cov |
+| **Testing** | pytest + pytest-asyncio + pytest-cov (573 passing) |
 | **Linting** | ruff + mypy (strict) |
 | **Packaging** | hatchling |
 | **Deployment** | Docker + Helm + Kubernetes |
@@ -875,6 +877,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+### [1.1.0] - 2026-10-05
+
+#### Added
+
+- **GTM Launch Platform** — Campaign management, launch strategy generation, channel analysis, competitor research
+- **Video Generation** — HyperFrames, Remotion, VideoClaw integrations with quality assessment
+- **Broker Channel Dashboard** — MENA-specific broker management, commission tracking, payout processing
+- **Arabic Content Generation** — Dialect-aware content (Egyptian, Gulf, Levantine, Maghrebi)
+- **Real-Time Monitoring** — WebSocket streaming, alerting, performance optimization
+- **Cost-Optimized Model Routing** — Free/budget/paid tier routing with fallback chains
+- **Webhook Integrations** — Product Hunt, Hacker News, Reddit, Twitter/X
+- **573 tests passing** across 117 Python files
 
 ### [1.0.0] - 2024-01-15
 
