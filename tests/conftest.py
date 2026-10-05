@@ -1,4 +1,5 @@
 """Shared fixtures for UGC Marketplace test suite."""
+from datetime import date
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -104,7 +105,7 @@ def sample_campaign_data():
         "spent": 5000.00,
         "target_roas": 2.0,
         "target_ctr": 0.01,
-        "start_date": "2024-01-01",
-        "end_date": "2024-12-31",
+        "start_date": date(2024, 1, 1),
+        "end_date": date(2024, 12, 31),
         "is_active": True,
     }

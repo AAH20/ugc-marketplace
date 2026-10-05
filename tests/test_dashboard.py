@@ -57,23 +57,20 @@ class TestDashboardSummary:
         from app.models.campaign import Campaign
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
-        db.close()
+        db_session.add(campaign)
+        db_session.commit()
         response = client.get("/api/v1/dashboard/summary")
         data = response.json()
         assert data["campaigns"]["total"] >= 1
         assert data["campaigns"]["active"] >= 1
 
-    def test_dashboard_with_alerts(self, client, sample_campaign_data):
+    def test_dashboard_with_alerts(self, client, sample_campaign_data, db_session):
         """Dashboard counts unresolved alerts."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
         from app.models.alert import Alert, AlertType, AlertSeverity
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         alert = Alert(
             campaign_id=campaign.id,
             alert_type=AlertType.SPEND_SPIKE,
@@ -82,9 +79,8 @@ class TestDashboardSummary:
             metric_value=100.0,
             threshold=50.0,
         )
-        db.add(alert)
-        db.commit()
-        db.close()
+        db_session.add(alert)
+        db_session.commit()
         response = client.get("/api/v1/dashboard/summary")
         data = response.json()
         assert data["alerts"]["unresolved"] >= 1
@@ -163,10 +159,9 @@ class TestCampaignPerformance:
         from app.models.campaign import Campaign
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         campaign_id = campaign.id
-        db.close()
         response = client.get(f"/api/v1/dashboard/campaigns/{campaign_id}/performance")
         assert response.status_code == 200
         data = response.json()
@@ -181,8 +176,8 @@ class TestCampaignPerformance:
         from app.models.campaign_metric import CampaignMetric
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         metric = CampaignMetric(
             campaign_id=campaign.id,
             impressions=10000,
@@ -191,10 +186,9 @@ class TestCampaignPerformance:
             spend=500.00,
             revenue=1000.00,
         )
-        db.add(metric)
-        db.commit()
+        db_session.add(metric)
+        db_session.commit()
         campaign_id = campaign.id
-        db.close()
         response = client.get(f"/api/v1/dashboard/campaigns/{campaign_id}/performance")
         data = response.json()
         assert data["metrics"]["total_impressions"] == 10000
@@ -219,8 +213,8 @@ class TestAlertsEndpoint:
         from app.models.alert import Alert, AlertType, AlertSeverity
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         alert = Alert(
             campaign_id=campaign.id,
             alert_type=AlertType.SPEND_SPIKE,
@@ -229,9 +223,8 @@ class TestAlertsEndpoint:
             metric_value=100.0,
             threshold=50.0,
         )
-        db.add(alert)
-        db.commit()
-        db.close()
+        db_session.add(alert)
+        db_session.commit()
         response = client.get("/api/v1/dashboard/alerts")
         assert response.status_code == 200
         data = response.json()
@@ -246,8 +239,8 @@ class TestAlertsEndpoint:
         from app.models.alert import Alert, AlertType, AlertSeverity
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         for severity in AlertSeverity:
             alert = Alert(
                 campaign_id=campaign.id,
@@ -257,9 +250,8 @@ class TestAlertsEndpoint:
                 metric_value=100.0,
                 threshold=50.0,
             )
-            db.add(alert)
-        db.commit()
-        db.close()
+        db_session.add(alert)
+        db_session.commit()
         response = client.get("/api/v1/dashboard/alerts?severity=high")
         data = response.json()
         assert len(data) >= 1
@@ -273,8 +265,8 @@ class TestAlertsEndpoint:
         from app.models.alert import Alert, AlertType, AlertSeverity
         db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
-        db.add(campaign)
-        db.commit()
+        db_session.add(campaign)
+        db_session.commit()
         alert = Alert(
             campaign_id=campaign.id,
             alert_type=AlertType.SPEND_SPIKE,
@@ -284,9 +276,8 @@ class TestAlertsEndpoint:
             threshold=50.0,
             is_resolved=True,
         )
-        db.add(alert)
-        db.commit()
-        db.close()
+        db_session.add(alert)
+        db_session.commit()
         response = client.get("/api/v1/dashboard/alerts?resolved=false")
         data = response.json()
         for alert in data:
