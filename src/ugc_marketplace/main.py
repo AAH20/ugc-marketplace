@@ -24,6 +24,8 @@ from ugc_marketplace.api.licensing_engine import router as licensing_router
 from ugc_marketplace.api.routes import api_router
 from ugc_marketplace.api.quality_scoring import router as quality_router
 from ugc_marketplace.api.rights_management import router as rights_router
+from ugc_marketplace.gtm.api.routes import router as gtm_router
+from ugc_marketplace.video.api.routes import router as video_router
 from ugc_marketplace.config import get_settings
 from ugc_marketplace.config.logging_config import configure_logging
 from ugc_marketplace.security.auth import AuthMiddleware
@@ -123,6 +125,8 @@ def create_app() -> FastAPI:
     app.include_router(licensing_router, prefix=f"{api_prefix}/licensing", tags=["Licensing"])
     app.include_router(curation_router, prefix=f"{api_prefix}/curation", tags=["Curation"])
     app.include_router(marketplace_router, prefix=f"{api_prefix}/marketplace", tags=["Marketplace"])
+    app.include_router(gtm_router, prefix=f"{api_prefix}/gtm", tags=["GTM"])
+    app.include_router(video_router, prefix=f"{api_prefix}/video", tags=["Video"])
     app.include_router(api_router, prefix=api_prefix)
 
     return app
