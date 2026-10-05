@@ -1,3 +1,4 @@
+from datetime import timezone
 """Payment API endpoints for UGC Marketplace."""
 
 from __future__ import annotations
@@ -170,7 +171,7 @@ async def create_payment(
     """Create a new payment."""
     try:
         payment_id = uuid4()
-        now = "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+        now = "2026-10-03T00:00:00Z"  # Replace with datetime.now(timezone.utc).isoformat()
 
         payment_data: dict[str, Any] = {
             "id": payment_id,
@@ -266,7 +267,7 @@ async def update_payment(
         if update.metadata is not None:
             payment_data["metadata"] = update.metadata
         payment_data["updated_at"] = (
-            "2026-10-03T00:00:00Z"  # Replace with datetime.utcnow().isoformat()
+            "2026-10-03T00:00:00Z"  # Replace with datetime.now(timezone.utc).isoformat()
         )
 
         return PaymentResponse(**payment_data)

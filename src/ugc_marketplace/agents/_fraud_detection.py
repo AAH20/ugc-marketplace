@@ -267,7 +267,7 @@ def _generate_mock_transaction(transaction_id: str) -> dict[str, Any]:
         "seller_rating": round(rng.uniform(1.0, 5.0), 1),
         "seller_txn_count": rng.randint(1, 5000),
         "ip_reputation_score": round(rng.uniform(0, 1), 2),
-        "timestamp": (datetime.utcnow() - timedelta(hours=rng.randint(1, 72))).isoformat() + "Z",
+        "timestamp": (datetime.now(timezone.utc) - timedelta(hours=rng.randint(1, 72))).isoformat() + "Z",
     }
 
 
@@ -573,7 +573,7 @@ def investigate_fraud(transaction_id: str) -> InvestigationReport:
     timeline.append(
         {
             "event": "investigation_completed",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "details": f"Risk level assessed as {fraud_score.risk_level.value}",
         }
     )

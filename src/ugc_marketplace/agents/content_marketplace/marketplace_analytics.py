@@ -47,7 +47,7 @@ class MarketplaceAnalyticsAgent:
         Returns:
             Marketplace analytics report.
         """
-        end = end_date or datetime.utcnow()
+        end = end_date or datetime.now(timezone.utc)
         start = start_date or (end - timedelta(days=30))
 
         report = MarketplaceAnalytics(

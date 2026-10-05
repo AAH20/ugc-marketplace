@@ -63,7 +63,7 @@ class PatternDetectorAgent:
             List of detected patterns.
         """
         try:
-            self._last_activity = datetime.utcnow()
+            self._last_activity = datetime.now(timezone.utc)
             result = await self._agent.ainvoke(
                 {
                     "input": (

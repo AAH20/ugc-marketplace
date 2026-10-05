@@ -77,8 +77,18 @@ class ProviderRouter:
 
     def __init__(self, providers: Optional[List[ProviderConfig]] = None):
         self.providers: Dict[str, ProviderConfig] = {}
-        for p in (providers or self.DEFAULT_PROVIDERS):
-            self.providers[p.name] = p
+        for p in (self.DEFAULT_PROVIDERS if providers is None else providers):
+            # Deep copy to avoid shared state between tests
+            self.providers[p.name] = ProviderConfig(
+                name=p.name,
+                priority=p.priority,
+                max_retries=p.max_retries,
+                timeout_seconds=p.timeout_seconds,
+                cost_per_second=p.cost_per_second,
+                capabilities=set(p.capabilities),
+                status=p.status,
+                consecutive_failures=p.consecutive_failures,
+            )
         self._fallback_history: List[Dict[str, Any]] = []
 
     def select_provider(
@@ -100,13 +110,16 @@ class ProviderRouter:
         Raises:
             RuntimeError: If no suitable provider is available.
         """
+        if not self.providers:
+            raise RuntimeError("No providers configured")
+
         candidates = self._get_candidates(required_capabilities)
 
         if not candidates:
             raise RuntimeError("No available providers match requirements")
 
         # Try preferred first
-        if preferred and preferred in candidates:
+        if preferred and preferred in [p.name for p in candidates]:
             return preferred
 
         # Sort by priority
@@ -124,6 +137,9 @@ class ProviderRouter:
         Returns:
             Ordered list of provider names to try.
         """
+        if not self.providers:
+            return []
+
         candidates = self._get_candidates(required_capabilities)
         candidates.sort(key=lambda p: p.priority)
 
@@ -147,7 +163,7 @@ class ProviderRouter:
         """Report a failed call to a provider.
 
         After `threshold` consecutive failures, the provider is marked
-        as unavailable.
+        as unavailable. Before that, it is marked as degraded.
         """
         if provider_name in self.providers:
             p = self.providers[provider_name]
@@ -159,7 +175,7 @@ class ProviderRouter:
                     provider_name,
                     p.consecutive_failures,
                 )
-            elif p.consecutive_failures >= 2:
+            elif p.consecutive_failures >= threshold // 2:
                 p.status = ProviderStatus.DEGRADED
 
     def reset_provider(self, provider_name: str):

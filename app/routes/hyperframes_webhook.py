@@ -86,23 +86,24 @@ async def handle_hyperframes_webhook(
     # Get webhook secret from app state or use default for testing
     secret = getattr(request.app.state, "hyperframes_webhook_secret", "whsec_test_secret_key")
 
-    # Verify signature
-    if not x_hyperframes_signature:
-        raise HTTPException(status_code=401, detail="Missing signature")
-
+    # Parse payload first
     try:
         payload = await request.json()
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
-    if not verify_webhook_signature(payload, x_hyperframes_signature, secret):
-        raise HTTPException(status_code=401, detail="Invalid signature")
-
-    # Validate payload structure
+    # Validate payload structure before signature check
     try:
         webhook = WebhookPayload(**payload)
     except Exception:
         raise HTTPException(status_code=400, detail="Malformed webhook payload")
+
+    # Verify signature
+    if not x_hyperframes_signature:
+        raise HTTPException(status_code=401, detail="Missing signature")
+
+    if not verify_webhook_signature(payload, x_hyperframes_signature, secret):
+        raise HTTPException(status_code=401, detail="Invalid signature")
 
     # Idempotency check
     webhook_id = f"{webhook.event}:{webhook.data.id}"

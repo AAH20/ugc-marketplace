@@ -56,7 +56,7 @@ class PartitionManager:
 
     async def drop_old_partitions(self, table_name: str, retention_months: int = 12) -> list[str]:
         """Drop partitions older than retention period."""
-        cutoff_date = datetime.utcnow() - timedelta(days=30 * retention_months)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30 * retention_months)
         dropped: list[str] = []
         async with self.engine.begin() as conn:
             result = await conn.execute(
@@ -99,6 +99,6 @@ class PartitionManager:
 
     async def ensure_future_partitions(self, table_name: str, months_ahead: int = 3) -> list[str]:
         """Ensure partitions exist for future months."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         end_date = now + timedelta(days=30 * months_ahead)
         return await self.create_partitions_for_range(table_name, now, end_date)

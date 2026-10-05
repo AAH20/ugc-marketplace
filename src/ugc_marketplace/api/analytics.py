@@ -108,7 +108,7 @@ async def get_dashboard_analytics(
 ) -> AnalyticsResponse:
     """Retrieve the marketplace analytics dashboard."""
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         data = DashboardMetrics(
             total_creators=0,
             total_content_items=0,
@@ -193,7 +193,7 @@ async def get_revenue_analytics(
 ) -> AnalyticsResponse:
     """Retrieve revenue analytics."""
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         data = RevenueAnalytics(
             total_revenue=0.0,
             total_transactions=0,

@@ -354,7 +354,7 @@ def get_creator_metrics(creator_id: str, period: str) -> dict[str, Any]:
         creator_id=creator_id,
         creator_name=creator_name,
         period=period,
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         engagement=engagement,
         content=content,
         audience=audience,

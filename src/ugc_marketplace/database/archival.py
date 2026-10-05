@@ -31,7 +31,7 @@ class ArchivalManager:
 
     async def archive_old_analytics_events(self) -> dict[str, Any]:
         """Archive analytics events older than retention period."""
-        cutoff_date = datetime.utcnow() - timedelta(days=self.retention_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
         archive_file = (
             self.archive_dir / f"analytics_events_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
         )
@@ -63,7 +63,7 @@ class ArchivalManager:
 
     async def archive_old_audit_logs(self) -> dict[str, Any]:
         """Archive audit logs older than retention period."""
-        cutoff_date = datetime.utcnow() - timedelta(days=self.retention_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
         archive_file = self.archive_dir / f"audit_log_{cutoff_date.strftime('%Y%m')}.jsonl.gz"
         async with self.engine.begin() as conn:
             result = await conn.execute(
