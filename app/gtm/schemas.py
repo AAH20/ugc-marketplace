@@ -14,7 +14,7 @@ class CampaignCreate(BaseModel):
     budget: float = Field(default=0.0, ge=0)
     status: str = Field(default="draft")
     scheduled_at: datetime | None = None
-    extra_metadata: dict | None = Field(default=None, alias="metadata")
+    extra_metadata: dict | None = None
 
 
 class CampaignUpdate(BaseModel):
@@ -26,7 +26,7 @@ class CampaignUpdate(BaseModel):
     budget: float | None = Field(None, ge=0)
     status: str | None = None
     scheduled_at: datetime | None = None
-    extra_metadata: dict | None = Field(default=None, alias="metadata")
+    extra_metadata: dict | None = None
 
 
 class CampaignResponse(BaseModel):
@@ -41,6 +41,6 @@ class CampaignResponse(BaseModel):
     budget: float
     status: str
     scheduled_at: datetime | None
-    extra_metadata: dict | None = Field(default=None, alias="metadata")
+    extra_metadata: dict | None = None
     created_at: datetime
     updated_at: datetime

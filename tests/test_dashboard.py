@@ -50,12 +50,9 @@ class TestDashboardSummary:
         assert data["payouts"]["total"] >= 1
         assert data["payouts"]["scheduled"] >= 1
 
-    def test_dashboard_with_campaigns(self, client, sample_campaign_data):
+    def test_dashboard_with_campaigns(self, client, sample_campaign_data, db_session):
         """Dashboard counts campaigns correctly."""
-        # Create campaign directly via DB since there's no campaign API
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
@@ -122,12 +119,16 @@ class TestBrokerDashboard:
         assert data["payouts"]["total_amount"] == 5000.00
         assert data["payouts"]["by_status"]["scheduled"] == 1
 
-    def test_broker_dashboard_with_partners(self, client, sample_broker):
+    def test_broker_dashboard_with_partners(self, client, sample_broker, db_session):
         """Dashboard shows partner data."""
-        client.post(
-            f"/api/v1/brokers/{sample_broker['id']}/partners",
-            json={"partner_name": "Test Partner"},
+        from app.models.broker_partner import BrokerPartner
+        partner = BrokerPartner(
+            broker_id=sample_broker["id"],
+            partner_name="Test Partner",
+            is_active=True,
         )
+        db_session.add(partner)
+        db_session.commit()
         response = client.get(f"/api/v1/dashboard/broker/{sample_broker['id']}")
         data = response.json()
         assert data["partners"]["total_count"] == 1
@@ -153,11 +154,9 @@ class TestCampaignPerformance:
         response = client.get("/api/v1/dashboard/campaigns/9999/performance")
         assert response.status_code == 404
 
-    def test_campaign_performance_empty(self, client, sample_campaign_data):
+    def test_campaign_performance_empty(self, client, sample_campaign_data, db_session):
         """Performance for campaign with no metrics."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
@@ -169,12 +168,10 @@ class TestCampaignPerformance:
         assert data["metrics"]["ctr"] == 0
         assert data["metrics"]["roas"] == 0
 
-    def test_campaign_performance_with_metrics(self, client, sample_campaign_data):
+    def test_campaign_performance_with_metrics(self, client, sample_campaign_data, db_session):
         """Performance with actual metrics."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
         from app.models.campaign_metric import CampaignMetric
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
@@ -206,12 +203,10 @@ class TestAlertsEndpoint:
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_alerts_with_data(self, client, sample_campaign_data):
+    def test_alerts_with_data(self, client, sample_campaign_data, db_session):
         """Returns alerts when they exist."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
         from app.models.alert import Alert, AlertType, AlertSeverity
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
@@ -232,12 +227,10 @@ class TestAlertsEndpoint:
         assert data[0]["alert_type"] == "spend_spike"
         assert data[0]["severity"] == "high"
 
-    def test_alerts_filter_by_severity(self, client, sample_campaign_data):
+    def test_alerts_filter_by_severity(self, client, sample_campaign_data, db_session):
         """Filter alerts by severity."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
         from app.models.alert import Alert, AlertType, AlertSeverity
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
@@ -250,7 +243,7 @@ class TestAlertsEndpoint:
                 metric_value=100.0,
                 threshold=50.0,
             )
-        db_session.add(alert)
+            db_session.add(alert)
         db_session.commit()
         response = client.get("/api/v1/dashboard/alerts?severity=high")
         data = response.json()
@@ -258,12 +251,10 @@ class TestAlertsEndpoint:
         for alert in data:
             assert alert["severity"] == "high"
 
-    def test_alerts_filter_by_resolved(self, client, sample_campaign_data):
+    def test_alerts_filter_by_resolved(self, client, sample_campaign_data, db_session):
         """Filter alerts by resolved status."""
-        from app.database import SessionLocal
         from app.models.campaign import Campaign
         from app.models.alert import Alert, AlertType, AlertSeverity
-        db = SessionLocal()
         campaign = Campaign(**sample_campaign_data)
         db_session.add(campaign)
         db_session.commit()
