@@ -113,12 +113,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test-secret-key-for-ci-only
         run: |
-          pytest || true \
-            --cov=app \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --junitxml=junit.xml \
-            -v
+          pytest --cov=app --cov-report=xml --cov-report=term-missing --junitxml=junit.xml -v
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
@@ -170,7 +165,7 @@ jobs:
 
       - name: Safety dependency check
         run: |
-          safety check || true --full-report || true
+          safety check --full-report || true
 
       - name: Upload Bandit report
         if: always()
