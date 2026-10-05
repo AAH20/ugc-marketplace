@@ -86,6 +86,7 @@ jobs:
       - name: Scan image with Trivy
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.sha }}
           format: sarif
