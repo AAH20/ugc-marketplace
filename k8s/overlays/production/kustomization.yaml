@@ -6,15 +6,10 @@ resources:
 
 namePrefix: prod-
 
-commonLabels:
-  environment: production
+labels:
+  - pairs:
+      environment: production
 
 patches:
   - path: deployment-patch.yaml
-
-configMapGenerator:
-  - name: ugc-marketplace-config
-    behavior: merge
-    literals:
-      - APP_ENV=production
-      - LOG_LEVEL=INFO
+  - path: configmap-patch.yaml

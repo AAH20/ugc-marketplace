@@ -4,9 +4,10 @@ metadata:
   name: ugc-marketplace-config
   namespace: ugc-marketplace
 data:
-  APP_ENV: "production"
+  # Overridden per-environment by the overlays in k8s/overlays/*.
+  APP_ENV: "base"
   LOG_LEVEL: "INFO"
-  API_PREFIX: "/api/v1"
+  API_PREFIX: "/api"
   DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/ugc_marketplace"
   REDIS_URL: "redis://redis:6379/0"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"

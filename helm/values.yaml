@@ -170,6 +170,24 @@ volumeMounts:
   - name: tmp
     mountPath: /tmp
 
+networkPolicy:
+  # Render a NetworkPolicy restricting ingress/egress for the API pods.
+  enabled: false
+  # Ingress rules applied when enabled. Ports match the `http` service port name.
+  ingress: []
+  # Egress rules applied when enabled. Add DNS explicitly if you restrict egress.
+  egress: []
+
+monitoring:
+  # Renders a Prometheus Operator ServiceMonitor. Requires the CRDs to be
+  # installed in the target cluster; keep disabled on clusters without them.
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
 # Application configuration
 config:
   logLevel: info

@@ -13,17 +13,39 @@ from app.database import get_db
 
 
 @pytest.fixture
-def db_session():
-    """Create a fresh in-memory database session."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+def db_engine():
+    """Fresh in-memory SQLite engine with every model table created.
+
+    StaticPool keeps a single connection alive so that tables created in
+    setup stay visible to the session handed to the test (and to the
+    dependency-overridden request client).
+    """
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    try:
+        yield engine
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture
+def db_session(db_engine):
+    """A SQLAlchemy session bound to the per-test in-memory database.
+
+    Tests that write rows directly must take this fixture as an argument —
+    it is what backs both direct model writes and the ``client`` fixture's
+    dependency override.
+    """
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
     session = TestingSessionLocal()
     try:
         yield session
     finally:
         session.close()
-        engine.dispose()
 
 
 @pytest.fixture

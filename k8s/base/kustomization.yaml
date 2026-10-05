@@ -10,9 +10,11 @@ resources:
   - ingress.yaml
   - hpa.yaml
 
-commonLabels:
-  app: ugc-marketplace
-  managed-by: kustomize
+labels:
+  - includeSelectors: true
+    pairs:
+      app: ugc-marketplace
+      managed-by: kustomize
 
 images:
   - name: ugc-marketplace

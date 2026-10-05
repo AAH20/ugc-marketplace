@@ -1,0 +1,11 @@
+# Strategic-merge patch for the base ConfigMap. A `configMapGenerator` with
+# `behavior: merge` cannot merge into a plain ConfigMap resource declared in the
+# base, so the overlay patches it directly instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ugc-marketplace-config
+  namespace: ugc-marketplace
+data:
+  APP_ENV: "development"
+  LOG_LEVEL: "DEBUG"

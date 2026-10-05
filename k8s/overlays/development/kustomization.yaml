@@ -6,15 +6,10 @@ resources:
 
 namePrefix: dev-
 
-commonLabels:
-  environment: development
+labels:
+  - pairs:
+      environment: development
 
 patches:
   - path: deployment-patch.yaml
-
-configMapGenerator:
-  - name: ugc-marketplace-config
-    behavior: merge
-    literals:
-      - APP_ENV=development
-      - LOG_LEVEL=DEBUG
+  - path: configmap-patch.yaml

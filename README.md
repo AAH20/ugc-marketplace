@@ -703,6 +703,48 @@ their SDKs lazily; the database URL for the running app is hardcoded to SQLite i
 `app/database.py`. Set `DATABASE_URL` (and use `docker compose up db`) only if you
 intentionally want to point the compose `app` service at PostgreSQL.
 
+### Continuous Delivery (GitHub Actions)
+
+The workflows in `.github/workflows/` are **cloud-provider agnostic**. No step
+depends on AWS, GCP, Azure, or any provider SDK, and the default pipeline runs
+green on a fresh clone with zero secrets configured.
+
+**`cd.yml` — Build, publish, scan, smoke-test**
+
+| Job | What it does | Needs credentials? |
+|-----|--------------|--------------------|
+| `build-and-push` | Multi-arch build pushed to GHCR, then SBOM (`anchore/sbom-action`) and Trivy scan against the **pushed digest** | No |
+| `smoke-test` | Pulls the exact pushed digest and asserts `GET /health` returns 200 | No |
+
+SBOM generation and the Trivy scan are `continue-on-error: true`: a registry or
+scanner outage degrades the pipeline's reporting, it does not break the release.
+Both resolve the image as `ghcr.io/<repo>@<digest>` rather than by tag, because
+the tag namespace only contains the tags `docker/metadata-action` emits (which
+includes a *short* sha, not the full commit sha).
+
+**`deploy.yml` — Verify always, deploy only when you opt in**
+
+| Job | What it does | Needs credentials? |
+|-----|--------------|--------------------|
+| `deploy-enabled` | Resolves deploy intent from repo variables | No |
+| `build-and-verify` | Builds the image and **proves it boots** and serves `/health` | No |
+| `validate-manifests` | `kustomize build` on base + both overlays, `kubeconform -strict` schema validation, `helm lint` + `helm template`, standalone manifests, `terraform fmt` | No |
+| `deploy-cluster` | `kubectl apply` + rollout wait + in-cluster health probe | Yes — opt-in |
+
+The two always-on jobs are what make the pipeline worth running on a fork or a
+PR: a broken Dockerfile or an invalid manifest fails before anyone deploys.
+
+To enable the real cluster deploy:
+
+1. Add a repository **variable** `K8S_DEPLOY_ENABLED` = `true`
+   (or trigger the workflow manually via the `deploy` input)
+2. Add a repository **secret** `K8S_KUBECONFIG` containing a base64-encoded kubeconfig
+3. Optionally set `K8S_CONTEXT`, `K8S_NAMESPACE`, `K8S_ROLLOUT_TIMEOUT`
+
+The deploy job targets any conformant cluster (EKS, GKE, AKS, k3s, kind, …) using
+plain `kubectl` — no provider SDK is involved. If the kubeconfig secret is absent,
+the job logs a notice and skips instead of failing the run.
+
 ---
 
 ## Development

@@ -2,13 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ugc-marketplace-api
+  namespace: ugc-marketplace
 spec:
   replicas: 5
   template:
     spec:
-                securityContext:
-            readOnlyRootFilesystem: true
-        containers:
+      containers:
         - name: api
           resources:
             requests:
