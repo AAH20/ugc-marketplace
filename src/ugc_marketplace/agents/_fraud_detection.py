@@ -11,7 +11,7 @@ import hashlib
 import logging
 import random
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
@@ -267,8 +267,7 @@ def _generate_mock_transaction(transaction_id: str) -> dict[str, Any]:
         "seller_rating": round(rng.uniform(1.0, 5.0), 1),
         "seller_txn_count": rng.randint(1, 5000),
         "ip_reputation_score": round(rng.uniform(0, 1), 2),
-        "timestamp": (datetime.now(timezone.utc) - timedelta(hours=rng.randint(1, 72))).isoformat()
-        + "Z",
+        "timestamp": (datetime.now(timezone.utc) - timedelta(hours=rng.randint(1, 72))).isoformat(),
     }
 
 
