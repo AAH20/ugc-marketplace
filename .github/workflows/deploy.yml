@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
-    if: secrets.AWS_ACCESS_KEY_ID != ''
+    if: github.event_name == 'workflow_dispatch'
     environment:
       name: staging
       url: https://staging.ugc-marketplace.example.com
@@ -106,7 +106,8 @@ jobs:
     name: Run Smoke Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: deploy-staging
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -141,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: smoke-tests
-    if: secrets.AWS_ACCESS_KEY_ID != ''
+    if: github.event_name == 'workflow_dispatch'
     environment:
       name: production
       url: https://ugc-marketplace.example.com

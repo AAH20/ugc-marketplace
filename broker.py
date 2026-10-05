@@ -1,5 +1,5 @@
 """Basic broker management module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -43,7 +43,7 @@ class BrokerRepository:
             email=data.email,
             phone=data.phone,
             country=data.country,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         self._brokers[broker.id] = broker
         self._next_id += 1
