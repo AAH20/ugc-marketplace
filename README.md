@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![CI](https://img.shields.io/github/actions/workflow/status/ahmedhassan/ugc-marketplace/ci.yml?branch=main&style=for-the-badge)](https://github.com/ahmedhassan/ugc-marketplace/actions)
-[![CD](https://img.shields.io/github/actions/workflow/status/ahmedhassan/ugc-marketplace/cd.yml?branch=main&style=for-the-badge)](https://github.com/ahmedhassan/ugc-marketplace/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/AAH20/ugc-marketplace/ci.yml?branch=main&style=for-the-badge)](https://github.com/AAH20/ugc-marketplace/actions)
+[![CD](https://img.shields.io/github/actions/workflow/status/AAH20/ugc-marketplace/cd.yml?branch=main&style=for-the-badge)](https://github.com/AAH20/ugc-marketplace/actions)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
@@ -13,7 +13,7 @@
 
 **Unified agentic AI platform for content marketplace operations, GTM launch management, video generation, and broker channel distribution — built for MENA and emerging markets.**
 
-> **Status:** Production-ready · 573 tests passing · 117 Python files · 23K+ lines of code
+> **Status:** Production-ready · 513 tests passing · 117 Python files · 23K+ lines of code
 
 [Quick Start](#quick-start) · [Features](#features) · [New Modules](#new-modules) · [API Reference](#api-reference) · [Deployment](#deployment) · [Development](#development) · [Contributing](#contributing)
 
@@ -55,12 +55,12 @@ UGC Marketplace is a **unified agentic AI platform** that consolidates ten separ
 | **Language** | Python 3.11+ |
 | **Framework** | FastAPI + Uvicorn |
 | **Validation** | Pydantic v2 |
-| **Database** | SQLAlchemy 2.0 (database agnostic) |
-| **Cache** | In-memory (pluggable) |
+| **Database** | SQLAlchemy 2.0 — SQLite by default (`app/database.py`, `app/gtm/db.py`), any SQLAlchemy URL supported |
+| **Cache** | In-process (pluggable); no external cache server required |
 | **Message Queue** | In-process (pluggable) |
-| **LLM** | Pluggable (any provider) |
+| **LLM** | Optional — `requirements.txt` ships no LLM SDK; agent modules import provider SDKs lazily and are skipped when absent |
 | **Logging** | structlog |
-| **Testing** | pytest + pytest-asyncio + pytest-cov (573 passing) |
+| **Testing** | pytest + pytest-asyncio + pytest-cov (513 passing) |
 | **Linting** | ruff + mypy (strict) |
 | **Packaging** | hatchling |
 | **Deployment** | Docker + Helm + Kubernetes |
@@ -113,9 +113,9 @@ graph TB
     end
 
     subgraph "Infrastructure"
-        D1[(PostgreSQL)]
-        D2[(Redis)]
-        D3[[Kafka]]
+        D1[(SQLite via SQLAlchemy)]
+        D2[In-process Cache]
+        D3[In-process Event Bus]
         D4[Kubernetes]
     end
 
@@ -157,9 +157,9 @@ sequenceDiagram
     participant Client
     participant API as FastAPI
     participant Agent as AI Agent
-    participant LLM as OpenAI GPT-4o
-    participant DB as PostgreSQL
-    participant Cache as Redis
+    participant LLM as LLM Provider (optional)
+    participant DB as SQLAlchemy/SQLite
+    participant Cache as In-process Cache
 
     Client->>API: POST /api/v1/moderation/moderate/text
     API->>Agent: Validate & route request
@@ -177,33 +177,33 @@ sequenceDiagram
 
 ### Prerequisites
 
-- **Python** 3.11 or higher
-- **Docker** 24.0+ (for containerized setup)
-- **LLM API key** (for LLM-powered features, any provider)
+- **Python** 3.11 or higher (3.12 used in CI and Docker images)
+- **Docker** 24.0+ (optional, for containerized setup)
+- **No external services required** — the app runs on SQLite by default with no cache server, message broker, or LLM key
+- **Optional:** an LLM provider API key enables the agentic features (see [LLM Agents](#cost-optimized-model-routing))
 
 ### Option 1: Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
-git clone https://github.com/ahmedhassan/ugc-marketplace.git
+git clone https://github.com/AAH20/ugc-marketplace.git
 cd ugc-marketplace
 
-# Copy environment variables
+# Copy environment variables (optional — sensible defaults are built in)
 cp docker/.env.example .env
-# Edit .env and set your OPENAI_API_KEY
 
-# Start all services
-docker-compose up -d
+# Start the stack
+docker compose up -d
 
-# Verify health
-curl http://localhost:8000/api/v1/health
+# Verify health (the app exposes /health)
+curl http://localhost:8000/health
 ```
 
 ### Option 2: Local Development
 
 ```bash
 # Clone and enter the project
-git clone https://github.com/ahmedhassan/ugc-marketplace.git
+git clone https://github.com/AAH20/ugc-marketplace.git
 cd ugc-marketplace
 
 # Create virtual environment
@@ -211,24 +211,33 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -e ".[dev]"
+# requirements.txt is the supported install path and is what the Docker image uses.
+# It ships no vendor SDKs (no Redis client, no asyncpg, no Kafka client, no LLM SDK).
+pip install -r requirements.txt
 
-# Copy environment variables
+# Copy environment variables (optional — sensible defaults are built in)
 cp docker/.env.example .env
-# Edit .env and set your OPENAI_API_KEY
-
-# Run database migrations
-alembic upgrade head
 
 # Start the server
-uvicorn ugc_marketplace.main:app --reload
+# `app.main:app` is the entrypoint used by the Dockerfile and docker-compose.
+# It needs SQLAlchemy's asyncio support (greenlet), which requirements.txt provides.
+uvicorn app.main:app --reload --port 8000
+
+# Verify health
+curl http://localhost:8000/health
 ```
+
+> **Which entrypoint?** `app.main:app` (broker/channel API, `app/`) is what the Dockerfile,
+> docker-compose, and health check use, and it boots from `requirements.txt` alone.
+> The wider `src/ugc_marketplace` package exposes a second app (`ugc_marketplace.main:app`,
+> installed via `pip install -e .`); its optional agentic modules import provider SDKs
+> lazily, so anything whose SDK is absent is skipped rather than fatal.
 
 ### Option 3: Kubernetes (Helm)
 
 ```bash
 # Add the Helm repo
-helm repo add ugc-marketplace https://ahmedhassan.github.io/ugc-marketplace
+helm repo add ugc-marketplace https://AAH20.github.io/ugc-marketplace
 
 # Install with default values
 helm install ugc-marketplace ugc-marketplace/ugc-marketplace \
@@ -404,10 +413,12 @@ Full marketplace functionality with listing management and transaction processin
 - Dashboard with real-time metrics
 
 ### Cost-Optimized Model Routing
-- Free models for orchestration (GPT-OSS 20B, Llama 3.3 70B)
-- Budget tier for research (Gemini Flash-Lite, DeepSeek V4 Flash)
-- Paid tier for code generation (GPT-4o, Claude Sonnet 4)
-- Automatic fallback chains and cost tracking
+- Tiered model registry (`src/model_router/__init__.py`): free → budget → paid
+- Free tier for orchestration (gpt-oss-20b, llama-3.3-70b, deepseek-r1)
+- Budget tier for research (gemini-flash-lite, deepseek-v4-flash)
+- Paid tier for code generation (gpt-4o, claude-sonnet-4)
+- Per-model token cost table used for fallback chains and cost tracking
+- Routing is a local policy layer — no vendor SDK or API key is needed to import or test it
 
 ### Real-Time Monitoring
 - WebSocket streaming for live campaign metrics
@@ -584,33 +595,35 @@ X-RateLimit-Reset: 1705312800
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f api
+docker compose logs -f app
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (full reset)
-docker-compose down -v
+docker compose down -v
 ```
 
 **Services:**
 
 | Service | Port | Description |
 |---------|------|-------------|
-| `api` | 8000 | FastAPI application |
-| `db` | 5432 | Database (configurable) |
-| `cache` | 6379 | Cache (configurable) |
-| `queue` | 9092 | Message Queue (configurable) |
-| `zookeeper` | 2181 | ZooKeeper (Kafka dependency) |
+| `app` | 8000 | FastAPI application (`uvicorn app.main:app`) |
+| `nginx` | 80/443 | Reverse proxy and TLS termination |
+| `db` | 5432 | PostgreSQL (optional — the app defaults to SQLite; only used when `DATABASE_URL` points at it) |
+| `redis` | 6379 | Redis (optional — only used by the pluggable `src/ugc_marketplace/cache` Redis backend) |
+
+There is no message-queue or ZooKeeper service: Kafka is not part of the installed stack
+(`aiokafka` is imported only lazily by an optional fraud-detection integration).
 
 ### Docker Compose (Production)
 
 ```bash
 # Use production configuration
-docker-compose -f docker/docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml up -d
 ```
 
 ### Kubernetes (Helm)
@@ -664,22 +677,31 @@ helm uninstall ugc-marketplace --namespace ugc-marketplace
 
 ### Environment Variables
 
+The API starts with **no environment variables at all** — `app/database.py` and
+`app/gtm/db.py` default to SQLite, and `app/` reads no config from the environment.
+The variables below belong to the `src/ugc_marketplace` layer
+(`src/ugc_marketplace/config/__init__.py`) and apply when that package's
+`get_settings()` is used.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `development` | Environment (development/production) |
 | `LOG_LEVEL` | `INFO` | Logging level |
-| `DATABASE_URL` | — | Database connection string |
-| `CACHE_URL` | — | Cache connection string |
-| `QUEUE_BROKERS` | — | Message queue brokers |
-| `LLM_API_KEY` | — | LLM provider API key |
 | `SECRET_KEY` | `change-me-in-production` | Application secret |
 | `API_PREFIX` | `/api/v1` | API route prefix |
-| `LLM_MODEL` | `gpt-4o` | LLM model name |
-| `LLM_TEMPERATURE` | `0.1` | LLM temperature |
 | `DEFAULT_CONFIDENCE_THRESHOLD` | `0.7` | Confidence threshold |
-| `CORS_ORIGINS` | `*` | Allowed CORS origins |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `100` | Rate limit per minute |
-| `RATE_LIMIT_BURST` | `20` | Rate limit burst |
+| `MAX_CONTENT_SIZE_MB` | `50` | Upload size limit |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `60` | Rate limit per minute |
+| `RATE_LIMIT_BURST_SIZE` | `10` | Rate limit burst |
+| `LLM_MODEL` | `gpt-4o` | LLM model name (optional agent features) |
+| `LLM_TEMPERATURE` | `0.1` | LLM temperature |
+
+`DATABASE_URL`, `REDIS_URL`, `KAFKA_BOOTSTRAP_SERVERS`, and `OPENAI_API_KEY` are **not**
+required by the installed stack. `REDIS_URL` / `KAFKA_BOOTSTRAP_SERVERS` / `OPENAI_API_KEY`
+have defaults in `Settings` and are only consulted by optional integrations that import
+their SDKs lazily; the database URL for the running app is hardcoded to SQLite in
+`app/database.py`. Set `DATABASE_URL` (and use `docker compose up db`) only if you
+intentionally want to point the compose `app` service at PostgreSQL.
 
 ---
 
@@ -725,11 +747,16 @@ ugc-marketplace/
 python -m venv .venv
 source .venv/bin/activate
 
-# Install with dev dependencies
-pip install -e ".[dev]"
+# Install runtime dependencies (requirements.txt is the supported install path
+# and is what the Docker image installs; it includes greenlet for the async stack)
+pip install -r requirements.txt
 
-# Install pre-commit hooks
-pre-commit install
+# Lint/format/test tooling
+pip install ruff mypy pytest pytest-asyncio pytest-cov
+
+# Or install the package itself, which pulls the pyproject dependency set
+pip install -e .
+pip install ruff mypy pre-commit && pre-commit install
 ```
 
 ### Running Tests
@@ -889,7 +916,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Real-Time Monitoring** — WebSocket streaming, alerting, performance optimization
 - **Cost-Optimized Model Routing** — Free/budget/paid tier routing with fallback chains
 - **Webhook Integrations** — Product Hunt, Hacker News, Reddit, Twitter/X
-- **573 tests passing** across 117 Python files
+- **513 tests passing** across 117 Python files
 
 ### [1.0.0] - 2024-01-15
 
@@ -912,7 +939,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Comprehensive Test Suite** — Unit and integration tests with coverage reporting
 - **API Documentation** — Interactive Swagger UI and ReDoc with full OpenAPI specification
 
-[1.0.0]: https://github.com/ahmedhassan/ugc-marketplace/releases/tag/v1.0.0
+[1.0.0]: https://github.com/AAH20/ugc-marketplace/releases/tag/v1.0.0
 
 ---
 
@@ -920,6 +947,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **[Back to Top](#ugc-marketplace)**
 
-Made with ❤️ by [Ahmed Hassan](https://github.com/ahmedhassan)
+Made with ❤️ by [Ahmed Hassan](https://github.com/AAH20)
 
 </div>
