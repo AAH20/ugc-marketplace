@@ -65,7 +65,6 @@ target-version = "py311"
 line-length = 100
 src = ["src"]
 
-
 [tool.mypy]
 python_version = "3.11"
 strict = true
@@ -84,11 +83,12 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["src/ugc_marketplace/tests"]
-pythonpath = ["src"]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
 
 [tool.coverage.run]
-source = ["src/ugc_marketplace"]
+source = ["app"]
 branch = true
 
 [tool.coverage.report]

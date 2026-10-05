@@ -11,9 +11,9 @@
 [![Docker](https://img.shields.io/badge/Docker-available-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 
-**Unified agentic AI platform for content marketplace operations.**
+**Unified agentic AI platform for content marketplace operations, GTM launch management, video generation, and broker channel distribution — built for MENA and emerging markets.**
 
-[Quick Start](#quick-start) · [Features](#features) · [API Reference](#api-reference) · [Deployment](#deployment) · [Development](#development) · [Contributing](#contributing)
+[Quick Start](#quick-start) · [Features](#features) · [New Modules](#new-modules) · [API Reference](#api-reference) · [Deployment](#deployment) · [Development](#development) · [Contributing](#contributing)
 
 </div>
 
@@ -380,6 +380,37 @@ Full marketplace functionality with listing management and transaction processin
 - **Marketplace analytics** — Demand prediction and market insights
 
 ---
+
+## New Modules
+
+### GTM Launch Platform
+- Campaign management with database persistence
+- Launch strategy generation with readiness scoring
+- Channel performance analysis with ROAS optimization
+- Competitor research and counter-strategy generation
+
+### Video Generation
+- HyperFrames cloud rendering integration
+- Remotion Lambda rendering integration
+- VideoClaw CLI integration for AI-generated video
+- Quality assessment and engagement prediction
+
+### Broker Channel (MENA)
+- Broker management with MENA-specific fields (AED/SAR/EGP)
+- Commission tracking and payout management
+- Arabic-first content generation with dialect awareness
+- Dashboard with real-time metrics
+
+### Cost-Optimized Model Routing
+- Free models for orchestration (GPT-OSS 20B, Llama 3.3 70B)
+- Budget tier for research (Gemini Flash-Lite, DeepSeek V4 Flash)
+- Paid tier for code generation (GPT-4o, Claude Sonnet 4)
+- Automatic fallback chains and cost tracking
+
+### Real-Time Monitoring
+- WebSocket streaming for live campaign metrics
+- Alerting system for anomalies (spend spikes, CTR drops, ROAS thresholds)
+- Performance optimization recommendations
 
 ## API Reference
 
