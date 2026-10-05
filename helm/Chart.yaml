@@ -1,0 +1,15 @@
+apiVersion: v2
+name: ugc-marketplace
+description: A Helm chart for the UGC Marketplace application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ugc
+  - marketplace
+home: https://github.com/ugc-marketplace/ugc-marketplace
+sources:
+  - https://github.com/ugc-marketplace/ugc-marketplace
+maintainers:
+  - name: ugc-marketplace-team
+    email: team@ugc-marketplace.io

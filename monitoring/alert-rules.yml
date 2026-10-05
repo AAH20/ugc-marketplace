@@ -1,0 +1,506 @@
+# Prometheus Alert Rules for UGC Marketplace
+# Production-grade alerting with severity levels and routing
+
+groups:
+  # ============================================================
+  # Service Availability Alerts
+  # ============================================================
+  - name: service-availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+          runbook: "https://wiki.ugc-marketplace.com/runbooks/service-down"
+
+      - alert: ServiceHighErrorRate
+        expr: |
+          100 * sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          / sum(rate(http_requests_total[5m])) by (service) > 5
+        for: 2m
+        labels:
+          severity: critical
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has {{ $value | humanize }}% error rate over the last 5 minutes."
+          runbook: "https://wiki.ugc-marketplace.com/runbooks/high-error-rate"
+
+      - alert: ServiceHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "High latency on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} p95 latency is {{ $value | humanize }}s over the last 5 minutes."
+          runbook: "https://wiki.ugc-marketplace.com/runbooks/high-latency"
+
+      - alert: ServiceHighLatencyP99
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 2
+        for: 5m
+        labels:
+          severity: critical
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "Critical latency on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} p99 latency is {{ $value | humanize }}s over the last 5 minutes."
+          runbook: "https://wiki.ugc-marketplace.com/runbooks/critical-latency"
+
+  # ============================================================
+  # Infrastructure Alerts
+  # ============================================================
+  - name: infrastructure
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}."
+
+      - alert: HighCPUUsageCritical
+        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 95% for more than 2 minutes on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsageCritical
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 95% for more than 2 minutes on {{ $labels.instance }}."
+
+      - alert: HighDiskUsage
+        expr: |
+          100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 80% on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }}."
+
+      - alert: HighDiskUsageCritical
+        expr: |
+          100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 90
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Critical disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 90% on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }}."
+
+      - alert: DiskWillFillIn4Hours
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"}[6h], 4 * 3600) < 0
+        for: 1h
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Disk will fill in 4 hours on {{ $labels.instance }}"
+          description: "Disk {{ $labels.mountpoint }} on {{ $labels.instance }} is expected to fill within 4 hours."
+
+  # ============================================================
+  # Database Alerts
+  # ============================================================
+  - name: database
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is down."
+
+      - alert: PostgreSQLHighConnections
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL high connection count"
+          description: "PostgreSQL has {{ $value | humanize }}% of max connections in use."
+
+      - alert: PostgreSQLHighConnectionsCritical
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL critical connection count"
+          description: "PostgreSQL has {{ $value | humanize }}% of max connections in use."
+
+      - alert: PostgreSQLSlowQueries
+        expr: |
+          rate(pg_slow_queries_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL slow queries detected"
+          description: "PostgreSQL is experiencing {{ $value | humanize }} slow queries per second."
+
+      - alert: PostgreSQLReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL replication lag"
+          description: "Replication lag is {{ $value | humanize }}s on {{ $labels.instance }}."
+
+      - alert: PostgreSQLDeadlocks
+        expr: |
+          rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "Deadlocks detected in database {{ $labels.datname }}."
+
+  # ============================================================
+  # Cache Alerts
+  # ============================================================
+  - name: cache
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is down."
+
+      - alert: RedisHighMemoryUsage
+        expr: |
+          100 * (redis_memory_used_bytes / redis_memory_max_bytes) > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is above 85%."
+
+      - alert: RedisHighMemoryUsageCritical
+        expr: |
+          100 * (redis_memory_used_bytes / redis_memory_max_bytes) > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Redis critical memory usage"
+          description: "Redis memory usage is above 95%."
+
+      - alert: RedisHighLatency
+        expr: |
+          redis_commands_duration_seconds_total / redis_commands_total > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Redis high latency"
+          description: "Redis average command latency is above 10ms."
+
+      - alert: RedisLowHitRate
+        expr: |
+          100 * (redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total)) < 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Redis low hit rate"
+          description: "Redis cache hit rate is below 80%."
+
+  # ============================================================
+  # Queue Alerts
+  # ============================================================
+  - name: queue
+    interval: 30s
+    rules:
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ instance {{ $labels.instance }} is down."
+
+      - alert: RabbitMQHighQueueDepth
+        expr: rabbitmq_queue_messages_ready > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "RabbitMQ high queue depth"
+          description: "Queue {{ $labels.queue }} has {{ $value | humanize }} messages ready."
+
+      - alert: RabbitMQHighQueueDepthCritical
+        expr: rabbitmq_queue_messages_ready > 5000
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "RabbitMQ critical queue depth"
+          description: "Queue {{ $labels.queue }} has {{ $value | humanize }} messages ready."
+
+      - alert: RabbitMQNoConsumers
+        expr: |
+          rabbitmq_queue_consumers == 0 and rabbitmq_queue_messages_ready > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "RabbitMQ queue has no consumers"
+          description: "Queue {{ $labels.queue }} has messages but no consumers."
+
+      - alert: RabbitMQHighUnackedMessages
+        expr: rabbitmq_queue_messages_unacknowledged > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "RabbitMQ high unacked messages"
+          description: "Queue {{ $labels.queue }} has {{ $value | humanize }} unacknowledged messages."
+
+  # ============================================================
+  # Business Metric Alerts
+  # ============================================================
+  - name: business-metrics
+    interval: 1m
+    rules:
+      - alert: HighPaymentFailureRate
+        expr: |
+          100 * rate(ugc_payment_failures_total[5m]) / rate(ugc_payment_attempts_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+          team: commerce
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanize }}% over the last 5 minutes."
+
+      - alert: LowContentUploadRate
+        expr: |
+          rate(ugc_content_uploaded_total[1h]) < 10
+        for: 30m
+        labels:
+          severity: warning
+          team: content
+        annotations:
+          summary: "Low content upload rate"
+          description: "Content upload rate has dropped below 10/hour."
+
+      - alert: SearchHighErrorRate
+        expr: |
+          100 * rate(ugc_search_errors_total[5m]) / rate(ugc_search_requests_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: discovery
+        annotations:
+          summary: "Search high error rate"
+          description: "Search error rate is {{ $value | humanize }}% over the last 5 minutes."
+
+      - alert: SearchHighLatency
+        expr: |
+          histogram_quantile(0.95, rate(ugc_search_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: discovery
+        annotations:
+          summary: "Search high latency"
+          description: "Search p95 latency is above 500ms."
+
+      - alert: NotificationDeliveryFailure
+        expr: |
+          100 * rate(ugc_notifications_failed_total[5m]) / rate(ugc_notifications_sent_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Notification delivery failure"
+          description: "Notification failure rate is {{ $value | humanize }}%."
+
+  # ============================================================
+  # SSL Certificate Alerts
+  # ============================================================
+  - name: ssl-certificates
+    interval: 1h
+    rules:
+      - alert: SSLCertificateExpiringSoon
+        expr: |
+          (ssl_certificate_expiry_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanize }} days."
+
+      - alert: SSLCertificateExpiringCritical
+        expr: |
+          (ssl_certificate_expiry_seconds - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "SSL certificate expiring in less than 7 days"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanize }} days."
+
+  # ============================================================
+  # Custom Metrics Alerts
+  # ============================================================
+  - name: custom-metrics
+    interval: 30s
+    rules:
+      - alert: HighGoroutineCount
+        expr: go_goroutines > 10000
+        for: 5m
+        labels:
+          severity: warning
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "High goroutine count"
+          description: "Service {{ $labels.service }} has {{ $value | humanize }} goroutines."
+
+      - alert: HighGCPause
+        expr: |
+          rate(go_gc_duration_seconds_sum[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "High GC pause time"
+          description: "Service {{ $labels.service }} has high GC pause time."
+
+      - alert: HighOpenFileDescriptors
+        expr: |
+          process_open_fds / process_max_fds * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "High open file descriptors"
+          description: "Service {{ $labels.service }} has {{ $value | humanize }}% file descriptors in use."
+
+      - alert: HighOpenFileDescriptorsCritical
+        expr: |
+          process_open_fds / process_max_fds * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: "{{ $labels.service }}"
+        annotations:
+          summary: "Critical open file descriptors"
+          description: "Service {{ $labels.service }} has {{ $value | humanize }}% file descriptors in use."
+
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total[15m]) * 60 * 5 > 0
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently."
+
+      - alert: PodNotReady
+        expr: |
+          kube_pod_status_ready{condition="true"} == 0
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} not ready"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has not been ready for 15 minutes."
+
+      - alert: DeploymentReplicasMismatch
+        expr: |
+          kube_deployment_spec_replicas != kube_deployment_status_ready_replicas
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Deployment {{ $labels.deployment }} replica mismatch"
+          description: "Deployment {{ $labels.deployment }} has {{ $value | humanize }} replicas mismatch."
+
+      - alert: JobFailed
+        expr: |
+          kube_job_status_failed > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Job {{ $labels.job }} failed"
+          description: "Job {{ $labels.job }} in namespace {{ $labels.namespace }} has failed."

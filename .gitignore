@@ -2,44 +2,27 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+dist/
 *.egg-info/
 .eggs/
-dist/
-build/
-*.egg
 .venv/
 venv/
 env/
-
-# Node
-node_modules/
-
-# Database
-*.db
-*.sqlite3
-
-# Environment
 .env
-.env.*
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Test
+.env.local
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
-
-# Alembic
+*.log
+.DS_Store
+Thumbs.db
+node_modules/
+*.db
+*.sqlite3
 alembic/versions/*.pyc
+*~
