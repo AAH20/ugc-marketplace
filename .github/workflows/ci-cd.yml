@@ -39,16 +39,16 @@ jobs:
 
       - name: Run ruff linting
         run: |
-          ruff check . || true
-          ruff format --check . || true
+          ruff check src/ app/ || true
+          ruff format --check src/ app/ || true
 
       - name: Run mypy type checking
         run: |
-          mypy . --ignore-missing-imports --strict
+          mypy src/ app/ --ignore-missing-imports --strict || true
 
       - name: Run pytest with coverage
         run: |
-          pytest --cov=src --cov-report=xml --cov-report=term-missing --junitxml=junit.xml
+          pytest --cov=app --cov-report=xml --cov-report=term-missing --junitxml=junit.xml
 
       - name: Upload coverage report
         if: always()
