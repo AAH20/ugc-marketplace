@@ -23,6 +23,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY pyproject.toml .
+COPY README.md .
 COPY src/ src/
 RUN pip install --upgrade pip setuptools wheel && \
     pip install .
