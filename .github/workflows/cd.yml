@@ -100,6 +100,7 @@ jobs:
         with:
           sarif_file: trivy-image-results.sarif
           category: trivy-image
+        continue-on-error: true
 
       - name: Upload SBOM artifact
         if: github.event_name != 'pull_request'
