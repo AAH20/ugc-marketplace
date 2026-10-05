@@ -44,14 +44,14 @@ INTEGRATION_PLATFORMS = {
 }
 
 
-def get_integration(platform: str):
+def get_integration(platform: str, config: dict | None = None):
     """Get integration instance for a platform."""
     class_name = INTEGRATION_PLATFORMS.get(platform)
     if not class_name:
         raise HTTPException(status_code=404, detail=f"Unknown platform: {platform}")
 
     integration_class = globals()[class_name]
-    return integration_class()
+    return integration_class(config or {})
 
 
 REQUIRED_FIELDS = {
