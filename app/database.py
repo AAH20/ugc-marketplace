@@ -35,15 +35,45 @@ _engine: Engine | None = None
 _SessionLocal: sessionmaker | None = None
 
 
-def get_database_url() -> str:
-    """Return the configured database URL.
+# Async driver -> sync driver. This module is synchronous SQLAlchemy
+# (create_engine + sessionmaker), so an async driver such as asyncpg or
+# aiosqlite would wrap the engine in a greenlet and every query would fail
+# with "MissingGreenlet: greenlet_spawn has not been called".
+_ASYNC_TO_SYNC_DRIVER = {
+    "postgresql+asyncpg": "postgresql+psycopg2",
+    "postgres+asyncpg": "postgresql+psycopg2",
+    "sqlite+aiosqlite": "sqlite",
+    "mysql+aiomysql": "mysql+pymysql",
+    "mysql+asyncmy": "mysql+pymysql",
+}
+
+
+def normalise_database_url(url: str) -> str:
+    """Rewrite an async driver URL to its synchronous equivalent.
+
+    Args:
+        url: A SQLAlchemy database URL.
 
     Returns:
-        ``DATABASE_URL`` when set, otherwise an absolute SQLite fallback URL.
+        The URL with any known async driver swapped for its sync counterpart.
+        URLs that are already synchronous are returned unchanged.
+    """
+    for async_driver, sync_driver in _ASYNC_TO_SYNC_DRIVER.items():
+        if url.startswith(async_driver + "://"):
+            return url.replace(async_driver + "://", sync_driver + "://", 1)
+    return url
+
+
+def get_database_url() -> str:
+    """Return the configured database URL, normalised for the sync engine.
+
+    Returns:
+        ``DATABASE_URL`` (async drivers mapped to sync) when set, otherwise an
+        absolute SQLite fallback URL.
     """
     url = os.environ.get("DATABASE_URL", "").strip()
     if url:
-        return url
+        return normalise_database_url(url)
     return f"sqlite:///{_DEFAULT_SQLITE_PATH}"
 
 

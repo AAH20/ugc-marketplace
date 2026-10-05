@@ -93,14 +93,20 @@ def test_sqlite_parent_directory_is_created() -> None:
 
 
 def test_database_url_env_var_wins() -> None:
-    """An explicit DATABASE_URL must override the SQLite fallback."""
+    """An explicit DATABASE_URL must override the SQLite fallback.
+
+    The async driver is mapped to its sync equivalent, because this module
+    is synchronous SQLAlchemy.
+    """
     result = _run(
         """
         import os
         os.environ["DATABASE_URL"] = "postgresql+asyncpg://u:p@localhost:5432/db"
         import app.database as d
         url = d.get_database_url()
-        assert "postgresql+asyncpg" in url, f"DATABASE_URL ignored; got {url!r}"
+        # Configured Postgres is honoured, but with a synchronous driver.
+        assert url.startswith("postgresql+"), f"DATABASE_URL ignored; got {url!r}"
+        assert "psycopg2" in url, f"expected sync driver, got {url!r}"
         print("OK")
         """,
         env_extra={"DATABASE_URL": "postgresql+asyncpg://u:p@localhost:5432/db"},
