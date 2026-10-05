@@ -67,7 +67,7 @@ class TransactionMonitorAgent:
             "session_id": session_id,
             "account_id": account_id,
             "status": "active",
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "transactions_monitored": 0,
             "alerts_generated": 0,
         }
@@ -92,7 +92,7 @@ class TransactionMonitorAgent:
 
         session = self._active_sessions[session_id]
         session["status"] = "stopped"
-        session["stopped_at"] = datetime.utcnow().isoformat()
+        session["stopped_at"] = datetime.now(timezone.utc).isoformat()
         logger.info("Monitoring stopped", session_id=session_id)
         return session  # type: ignore[return-value]
 
@@ -111,7 +111,7 @@ class TransactionMonitorAgent:
         if session_id not in self._active_sessions:
             raise ValueError(f"Session {session_id} not found")
 
-        self._last_activity = datetime.utcnow()
+        self._last_activity = datetime.now(timezone.utc)
         session = self._active_sessions[session_id]
         session["transactions_monitored"] += 1
         self._tasks_processed += 1
@@ -164,7 +164,7 @@ class TransactionMonitorAgent:
             "alert_id": str(uuid.uuid4()),
             "transaction_id": transaction.transaction_id,
             "reason": reason,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def get_status(self) -> dict[str, Any]:

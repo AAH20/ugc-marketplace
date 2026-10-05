@@ -97,7 +97,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=89300,
         shares=2100,
         comments=890,
-        created_at=datetime.utcnow() - timedelta(hours=6),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=6),
         trending_score=94.2,
     ),
     ContentItem(
@@ -111,7 +111,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=56200,
         shares=1800,
         comments=640,
-        created_at=datetime.utcnow() - timedelta(hours=12),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=12),
         trending_score=88.7,
     ),
     ContentItem(
@@ -125,7 +125,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=120000,
         shares=3400,
         comments=1200,
-        created_at=datetime.utcnow() - timedelta(hours=3),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=3),
         trending_score=97.1,
     ),
     ContentItem(
@@ -139,7 +139,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=34100,
         shares=980,
         comments=420,
-        created_at=datetime.utcnow() - timedelta(hours=24),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=24),
         trending_score=76.5,
     ),
     ContentItem(
@@ -153,7 +153,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=156000,
         shares=5600,
         comments=2100,
-        created_at=datetime.utcnow() - timedelta(hours=2),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=2),
         trending_score=99.3,
     ),
     ContentItem(
@@ -167,7 +167,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=42300,
         shares=1200,
         comments=530,
-        created_at=datetime.utcnow() - timedelta(hours=18),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=18),
         trending_score=82.4,
     ),
     ContentItem(
@@ -181,7 +181,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=67800,
         shares=2100,
         comments=780,
-        created_at=datetime.utcnow() - timedelta(hours=8),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=8),
         trending_score=85.9,
     ),
     ContentItem(
@@ -195,7 +195,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=78900,
         shares=3200,
         comments=1500,
-        created_at=datetime.utcnow() - timedelta(hours=10),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=10),
         trending_score=91.6,
     ),
     ContentItem(
@@ -209,7 +209,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=134000,
         shares=4800,
         comments=1700,
-        created_at=datetime.utcnow() - timedelta(hours=4),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=4),
         trending_score=96.8,
     ),
     ContentItem(
@@ -223,7 +223,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=48900,
         shares=1500,
         comments=610,
-        created_at=datetime.utcnow() - timedelta(hours=14),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=14),
         trending_score=79.3,
     ),
     ContentItem(
@@ -237,7 +237,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=98700,
         shares=2900,
         comments=1050,
-        created_at=datetime.utcnow() - timedelta(hours=5),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=5),
         trending_score=93.0,
     ),
     ContentItem(
@@ -251,7 +251,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=41200,
         shares=1100,
         comments=480,
-        created_at=datetime.utcnow() - timedelta(hours=20),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=20),
         trending_score=74.8,
     ),
     ContentItem(
@@ -265,7 +265,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=62100,
         shares=1900,
         comments=720,
-        created_at=datetime.utcnow() - timedelta(hours=16),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=16),
         trending_score=84.1,
     ),
     ContentItem(
@@ -279,7 +279,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=112000,
         shares=4100,
         comments=1800,
-        created_at=datetime.utcnow() - timedelta(hours=7),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=7),
         trending_score=95.5,
     ),
     ContentItem(
@@ -293,7 +293,7 @@ MOCK_CONTENT_POOL: list[ContentItem] = [
         views=73400,
         shares=2600,
         comments=890,
-        created_at=datetime.utcnow() - timedelta(hours=9),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=9),
         trending_score=87.2,
     ),
 ]
@@ -460,7 +460,7 @@ class ContentDiscoveryAgent:
             candidates = [item for item in candidates if item.category == cat_filter]
 
         # Apply timeframe decay to trending scores
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeframe_hours = {
             TrendingTimeframe.DAILY: 24,
             TrendingTimeframe.WEEKLY: 168,
@@ -529,7 +529,7 @@ class ContentDiscoveryAgent:
         score += min(engagement / 1000.0, 15.0)
 
         # Recency factor (weight: up to 10)
-        age_hours = (datetime.utcnow() - item.created_at).total_seconds() / 3600.0
+        age_hours = (datetime.now(timezone.utc) - item.created_at).total_seconds() / 3600.0
         recency = max(0.0, 1.0 - (age_hours / 168.0))  # 1 week half-life
         score += recency * 10.0
 

@@ -347,7 +347,7 @@ async def create_category(
                 detail=f"Parent category with id {payload.parent_id} does not exist.",
             )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     new_category = {
         "id": _next_id,
         "name": payload.name,
@@ -429,7 +429,7 @@ async def update_category(
             )
 
     category.update(update_data)
-    category["updated_at"] = datetime.utcnow()
+    category["updated_at"] = datetime.now(timezone.utc)
 
     return CategoryResponse(**category)
 

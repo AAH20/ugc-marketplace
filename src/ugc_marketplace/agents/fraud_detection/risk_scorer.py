@@ -72,7 +72,7 @@ class RiskScorerAgent:
             Computed risk score.
         """
         try:
-            self._last_activity = datetime.utcnow()
+            self._last_activity = datetime.now(timezone.utc)
             result = await self._agent.ainvoke(
                 {
                     "input": (
