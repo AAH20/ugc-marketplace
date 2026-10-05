@@ -1,7 +1,10 @@
 """Pydantic schemas for Broker API."""
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+MENA_COUNTRIES = {"AE", "SA", "EG", "QA", "KW", "BH", "OM", "JO", "LB", "IQ", "MA", "TN", "DZ"}
+MENA_CURRENCIES = {"AED", "SAR", "EGP", "QAR", "KWD", "BHD", "OMR", "JOD", "LBP", "IQD", "MAD", "TND", "DZD"}
 
 
 class BrokerBase(BaseModel):
@@ -13,6 +16,20 @@ class BrokerBase(BaseModel):
     contact_email: str | None = Field(None, max_length=255)
     contact_phone: str | None = Field(None, max_length=50)
     is_active: bool = True
+
+    @field_validator("country")
+    @classmethod
+    def validate_country(cls, v: str) -> str:
+        if v not in MENA_COUNTRIES:
+            raise ValueError(f"Country must be a valid MENA code: {sorted(MENA_COUNTRIES)}")
+        return v
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, v: str) -> str:
+        if v not in MENA_CURRENCIES:
+            raise ValueError(f"Currency must be a valid MENA currency: {sorted(MENA_CURRENCIES)}")
+        return v
 
 
 class BrokerCreate(BrokerBase):
