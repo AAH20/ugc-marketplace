@@ -149,7 +149,7 @@ jobs:
             -e REDIS_URL=redis://localhost:6379/0 \
             -e SECRET_KEY=smoke-test-secret \
             -e LOG_LEVEL=DEBUG \
-            ${{ needs.build-and-push.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:main
 
       - name: Wait for health check
         run: |
