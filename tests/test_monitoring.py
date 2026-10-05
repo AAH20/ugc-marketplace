@@ -91,9 +91,9 @@ def sample_metrics(db_session, sample_campaign):
     db_session.add_all(metrics)
     db_session.commit()
 
-    # Generate alerts and recommendations for the latest metric (spike at hour 20)
+    # Generate alerts and recommendations for the spike metric (hour 20)
     from app.routes.monitoring import _detect_and_alert, _generate_recommendations
-    _detect_and_alert(db_session, sample_campaign, metrics[-1])
+    _detect_and_alert(db_session, sample_campaign, metrics[20])
     _generate_recommendations(db_session, sample_campaign)
 
     return metrics
@@ -480,6 +480,9 @@ class TestWebSocketEndpoints:
         with client.websocket_connect(
             f"/ws/campaigns/{sample_campaign.id}/metrics"
         ) as ws:
+            # Server sends initial metrics first
+            msg = ws.receive_json()
+            assert msg["type"] == "initial_metrics"
             # Send a ping to verify connection
             ws.send_json({"action": "ping"})
             msg = ws.receive_json()
@@ -490,6 +493,9 @@ class TestWebSocketEndpoints:
         with client.websocket_connect(
             f"/ws/campaigns/{sample_campaign.id}/alerts"
         ) as ws:
+            # Server sends initial alerts first
+            msg = ws.receive_json()
+            assert msg["type"] == "initial_alerts"
             ws.send_json({"action": "ping"})
             msg = ws.receive_json()
             assert msg["type"] == "pong"
@@ -497,6 +503,9 @@ class TestWebSocketEndpoints:
     def test_websocket_dashboard_overview(self, client, sample_campaign, sample_metrics):
         """WebSocket streams dashboard overview."""
         with client.websocket_connect("/ws/dashboard") as ws:
+            # Server sends initial dashboard first
+            msg = ws.receive_json()
+            assert msg["type"] == "initial_dashboard"
             ws.send_json({"action": "ping"})
             msg = ws.receive_json()
             assert msg["type"] == "pong"
