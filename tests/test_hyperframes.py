@@ -257,7 +257,7 @@ class TestRenderCostCalculator:
         """Batch cost sums individual costs."""
         calc = RenderCostCalculator()
         cost = calc.calculate_batch_cost([60, 120, 180])
-        assert cost == 0.10 + 0.20 + 0.30
+        assert abs(cost - (0.10 + 0.20 + 0.30)) < 0.001
 
     def test_calculate_batch_cost_empty(self):
         """Empty batch costs zero."""

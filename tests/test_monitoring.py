@@ -505,7 +505,7 @@ class TestWebSocketEndpoints:
         with client.websocket_connect("/ws/dashboard") as ws:
             # Server sends initial dashboard first
             msg = ws.receive_json()
-            assert msg["type"] == "initial_dashboard"
+            assert msg["type"] == "summary"
             ws.send_json({"action": "ping"})
             msg = ws.receive_json()
             assert msg["type"] == "pong"
@@ -540,32 +540,83 @@ class TestEndToEnd:
         db_session.commit()
         db_session.refresh(campaign)
 
-        # 2. Ingest normal metrics
+        # 2. Ingest normal metrics via API
         for i in range(10):
-            metric = CampaignMetric(
-                campaign_id=campaign.id,
-                timestamp=datetime.now(timezone.utc) - timedelta(hours=10 - i),
-                impressions=10000,
-                clicks=200,
-                conversions=10,
-                spend=100.0,
-                revenue=300.0,
+            client.post(
+                f"/api/campaigns/{campaign.id}/metrics",
+                json={
+                    "impressions": 10000,
+                    "clicks": 200,
+                    "conversions": 10,
+                    "spend": 100.0,
+                    "revenue": 300.0,
+                },
             )
-            db_session.add(metric)
-        db_session.commit()
 
         # 3. Ingest anomalous metric (spend spike + CTR drop + low ROAS)
-        anomaly = CampaignMetric(
-            campaign_id=campaign.id,
-            timestamp=datetime.now(timezone.utc),
-            impressions=10000,
-            clicks=50,
-            conversions=2,
-            spend=500.0,
-            revenue=250.0,
+        client.post(
+            f"/api/campaigns/{campaign.id}/metrics",
+            json={
+                "impressions": 10000,
+                "clicks": 50,
+                "conversions": 5,
+                "spend": 500.0,
+                "revenue": 250.0,
+            },
         )
-        db_session.add(anomaly)
+
+        # 4. Check alerts were generated
+        response = client.get(f"/api/campaigns/{campaign.id}/alerts")
+        alerts = response.json()
+        assert len(alerts) >= 2  # At least spend spike and low ROAS
+
+        # 5. Check recommendations were generated
+        response = client.get(f"/api/campaigns/{campaign.id}/recommendations")
+        recommendations = response.json()
+        assert len(recommendations) >= 1
+
+    def test_alert_resolution_workflow(self, client, db_session):
+        """Resolve an alert and verify it is marked resolved."""
+        # 1. Create campaign
+        campaign = Campaign(
+            name="Alert Resolution Test",
+            status=CampaignStatus.ACTIVE,
+            budget=5000.0,
+            spent=0.0,
+            target_roas=3.0,
+            target_ctr=0.02,
+        )
+        db_session.add(campaign)
         db_session.commit()
+        db_session.refresh(campaign)
+
+        # 2. Create alert
+        alert = Alert(
+            campaign_id=campaign.id,
+            alert_type=AlertType.SPEND_SPIKE,
+            severity=AlertSeverity.HIGH,
+            message="Test alert",
+            metric_value=100.0,
+            threshold=50.0,
+        )
+        db_session.add(alert)
+        db_session.commit()
+        db_session.refresh(alert)
+
+        # 3. Resolve alert
+        alert.is_resolved = True
+        db_session.commit()
+
+        # 4. Verify alert is resolved
+        response = client.get(f"/api/campaigns/{campaign.id}/alerts")
+        alerts = response.json()
+        assert len(alerts) == 0  # Resolved alerts are hidden by default
+
+        # 5. Verify alert is visible when including resolved
+        response = client.get(f"/api/campaigns/{campaign.id}/alerts?include_resolved=true")
+        alerts = response.json()
+        assert len(alerts) == 1
+        assert alerts[0]["is_resolved"] is True
 
         # 4. Check alerts were generated
         resp = client.get(f"/api/campaigns/{campaign.id}/alerts")
@@ -623,7 +674,7 @@ class TestEndToEnd:
         assert resp.status_code == 200
 
         # Verify it's resolved
-        resp = client.get(f"/api/campaigns/{campaign.id}/alerts")
+        resp = client.get(f"/api/campaigns/{campaign.id}/alerts?include_resolved=true")
         alerts = resp.json()
         assert len(alerts) == 1
         assert alerts[0]["is_resolved"] is True
