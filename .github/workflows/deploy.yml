@@ -71,6 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
+    if: secrets.AWS_ACCESS_KEY_ID != ''
     environment:
       name: staging
       url: https://staging.ugc-marketplace.example.com
@@ -140,6 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: smoke-tests
+    if: secrets.AWS_ACCESS_KEY_ID != ''
     environment:
       name: production
       url: https://ugc-marketplace.example.com
