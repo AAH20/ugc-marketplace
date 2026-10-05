@@ -89,11 +89,15 @@ class LaunchStrategistAgent(BaseGTMAgent[LaunchCampaign]):
         # Generate recommendations
         recommendations = []
         if content_quality < 0.7:
-            recommendations.append("Add demo video or product screenshots to improve content quality")
+            recommendations.append(
+                "Add demo video or product screenshots to improve content quality"
+            )
         if channel_fit < 0.6:
             recommendations.append("Consider adding more launch channels for broader reach")
         if timing < 0.8:
-            recommendations.append("Schedule launch for optimal timing (Tuesday-Thursday, 9-11am EST)")
+            recommendations.append(
+                "Schedule launch for optimal timing (Tuesday-Thursday, 9-11am EST)"
+            )
         if audience_match < 0.7:
             recommendations.append("Define and research your target audience more specifically")
 
@@ -178,7 +182,9 @@ class LaunchStrategistAgent(BaseGTMAgent[LaunchCampaign]):
                 "expected_reach": "10K-100K views",
             },
         }
-        return strategies.get(channel.value, {"positioning": "General launch", "content_format": "Standard"})
+        return strategies.get(
+            channel.value, {"positioning": "General launch", "content_format": "Standard"}
+        )
 
     def _content_recommendations(self, campaign: LaunchCampaign) -> list[str]:
         """Generate content recommendations.

@@ -1,4 +1,5 @@
 """Commission API routes."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -53,9 +54,13 @@ def list_commissions(broker_id: int | None = None, db: Session = Depends(get_db)
 
 
 @router.patch("/{commission_id}/status", response_model=CommissionResponse)
-def update_commission_status(commission_id: int, update: CommissionUpdate, db: Session = Depends(get_db)):
+def update_commission_status(
+    commission_id: int, update: CommissionUpdate, db: Session = Depends(get_db)
+):
     """Update commission status."""
-    db_commission = db.query(CommissionTracking).filter(CommissionTracking.id == commission_id).first()
+    db_commission = (
+        db.query(CommissionTracking).filter(CommissionTracking.id == commission_id).first()
+    )
     if not db_commission:
         raise HTTPException(status_code=404, detail="Commission not found")
 

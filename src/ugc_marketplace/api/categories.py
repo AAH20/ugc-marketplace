@@ -5,7 +5,7 @@ Provides CRUD operations for product/service categories with pagination
 and input validation.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field

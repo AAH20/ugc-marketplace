@@ -1,4 +1,5 @@
 """Recommendation model for performance optimization."""
+
 from enum import Enum
 
 from sqlalchemy import String, Numeric, ForeignKey, Integer, Boolean, Text, Enum as SAEnum
@@ -18,6 +19,7 @@ class RecommendationCategory(str, Enum):
 
 class Recommendation(Base):
     """Performance optimization recommendation."""
+
     __tablename__ = "recommendations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -34,4 +36,6 @@ class Recommendation(Base):
     is_applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     def __repr__(self):
-        return f"<Recommendation(id={self.id}, category='{self.category}', priority={self.priority})>"
+        return (
+            f"<Recommendation(id={self.id}, category='{self.category}', priority={self.priority})>"
+        )

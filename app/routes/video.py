@@ -1,4 +1,5 @@
 """Video generation API routes."""
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/api/v1/video", tags=["video"])
 
 
 # --- Video Generation Requests ---
+
 
 @router.post("/requests", response_model=VideoRequestResponse, status_code=status.HTTP_201_CREATED)
 async def create_video_request(
@@ -92,6 +94,7 @@ async def delete_video_request(
 
 # --- Video Generation Results ---
 
+
 @router.post("/results", response_model=VideoResultResponse, status_code=status.HTTP_201_CREATED)
 async def create_video_result(
     data: VideoResultCreate,
@@ -154,7 +157,12 @@ async def delete_video_result(
 
 # --- Video Quality Metrics ---
 
-@router.post("/quality-metrics", response_model=VideoQualityMetricsResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/quality-metrics",
+    response_model=VideoQualityMetricsResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_quality_metrics(
     data: VideoQualityMetricsCreate,
     session: AsyncSession = Depends(get_gtm_session),
@@ -193,7 +201,10 @@ async def get_quality_metrics_by_result(
 
 # --- Video Templates ---
 
-@router.post("/templates", response_model=VideoTemplateResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/templates", response_model=VideoTemplateResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_video_template(
     data: VideoTemplateCreate,
     session: AsyncSession = Depends(get_gtm_session),

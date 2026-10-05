@@ -1,4 +1,5 @@
 """Pydantic schemas for GTM campaigns."""
+
 from datetime import datetime
 from uuid import UUID
 

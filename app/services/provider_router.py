@@ -1,4 +1,5 @@
 """Multi-provider routing with fallback for video generation."""
+
 import logging
 import random
 from dataclasses import dataclass, field
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ProviderStatus(Enum):
     """Health status of a provider."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNAVAILABLE = "unavailable"
@@ -17,6 +19,7 @@ class ProviderStatus(Enum):
 
 class VideoProvider(Enum):
     """Supported video generation providers."""
+
     VEO = "veo"
     SEEDANCE = "seedance"
     RUNWAY = "runway"
@@ -26,6 +29,7 @@ class VideoProvider(Enum):
 @dataclass
 class ProviderConfig:
     """Configuration for a video provider."""
+
     name: str
     priority: int = 0
     max_retries: int = 2
@@ -77,7 +81,7 @@ class ProviderRouter:
 
     def __init__(self, providers: Optional[List[ProviderConfig]] = None):
         self.providers: Dict[str, ProviderConfig] = {}
-        for p in (self.DEFAULT_PROVIDERS if providers is None else providers):
+        for p in self.DEFAULT_PROVIDERS if providers is None else providers:
             # Deep copy to avoid shared state between tests
             self.providers[p.name] = ProviderConfig(
                 name=p.name,

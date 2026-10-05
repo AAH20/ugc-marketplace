@@ -1,4 +1,5 @@
 """Authentication middleware and JWT handling for UGC Marketplace."""
+
 from __future__ import annotations
 
 import hashlib
@@ -315,7 +316,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         user_id = payload.get("sub", "")
         roles = [UserRole(r) for r in payload.get("roles", ["user"])]
         email = payload.get("email")
-        metadata = {k: v for k, v in payload.items() if k not in ("sub", "iat", "exp", "type", "roles", "email")}
+        metadata = {
+            k: v
+            for k, v in payload.items()
+            if k not in ("sub", "iat", "exp", "type", "roles", "email")
+        }
 
         user = AuthenticatedUser(
             user_id=user_id,
@@ -384,6 +389,7 @@ def require_roles(roles: list[UserRole]) -> Callable:
     Returns:
         A dependency function that checks roles.
     """
+
     def role_checker(request: Request) -> AuthenticatedUser:
         user = get_current_user(request)
         if not user.has_any_role(roles):

@@ -1,4 +1,5 @@
 """Arabic content generation module."""
+
 from app.arabic.dialects import (
     ArabicDialect,
     DialectDetector,

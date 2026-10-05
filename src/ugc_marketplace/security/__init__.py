@@ -1,4 +1,5 @@
 """Security package for UGC Marketplace."""
+
 from __future__ import annotations
 
 from ugc_marketplace.security.auth import (

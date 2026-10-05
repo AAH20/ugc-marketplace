@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import gzip
 import json
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,43 @@ from sqlalchemy import text
 from ugc_marketplace.config.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# SQL identifiers cannot be bound as parameters, so any table/column name
+# reaching a text() statement must be validated first. Anything that is not a
+# plain (optionally schema-qualified) identifier is rejected outright rather
+# than escaped -- there is no legitimate archive containing such a name.
+_SQL_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
+_MAX_IDENTIFIER_LEN = 63  # PostgreSQL NAMEDATALEN - 1
+
+
+def _validate_identifier(name: str, kind: str) -> str:
+    """Validate a SQL identifier used for dynamic DDL/DML construction.
+
+    Args:
+        name: The candidate identifier.
+        kind: Either ``"table"`` or ``"column"``, used in the error message.
+
+    Returns:
+        The identifier unchanged, when it is safe to interpolate.
+
+    Raises:
+        ValueError: If the identifier is empty, too long, or contains any
+            character other than ``[A-Za-z0-9_$]`` after the first character.
+    """
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"Invalid SQL {kind} name: must be a non-empty string")
+
+    if len(name) > _MAX_IDENTIFIER_LEN:
+        raise ValueError(
+            f"Invalid SQL {kind} name {name!r}: exceeds {_MAX_IDENTIFIER_LEN} characters"
+        )
+
+    if not _SQL_IDENTIFIER.match(name):
+        raise ValueError(
+            f"Invalid SQL {kind} name {name!r}: only [A-Za-z0-9_$] identifiers are allowed"
+        )
+
+    return name
 
 
 class ArchivalManager:
@@ -109,17 +147,38 @@ class ArchivalManager:
         path = Path(archive_file)
         if not path.exists():
             raise FileNotFoundError(f"Archive file not found: {archive_file}")
+        _validate_identifier(table_name, "table")
+
+        # Parse and validate the entire archive *before* opening a transaction.
+        # Validating inside the execute loop would let a malformed archive open
+        # a transaction and partially insert rows before failing.
+        pending: list[tuple[dict[str, Any], str]] = []
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                columns = [_validate_identifier(col, "column") for col in record.keys()]
+                if not columns:
+                    continue
+                placeholders = [f":{col}" for col in columns]
+                # Values are always bound as parameters; only validated
+                # identifiers are interpolated into the statement text.
+                # nosec B608 - table_name and every column are validated
+                # against ^[A-Za-z_][A-Za-z0-9_$]*$ by _validate_identifier on
+                # the lines above, and all values are bound as parameters.
+                # Identifiers cannot be parameterised in SQL; validation is the
+                # only available control, and it rejects on first match failure.
+                query = text(
+                    f"INSERT INTO {table_name} ({', '.join(columns)}) "  # nosec B108 B608
+                    f"VALUES ({', '.join(placeholders)})"
+                )
+                pending.append((record, str(query)))
+
         restored = 0
         async with self.engine.begin() as conn:
-            with gzip.open(path, "rt", encoding="utf-8") as f:
-                for line in f:
-                    record = json.loads(line)
-                    columns = list(record.keys())
-                    placeholders = [f":{col}" for col in columns]
-                    query = text(
-                        f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
-                    )
-                    await conn.execute(query, record)
-                    restored += 1
+            for record, query in pending:
+                await conn.execute(text(query), record)
+                restored += 1
         logger.info("Restored records from archive", count=restored, file=archive_file)
         return restored

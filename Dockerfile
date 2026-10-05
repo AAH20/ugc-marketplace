@@ -36,6 +36,7 @@ FROM python:3.12-slim AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    HOST=0.0.0.0 \
     PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app

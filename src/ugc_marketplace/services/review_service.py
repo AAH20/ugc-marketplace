@@ -1,4 +1,5 @@
 """Review service for managing UGC marketplace reviews."""
+
 from __future__ import annotations
 
 import asyncio
@@ -79,9 +80,7 @@ def get_review(review_id: str) -> dict[str, Any]:
                 review_uuid = uuid.UUID(review_id)
             except ValueError:
                 raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
-            result = await session.execute(
-                select(Review).where(Review.id == review_uuid)
-            )
+            result = await session.execute(select(Review).where(Review.id == review_uuid))
             review = result.scalar_one_or_none()
             if review is None:
                 raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
@@ -259,9 +258,7 @@ def update_review(review_id: str, data: dict[str, Any]) -> dict[str, Any]:
 
             if not update_values:
                 # No fields to update — return current state
-                result = await session.execute(
-                    select(Review).where(Review.id == review_uuid)
-                )
+                result = await session.execute(select(Review).where(Review.id == review_uuid))
                 review = result.scalar_one_or_none()
                 if review is None:
                     raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
@@ -313,9 +310,7 @@ def delete_review(review_id: str) -> bool:
             except ValueError:
                 raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
 
-            result = await session.execute(
-                delete(Review).where(Review.id == review_uuid)
-            )
+            result = await session.execute(delete(Review).where(Review.id == review_uuid))
             if result.rowcount == 0:
                 raise ReviewNotFoundError(f"Review with id '{review_id}' not found")
             return True

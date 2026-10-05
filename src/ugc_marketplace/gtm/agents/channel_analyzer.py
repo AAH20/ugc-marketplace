@@ -110,9 +110,7 @@ class ChannelAnalyzerAgent(BaseGTMAgent[CampaignAnalytics]):
 
         if ranked:
             top = ranked[0]
-            insights.append(
-                f"Top channel: {top.channel.value} with ROAS {top.roas:.2f}"
-            )
+            insights.append(f"Top channel: {top.channel.value} with ROAS {top.roas:.2f}")
 
         if underperformers:
             worst = underperformers[-1]

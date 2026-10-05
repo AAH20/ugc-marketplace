@@ -1,4 +1,5 @@
 """API routers for ugc-marketplace."""
+
 from ugc_marketplace.api.analytics import router as analytics
 from ugc_marketplace.api.categories import router as categories
 from ugc_marketplace.api.content import router as content

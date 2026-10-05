@@ -1,4 +1,5 @@
 """GTM campaign routes — database-backed, no in-memory store."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,9 +15,7 @@ router = APIRouter(prefix="/api/v1/gtm", tags=["gtm"])
 
 
 @router.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
-async def create_campaign(
-    payload: CampaignCreate, db: AsyncSession = Depends(get_gtm_session)
-):
+async def create_campaign(payload: CampaignCreate, db: AsyncSession = Depends(get_gtm_session)):
     repo = CampaignRepository(db)
     campaign = await repo.create(payload.model_dump(exclude_unset=True))
     return campaign

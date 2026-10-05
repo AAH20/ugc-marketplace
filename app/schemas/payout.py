@@ -1,4 +1,5 @@
 """Pydantic schemas for Payout API."""
+
 from datetime import date, datetime
 from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict

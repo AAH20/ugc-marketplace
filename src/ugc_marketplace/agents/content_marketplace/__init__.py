@@ -21,7 +21,11 @@ from ugc_marketplace.agents._content_marketplace import (  # noqa: F401
     search_marketplace,
 )
 from ugc_marketplace.agents.content_marketplace.listing_manager import ListingManagerAgent  # noqa: F401
-from ugc_marketplace.agents.content_marketplace.transaction_processor import TransactionProcessorAgent  # noqa: F401
+from ugc_marketplace.agents.content_marketplace.transaction_processor import (
+    TransactionProcessorAgent,
+)  # noqa: F401
 from ugc_marketplace.agents.content_marketplace.trust_scorer import TrustScorerAgent  # noqa: F401
 from ugc_marketplace.agents.content_marketplace.pricing_optimizer import PricingOptimizerAgent  # noqa: F401
-from ugc_marketplace.agents.content_marketplace.marketplace_analytics import MarketplaceAnalyticsAgent  # noqa: F401
+from ugc_marketplace.agents.content_marketplace.marketplace_analytics import (
+    MarketplaceAnalyticsAgent,
+)  # noqa: F401

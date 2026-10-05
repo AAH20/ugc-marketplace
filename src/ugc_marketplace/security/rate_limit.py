@@ -1,4 +1,5 @@
 """Rate limiting middleware for UGC Marketplace."""
+
 from __future__ import annotations
 
 import time
@@ -111,7 +112,10 @@ class RateLimiter:
         entry = self._storage.get(key)
         if entry is None or entry.last_update < window_start:
             self._storage[key] = RateLimitEntry(requests=[now], last_update=now)
-            return True, {"remaining": self.config.requests_per_minute - 1, "reset": window_start + 60}
+            return True, {
+                "remaining": self.config.requests_per_minute - 1,
+                "reset": window_start + 60,
+            }
 
         if len(entry.requests) >= self.config.requests_per_minute:
             return False, {"remaining": 0, "reset": window_start + 60}
@@ -234,7 +238,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ) -> None:
         super().__init__(app)
         self.rate_limiter = rate_limiter or get_rate_limiter()
-        self.exclude_paths = exclude_paths or {"/api/v1/health", "/api/v1/health/ready", "/api/v1/health/live"}
+        self.exclude_paths = exclude_paths or {
+            "/api/v1/health",
+            "/api/v1/health/ready",
+            "/api/v1/health/live",
+        }
 
     async def dispatch(
         self,
@@ -269,8 +277,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 headers={
                     "X-RateLimit-Limit": str(self.rate_limiter.config.requests_per_minute),
                     "X-RateLimit-Remaining": str(metadata.get("remaining", 0)),
-                    "X-RateLimit-Reset": str(int(metadata.get("reset", time.time() + 60))),
-                    "Retry-After": str(max(1, int(metadata.get("reset", time.time() + 60) - time.time())),
+                    "X-RateLimit-Reset": str(int(float(metadata.get("reset", time.time() + 60)))),
+                    "Retry-After": str(
+                        max(1, int(float(metadata.get("reset", time.time() + 60)) - time.time()))
+                    ),
                 },
             )
 
@@ -279,7 +289,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Add rate limit headers to response
         response.headers["X-RateLimit-Limit"] = str(self.rate_limiter.config.requests_per_minute)
         response.headers["X-RateLimit-Remaining"] = str(metadata.get("remaining", 0))
-        response.headers["X-RateLimit-Reset"] = str(int(metadata.get("reset", time.time() + 60)))
+        response.headers["X-RateLimit-Reset"] = str(
+            int(float(metadata.get("reset", time.time() + 60)))
+        )
 
         return response
 
@@ -336,8 +348,14 @@ def rate_limit(
                     headers={
                         "X-RateLimit-Limit": str(requests_per_minute),
                         "X-RateLimit-Remaining": str(metadata.get("remaining", 0)),
-                        "X-RateLimit-Reset": str(int(metadata.get("reset", time.time() + 60))),
-                        "Retry-After": str(max(1, int(metadata.get("reset", time.time() + 60) - time.time())),
+                        "X-RateLimit-Reset": str(
+                            int(float(metadata.get("reset", time.time() + 60)))
+                        ),
+                        "Retry-After": str(
+                            max(
+                                1, int(float(metadata.get("reset", time.time() + 60)) - time.time())
+                            )
+                        ),
                     },
                 )
 

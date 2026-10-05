@@ -1,4 +1,5 @@
 """In-memory repository implementations for services."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,10 +30,7 @@ class InMemoryListingRepository(ListingRepository):
         results = list(self._storage.values())
         if query:
             q = query.lower()
-            results = [
-                l for l in results
-                if q in l.title.lower() or q in l.description.lower()
-            ]
+            results = [l for l in results if q in l.title.lower() or q in l.description.lower()]
         if "status" in filters:
             results = [l for l in results if l.status.value == filters["status"]]
         if "seller_id" in filters:

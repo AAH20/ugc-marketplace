@@ -1,4 +1,5 @@
 """Alert model for anomaly detection."""
+
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -25,6 +26,7 @@ class AlertSeverity(str, Enum):
 
 class Alert(Base):
     """Alert generated when an anomaly is detected."""
+
     __tablename__ = "alerts"
 
     id: Mapped[int] = mapped_column(primary_key=True)

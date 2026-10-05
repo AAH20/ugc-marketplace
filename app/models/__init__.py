@@ -1,4 +1,5 @@
 """Model exports."""
+
 from app.models.base import Base, TimestampMixin
 from app.models.broker import Broker
 from app.models.broker_partner import BrokerPartner

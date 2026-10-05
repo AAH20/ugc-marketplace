@@ -1,4 +1,5 @@
 """API routes for triggering social platform posts."""
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/api/v1", tags=["posts"])
 
 class PostContent(BaseModel):
     """Content for a social media post."""
+
     text: Optional[str] = None
     title: Optional[str] = None
     url: Optional[str] = None
@@ -28,6 +30,7 @@ class PostContent(BaseModel):
 
 class PostResponse(BaseModel):
     """Response from a successful post."""
+
     id: str
     platform: str
     title: Optional[str] = None
@@ -84,7 +87,7 @@ async def create_post(platform: str, content: PostContent):
 @router.post("/twitter/post", response_model=PostResponse)
 async def post_to_twitter(content: PostContent):
     """Post a tweet via Twitter/X."""
-    integration = TwitterIntegration()
+    integration = get_integration("twitter")
     try:
         result = await integration.post(content.model_dump(exclude_none=True))
         return PostResponse(**result)

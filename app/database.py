@@ -14,9 +14,12 @@ Design notes
 * The engine is created lazily and cached, so importing this module never
   opens a connection or requires a driver that may not be installed.
 """
+
 from __future__ import annotations
 
+import logging
 import os
+import stat
 from collections.abc import Generator
 from pathlib import Path
 
@@ -27,8 +30,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from app import models  # noqa: F401 - ensures all models registered with Base
 from app.models.base import Base
 
-# Absolute, writable location for the local-dev SQLite fallback.
-_DATA_DIR = Path(os.environ.get("UGC_DATA_DIR", "/tmp/ugc-marketplace"))
+logger = logging.getLogger(__name__)
+
+# Absolute, writable location for the local-dev SQLite fallback. The default
+# sits under /tmp (writable by the non-root runtime user) but the directory is
+# created 0o700 -- see _ensure_sqlite_parent. Set UGC_DATA_DIR for a durable
+# location such as /var/lib/ugc-marketplace in production.
+# nosec B108 - /tmp is the only location writable by the non-root `app` user in
+# the runtime image. _ensure_sqlite_parent creates it 0o700 and repairs the mode
+# of a pre-existing directory, so the world-writable /tmp is not exploitable
+# here. Production should set UGC_DATA_DIR to a durable private path.
+_DATA_DIR = Path(os.environ.get("UGC_DATA_DIR", "/tmp/ugc-marketplace"))  # nosec B108
 _DEFAULT_SQLITE_PATH = _DATA_DIR / "ugc_marketplace.db"
 
 _engine: Engine | None = None
@@ -85,6 +97,11 @@ def _is_sqlite(url: str) -> bool:
 def _ensure_sqlite_parent(url: str) -> None:
     """Create the parent directory for a file-backed SQLite URL.
 
+    The directory is created 0o700 and an existing directory is tightened to
+    match. The default location lives under /tmp, which is world-writable, so
+    without this another local user could pre-create the directory (or leave a
+    symlink in place of the database file) and control the database.
+
     Args:
         url: The SQLAlchemy database URL.
     """
@@ -98,7 +115,24 @@ def _ensure_sqlite_parent(url: str) -> None:
 
     parent = Path(path).parent
     if str(parent):
-        parent.mkdir(parents=True, exist_ok=True)
+        parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # mkdir(exist_ok=True) is a no-op for an existing directory, so repair
+        # the mode explicitly rather than assuming it was created by us.
+        current = 0
+        try:
+            current = stat.S_IMODE(parent.stat().st_mode)
+            if current & 0o077:
+                parent.chmod(0o700)
+        except OSError as exc:
+            # A pre-existing directory we do not own cannot be chmod'ed.
+            # Surface the problem instead of silently using loose permissions.
+            # `mode` is reserved by Logger.warning, so the observed mode is
+            # passed as `dir_mode`.
+            logger.warning(
+                "Could not restrict permissions on SQLite data directory",
+                extra={"path": str(parent), "dir_mode": f"{current:04o}"},
+                exc_info=exc,
+            )
 
 
 def configure_sqlite_path(path: str) -> None:
@@ -137,9 +171,7 @@ def get_session_factory() -> sessionmaker:
     """
     global _SessionLocal
     if _SessionLocal is None:
-        _SessionLocal = sessionmaker(
-            autocommit=False, autoflush=False, bind=get_engine()
-        )
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=get_engine())
     return _SessionLocal
 
 

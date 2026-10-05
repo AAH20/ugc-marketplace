@@ -1,4 +1,5 @@
 """CampaignMetric model for time-series metrics."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Integer, Numeric, ForeignKey, DateTime, Index
@@ -9,6 +10,7 @@ from app.models.base import Base
 
 class CampaignMetric(Base):
     """Time-series metrics for a campaign (hourly granularity)."""
+
     __tablename__ = "campaign_metrics"
     __table_args__ = (
         Index("ix_campaign_metrics_campaign_id_timestamp", "campaign_id", "timestamp"),
@@ -30,4 +32,6 @@ class CampaignMetric(Base):
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="metrics")
 
     def __repr__(self):
-        return f"<CampaignMetric(id={self.id}, campaign_id={self.campaign_id}, ts='{self.timestamp}')>"
+        return (
+            f"<CampaignMetric(id={self.id}, campaign_id={self.campaign_id}, ts='{self.timestamp}')>"
+        )

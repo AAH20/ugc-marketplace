@@ -49,7 +49,10 @@ class Settings(BaseSettings):
     enable_metrics: bool = True
 
     # Server
-    host: str = "0.0.0.0"
+    # Loopback by default: binding every interface would expose the API on
+    # untrusted networks. Container deployments must opt in explicitly with
+    # HOST=0.0.0.0 (the Dockerfile already does this).
+    host: str = "127.0.0.1"
     port: int = 8000
     workers: int = 1
 

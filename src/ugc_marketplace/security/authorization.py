@@ -1,4 +1,5 @@
 """Authorization checks for UGC Marketplace route handlers."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -111,53 +112,112 @@ class Permission(str, Enum):
 ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     UserRole.ADMIN: {
         Permission.ADMIN_FULL,
-        Permission.CONTENT_READ, Permission.CONTENT_CREATE, Permission.CONTENT_UPDATE, Permission.CONTENT_DELETE, Permission.CONTENT_MODERATE,
-        Permission.CREATOR_READ, Permission.CREATOR_CREATE, Permission.CREATOR_UPDATE, Permission.CREATOR_DELETE,
-        Permission.LISTING_READ, Permission.LISTING_CREATE, Permission.LISTING_UPDATE, Permission.LISTING_DELETE,
-        Permission.TRANSACTION_READ, Permission.TRANSACTION_CREATE, Permission.TRANSACTION_UPDATE, Permission.TRANSACTION_DELETE, Permission.TRANSACTION_REFUND,
-        Permission.PAYMENT_READ, Permission.PAYMENT_CREATE, Permission.PAYMENT_UPDATE, Permission.PAYMENT_DELETE,
-        Permission.REVIEW_READ, Permission.REVIEW_CREATE, Permission.REVIEW_UPDATE, Permission.REVIEW_DELETE,
-        Permission.CATEGORY_READ, Permission.CATEGORY_CREATE, Permission.CATEGORY_UPDATE, Permission.CATEGORY_DELETE,
-        Permission.TAG_READ, Permission.TAG_CREATE, Permission.TAG_UPDATE, Permission.TAG_DELETE,
-        Permission.NOTIFICATION_READ, Permission.NOTIFICATION_CREATE, Permission.NOTIFICATION_UPDATE, Permission.NOTIFICATION_DELETE,
-        Permission.ANALYTICS_READ, Permission.ANALYTICS_EXPORT,
-        Permission.MODERATION_READ, Permission.MODERATION_ACTION, Permission.MODERATION_APPEAL,
-        Permission.FRAUD_READ, Permission.FRAUD_ACTION,
-        Permission.QUALITY_READ, Permission.QUALITY_SCORE,
-        Permission.RIGHTS_READ, Permission.RIGHTS_MANAGE,
-        Permission.LICENSING_READ, Permission.LICENSING_MANAGE,
-        Permission.CURATION_READ, Permission.CURATION_MANAGE,
-        Permission.MONETIZATION_READ, Permission.MONETIZATION_MANAGE,
+        Permission.CONTENT_READ,
+        Permission.CONTENT_CREATE,
+        Permission.CONTENT_UPDATE,
+        Permission.CONTENT_DELETE,
+        Permission.CONTENT_MODERATE,
+        Permission.CREATOR_READ,
+        Permission.CREATOR_CREATE,
+        Permission.CREATOR_UPDATE,
+        Permission.CREATOR_DELETE,
+        Permission.LISTING_READ,
+        Permission.LISTING_CREATE,
+        Permission.LISTING_UPDATE,
+        Permission.LISTING_DELETE,
+        Permission.TRANSACTION_READ,
+        Permission.TRANSACTION_CREATE,
+        Permission.TRANSACTION_UPDATE,
+        Permission.TRANSACTION_DELETE,
+        Permission.TRANSACTION_REFUND,
+        Permission.PAYMENT_READ,
+        Permission.PAYMENT_CREATE,
+        Permission.PAYMENT_UPDATE,
+        Permission.PAYMENT_DELETE,
+        Permission.REVIEW_READ,
+        Permission.REVIEW_CREATE,
+        Permission.REVIEW_UPDATE,
+        Permission.REVIEW_DELETE,
+        Permission.CATEGORY_READ,
+        Permission.CATEGORY_CREATE,
+        Permission.CATEGORY_UPDATE,
+        Permission.CATEGORY_DELETE,
+        Permission.TAG_READ,
+        Permission.TAG_CREATE,
+        Permission.TAG_UPDATE,
+        Permission.TAG_DELETE,
+        Permission.NOTIFICATION_READ,
+        Permission.NOTIFICATION_CREATE,
+        Permission.NOTIFICATION_UPDATE,
+        Permission.NOTIFICATION_DELETE,
+        Permission.ANALYTICS_READ,
+        Permission.ANALYTICS_EXPORT,
+        Permission.MODERATION_READ,
+        Permission.MODERATION_ACTION,
+        Permission.MODERATION_APPEAL,
+        Permission.FRAUD_READ,
+        Permission.FRAUD_ACTION,
+        Permission.QUALITY_READ,
+        Permission.QUALITY_SCORE,
+        Permission.RIGHTS_READ,
+        Permission.RIGHTS_MANAGE,
+        Permission.LICENSING_READ,
+        Permission.LICENSING_MANAGE,
+        Permission.CURATION_READ,
+        Permission.CURATION_MANAGE,
+        Permission.MONETIZATION_READ,
+        Permission.MONETIZATION_MANAGE,
     },
     UserRole.MODERATOR: {
-        Permission.CONTENT_READ, Permission.CONTENT_UPDATE, Permission.CONTENT_MODERATE,
-        Permission.CREATOR_READ, Permission.CREATOR_UPDATE,
-        Permission.LISTING_READ, Permission.LISTING_UPDATE,
+        Permission.CONTENT_READ,
+        Permission.CONTENT_UPDATE,
+        Permission.CONTENT_MODERATE,
+        Permission.CREATOR_READ,
+        Permission.CREATOR_UPDATE,
+        Permission.LISTING_READ,
+        Permission.LISTING_UPDATE,
         Permission.TRANSACTION_READ,
         Permission.PAYMENT_READ,
-        Permission.REVIEW_READ, Permission.REVIEW_UPDATE, Permission.REVIEW_DELETE,
+        Permission.REVIEW_READ,
+        Permission.REVIEW_UPDATE,
+        Permission.REVIEW_DELETE,
         Permission.CATEGORY_READ,
         Permission.TAG_READ,
-        Permission.NOTIFICATION_READ, Permission.NOTIFICATION_CREATE,
+        Permission.NOTIFICATION_READ,
+        Permission.NOTIFICATION_CREATE,
         Permission.ANALYTICS_READ,
-        Permission.MODERATION_READ, Permission.MODERATION_ACTION, Permission.MODERATION_APPEAL,
-        Permission.FRAUD_READ, Permission.FRAUD_ACTION,
-        Permission.QUALITY_READ, Permission.QUALITY_SCORE,
+        Permission.MODERATION_READ,
+        Permission.MODERATION_ACTION,
+        Permission.MODERATION_APPEAL,
+        Permission.FRAUD_READ,
+        Permission.FRAUD_ACTION,
+        Permission.QUALITY_READ,
+        Permission.QUALITY_SCORE,
         Permission.RIGHTS_READ,
         Permission.LICENSING_READ,
-        Permission.CURATION_READ, Permission.CURATION_MANAGE,
+        Permission.CURATION_READ,
+        Permission.CURATION_MANAGE,
         Permission.MONETIZATION_READ,
     },
     UserRole.CREATOR: {
-        Permission.CONTENT_READ, Permission.CONTENT_CREATE, Permission.CONTENT_UPDATE,
-        Permission.CREATOR_READ, Permission.CREATOR_UPDATE,
-        Permission.LISTING_READ, Permission.LISTING_CREATE, Permission.LISTING_UPDATE,
-        Permission.TRANSACTION_READ, Permission.TRANSACTION_CREATE,
+        Permission.CONTENT_READ,
+        Permission.CONTENT_CREATE,
+        Permission.CONTENT_UPDATE,
+        Permission.CREATOR_READ,
+        Permission.CREATOR_UPDATE,
+        Permission.LISTING_READ,
+        Permission.LISTING_CREATE,
+        Permission.LISTING_UPDATE,
+        Permission.TRANSACTION_READ,
+        Permission.TRANSACTION_CREATE,
         Permission.PAYMENT_READ,
-        Permission.REVIEW_READ, Permission.REVIEW_CREATE, Permission.REVIEW_UPDATE,
+        Permission.REVIEW_READ,
+        Permission.REVIEW_CREATE,
+        Permission.REVIEW_UPDATE,
         Permission.CATEGORY_READ,
         Permission.TAG_READ,
-        Permission.NOTIFICATION_READ, Permission.NOTIFICATION_UPDATE,
+        Permission.NOTIFICATION_READ,
+        Permission.NOTIFICATION_UPDATE,
         Permission.ANALYTICS_READ,
         Permission.QUALITY_READ,
         Permission.RIGHTS_READ,
@@ -169,9 +229,12 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.CONTENT_READ,
         Permission.CREATOR_READ,
         Permission.LISTING_READ,
-        Permission.TRANSACTION_READ, Permission.TRANSACTION_CREATE,
-        Permission.PAYMENT_READ, Permission.PAYMENT_CREATE,
-        Permission.REVIEW_READ, Permission.REVIEW_CREATE,
+        Permission.TRANSACTION_READ,
+        Permission.TRANSACTION_CREATE,
+        Permission.PAYMENT_READ,
+        Permission.PAYMENT_CREATE,
+        Permission.REVIEW_READ,
+        Permission.REVIEW_CREATE,
         Permission.CATEGORY_READ,
         Permission.TAG_READ,
         Permission.NOTIFICATION_READ,
@@ -181,23 +244,57 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.CURATION_READ,
     },
     UserRole.SERVICE: {
-        Permission.CONTENT_READ, Permission.CONTENT_CREATE, Permission.CONTENT_UPDATE, Permission.CONTENT_DELETE,
-        Permission.CREATOR_READ, Permission.CREATOR_CREATE, Permission.CREATOR_UPDATE,
-        Permission.LISTING_READ, Permission.LISTING_CREATE, Permission.LISTING_UPDATE, Permission.LISTING_DELETE,
-        Permission.TRANSACTION_READ, Permission.TRANSACTION_CREATE, Permission.TRANSACTION_UPDATE, Permission.TRANSACTION_DELETE,
-        Permission.PAYMENT_READ, Permission.PAYMENT_CREATE, Permission.PAYMENT_UPDATE, Permission.PAYMENT_DELETE,
-        Permission.REVIEW_READ, Permission.REVIEW_CREATE, Permission.REVIEW_UPDATE, Permission.REVIEW_DELETE,
-        Permission.CATEGORY_READ, Permission.CATEGORY_CREATE, Permission.CATEGORY_UPDATE, Permission.CATEGORY_DELETE,
-        Permission.TAG_READ, Permission.TAG_CREATE, Permission.TAG_UPDATE, Permission.TAG_DELETE,
-        Permission.NOTIFICATION_READ, Permission.NOTIFICATION_CREATE, Permission.NOTIFICATION_UPDATE, Permission.NOTIFICATION_DELETE,
-        Permission.ANALYTICS_READ, Permission.ANALYTICS_EXPORT,
-        Permission.MODERATION_READ, Permission.MODERATION_ACTION,
-        Permission.FRAUD_READ, Permission.FRAUD_ACTION,
-        Permission.QUALITY_READ, Permission.QUALITY_SCORE,
-        Permission.RIGHTS_READ, Permission.RIGHTS_MANAGE,
-        Permission.LICENSING_READ, Permission.LICENSING_MANAGE,
-        Permission.CURATION_READ, Permission.CURATION_MANAGE,
-        Permission.MONETIZATION_READ, Permission.MONETIZATION_MANAGE,
+        Permission.CONTENT_READ,
+        Permission.CONTENT_CREATE,
+        Permission.CONTENT_UPDATE,
+        Permission.CONTENT_DELETE,
+        Permission.CREATOR_READ,
+        Permission.CREATOR_CREATE,
+        Permission.CREATOR_UPDATE,
+        Permission.LISTING_READ,
+        Permission.LISTING_CREATE,
+        Permission.LISTING_UPDATE,
+        Permission.LISTING_DELETE,
+        Permission.TRANSACTION_READ,
+        Permission.TRANSACTION_CREATE,
+        Permission.TRANSACTION_UPDATE,
+        Permission.TRANSACTION_DELETE,
+        Permission.PAYMENT_READ,
+        Permission.PAYMENT_CREATE,
+        Permission.PAYMENT_UPDATE,
+        Permission.PAYMENT_DELETE,
+        Permission.REVIEW_READ,
+        Permission.REVIEW_CREATE,
+        Permission.REVIEW_UPDATE,
+        Permission.REVIEW_DELETE,
+        Permission.CATEGORY_READ,
+        Permission.CATEGORY_CREATE,
+        Permission.CATEGORY_UPDATE,
+        Permission.CATEGORY_DELETE,
+        Permission.TAG_READ,
+        Permission.TAG_CREATE,
+        Permission.TAG_UPDATE,
+        Permission.TAG_DELETE,
+        Permission.NOTIFICATION_READ,
+        Permission.NOTIFICATION_CREATE,
+        Permission.NOTIFICATION_UPDATE,
+        Permission.NOTIFICATION_DELETE,
+        Permission.ANALYTICS_READ,
+        Permission.ANALYTICS_EXPORT,
+        Permission.MODERATION_READ,
+        Permission.MODERATION_ACTION,
+        Permission.FRAUD_READ,
+        Permission.FRAUD_ACTION,
+        Permission.QUALITY_READ,
+        Permission.QUALITY_SCORE,
+        Permission.RIGHTS_READ,
+        Permission.RIGHTS_MANAGE,
+        Permission.LICENSING_READ,
+        Permission.LICENSING_MANAGE,
+        Permission.CURATION_READ,
+        Permission.CURATION_MANAGE,
+        Permission.MONETIZATION_READ,
+        Permission.MONETIZATION_MANAGE,
     },
 }
 
@@ -295,7 +392,9 @@ class AuthorizationChecker:
         Returns:
             True if the user is the owner or has the permission.
         """
-        return AuthorizationChecker.is_owner(user, resource_owner_id) or AuthorizationChecker.has_permission(user, permission)
+        return AuthorizationChecker.is_owner(
+            user, resource_owner_id
+        ) or AuthorizationChecker.has_permission(user, permission)
 
 
 # ── Dependency Functions ────────────────────────────────────────────────────
@@ -310,6 +409,7 @@ def require_permission(permission: Permission) -> Callable:
     Returns:
         A dependency function that checks the permission.
     """
+
     def permission_checker(request: Request) -> AuthenticatedUser:
         user = get_current_user(request)
         if not AuthorizationChecker.has_permission(user, permission):
@@ -331,6 +431,7 @@ def require_any_permission(permissions: list[Permission]) -> Callable:
     Returns:
         A dependency function that checks the permissions.
     """
+
     def permission_checker(request: Request) -> AuthenticatedUser:
         user = get_current_user(request)
         if not AuthorizationChecker.has_any_permission(user, permissions):
@@ -356,6 +457,7 @@ def require_ownership(
     Returns:
         A dependency function that checks ownership.
     """
+
     def ownership_checker(request: Request) -> AuthenticatedUser:
         user = get_current_user(request)
         if AuthorizationChecker.is_owner(user, resource_owner_id):
@@ -383,6 +485,7 @@ def require_ownership_or_permission(
     Returns:
         A dependency function that checks ownership or permission.
     """
+
     def ownership_checker(request: Request) -> AuthenticatedUser:
         user = get_current_user(request)
         owner_id = get_owner_id(request)

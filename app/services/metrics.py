@@ -1,4 +1,5 @@
 """Metrics computation service."""
+
 from __future__ import annotations
 
 
@@ -53,5 +54,7 @@ class MetricsService:
             "roas": round(self.compute_roas(total_revenue, total_spend), 4),
             "cpc": round(self.compute_cpc(total_spend, total_clicks), 4),
             "cpm": round(self.compute_cpm(total_spend, total_impressions), 4),
-            "conversion_rate": round(self.compute_conversion_rate(total_conversions, total_clicks), 6),
+            "conversion_rate": round(
+                self.compute_conversion_rate(total_conversions, total_clicks), 6
+            ),
         }

@@ -1,4 +1,5 @@
 """WebSocket endpoints for real-time campaign monitoring."""
+
 from __future__ import annotations
 
 import logging
@@ -52,7 +53,9 @@ def _get_db():
 
 
 @ws_router.websocket("/ws/campaigns/{campaign_id}/metrics")
-async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int, db: Session = Depends(get_db)):
+async def ws_campaign_metrics(
+    websocket: WebSocket, campaign_id: int, db: Session = Depends(get_db)
+):
     """Stream live metrics for a campaign."""
     channel = f"campaign_{campaign_id}_metrics"
     await manager.connect(channel, websocket)
@@ -70,21 +73,23 @@ async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int, db: Sessio
             .limit(50)
             .all()
         )
-        await websocket.send_json({
-            "type": "initial_metrics",
-            "metrics": [
-                {
-                    "id": m.id,
-                    "impressions": m.impressions,
-                    "clicks": m.clicks,
-                    "conversions": m.conversions,
-                    "spend": float(m.spend),
-                    "revenue": float(m.revenue),
-                    "timestamp": m.timestamp.isoformat(),
-                }
-                for m in reversed(metrics)
-            ],
-        })
+        await websocket.send_json(
+            {
+                "type": "initial_metrics",
+                "metrics": [
+                    {
+                        "id": m.id,
+                        "impressions": m.impressions,
+                        "clicks": m.clicks,
+                        "conversions": m.conversions,
+                        "spend": float(m.spend),
+                        "revenue": float(m.revenue),
+                        "timestamp": m.timestamp.isoformat(),
+                    }
+                    for m in reversed(metrics)
+                ],
+            }
+        )
 
         # Keep connection alive and handle client messages
         while True:
@@ -101,21 +106,23 @@ async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int, db: Sessio
                         .limit(50)
                         .all()
                     )
-                    await websocket.send_json({
-                        "type": "metrics",
-                        "metrics": [
-                            {
-                                "id": m.id,
-                                "impressions": m.impressions,
-                                "clicks": m.clicks,
-                                "conversions": m.conversions,
-                                "spend": float(m.spend),
-                                "revenue": float(m.revenue),
-                                "timestamp": m.timestamp.isoformat(),
-                            }
-                            for m in reversed(metrics)
-                        ],
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "metrics",
+                            "metrics": [
+                                {
+                                    "id": m.id,
+                                    "impressions": m.impressions,
+                                    "clicks": m.clicks,
+                                    "conversions": m.conversions,
+                                    "spend": float(m.spend),
+                                    "revenue": float(m.revenue),
+                                    "timestamp": m.timestamp.isoformat(),
+                                }
+                                for m in reversed(metrics)
+                            ],
+                        }
+                    )
             except WebSocketDisconnect:
                 break
             except Exception as e:
@@ -144,20 +151,22 @@ async def ws_campaign_alerts(websocket: WebSocket, campaign_id: int, db: Session
             .limit(50)
             .all()
         )
-        await websocket.send_json({
-            "type": "initial_alerts",
-            "alerts": [
-                {
-                    "id": a.id,
-                    "alert_type": a.alert_type.value,
-                    "severity": a.severity.value,
-                    "message": a.message,
-                    "is_resolved": a.is_resolved,
-                    "created_at": a.created_at.isoformat(),
-                }
-                for a in reversed(alerts)
-            ],
-        })
+        await websocket.send_json(
+            {
+                "type": "initial_alerts",
+                "alerts": [
+                    {
+                        "id": a.id,
+                        "alert_type": a.alert_type.value,
+                        "severity": a.severity.value,
+                        "message": a.message,
+                        "is_resolved": a.is_resolved,
+                        "created_at": a.created_at.isoformat(),
+                    }
+                    for a in reversed(alerts)
+                ],
+            }
+        )
 
         while True:
             try:
@@ -173,20 +182,22 @@ async def ws_campaign_alerts(websocket: WebSocket, campaign_id: int, db: Session
                         .limit(50)
                         .all()
                     )
-                    await websocket.send_json({
-                        "type": "alerts",
-                        "alerts": [
-                            {
-                                "id": a.id,
-                                "alert_type": a.alert_type.value,
-                                "severity": a.severity.value,
-                                "message": a.message,
-                                "is_resolved": a.is_resolved,
-                                "created_at": a.created_at.isoformat(),
-                            }
-                            for a in reversed(alerts)
-                        ],
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "alerts",
+                            "alerts": [
+                                {
+                                    "id": a.id,
+                                    "alert_type": a.alert_type.value,
+                                    "severity": a.severity.value,
+                                    "message": a.message,
+                                    "is_resolved": a.is_resolved,
+                                    "created_at": a.created_at.isoformat(),
+                                }
+                                for a in reversed(alerts)
+                            ],
+                        }
+                    )
             except WebSocketDisconnect:
                 break
             except Exception as e:
@@ -218,16 +229,18 @@ async def ws_dashboard(websocket: WebSocket, db: Session = Depends(get_db)):
             db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
         )
 
-        await websocket.send_json({
-            "type": "summary",
-            "summary": {
-                "total_campaigns": total_campaigns,
-                "total_spend": round(total_spend, 2),
-                "total_revenue": round(total_revenue, 2),
-                "avg_roas": round(avg_roas, 4),
-                "alerts_count": alerts_count,
-            },
-        })
+        await websocket.send_json(
+            {
+                "type": "summary",
+                "summary": {
+                    "total_campaigns": total_campaigns,
+                    "total_spend": round(total_spend, 2),
+                    "total_revenue": round(total_revenue, 2),
+                    "avg_roas": round(avg_roas, 4),
+                    "alerts_count": alerts_count,
+                },
+            }
+        )
 
         while True:
             try:
@@ -246,22 +259,22 @@ async def ws_dashboard(websocket: WebSocket, db: Session = Depends(get_db)):
                     avg_roas = metrics_svc.compute_roas(total_revenue, total_spend)
 
                     alerts_count = (
-                        db.query(func.count(Alert.id))
-                        .filter(Alert.is_resolved == False)
-                        .scalar()
+                        db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar()
                         or 0
                     )
 
-                    await websocket.send_json({
-                        "type": "summary",
-                        "summary": {
-                            "total_campaigns": total_campaigns,
-                            "total_spend": round(total_spend, 2),
-                            "total_revenue": round(total_revenue, 2),
-                            "avg_roas": round(avg_roas, 4),
-                            "alerts_count": alerts_count,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "summary",
+                            "summary": {
+                                "total_campaigns": total_campaigns,
+                                "total_spend": round(total_spend, 2),
+                                "total_revenue": round(total_revenue, 2),
+                                "avg_roas": round(avg_roas, 4),
+                                "alerts_count": alerts_count,
+                            },
+                        }
+                    )
             except WebSocketDisconnect:
                 break
             except Exception as e:

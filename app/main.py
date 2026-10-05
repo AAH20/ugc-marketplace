@@ -1,4 +1,5 @@
 """Main FastAPI application."""
+
 from fastapi import FastAPI
 from app import models  # noqa: F401 - ensures all models registered with Base
 from app.database import init_db, get_db

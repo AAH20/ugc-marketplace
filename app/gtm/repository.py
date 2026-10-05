@@ -1,4 +1,5 @@
 """Async CRUD repository for LaunchCampaign."""
+
 from uuid import UUID
 
 from sqlalchemy import select

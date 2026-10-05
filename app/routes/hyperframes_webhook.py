@@ -1,4 +1,5 @@
 """HyperFrames webhook handler for render completion events."""
+
 import hashlib
 import hmac
 import json
@@ -58,9 +59,7 @@ def verify_webhook_signature(
         return False
 
     body = json.dumps(payload, separators=(",", ":"))
-    expected = hmac.new(
-        secret.encode(), body.encode(), hashlib.sha256
-    ).hexdigest()
+    expected = hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
     expected_sig = f"sha256={expected}"
 
     return hmac.compare_digest(signature, expected_sig)
@@ -115,13 +114,9 @@ async def handle_hyperframes_webhook(
 
     # Process event
     if webhook.event == "render.complete":
-        logger.info(
-            f"Render complete: {webhook.data.id} -> {webhook.data.output_url}"
-        )
+        logger.info(f"Render complete: {webhook.data.id} -> {webhook.data.output_url}")
     elif webhook.event == "render.failed":
-        logger.error(
-            f"Render failed: {webhook.data.id} - {webhook.data.error}"
-        )
+        logger.error(f"Render failed: {webhook.data.id} - {webhook.data.error}")
     else:
         logger.info(f"Unknown webhook event: {webhook.event}")
 

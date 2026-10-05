@@ -1,4 +1,5 @@
 """Integration modules for social platform posting."""
+
 from app.integrations.base import (
     BaseIntegration,
     IntegrationError,

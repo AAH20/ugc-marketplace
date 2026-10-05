@@ -1,4 +1,5 @@
 """Reddit integration using PRAW (Python Reddit API Wrapper)."""
+
 import asyncio
 from typing import Optional
 

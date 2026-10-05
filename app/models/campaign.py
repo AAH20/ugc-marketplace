@@ -1,4 +1,5 @@
 """Campaign model."""
+
 from datetime import date, datetime, timezone
 from enum import Enum
 
@@ -18,6 +19,7 @@ class CampaignStatus(str, Enum):
 
 class Campaign(Base, TimestampMixin):
     """Marketing campaign entity."""
+
     __tablename__ = "campaigns"
 
     id: Mapped[int] = mapped_column(primary_key=True)

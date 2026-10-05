@@ -1,10 +1,25 @@
 """Pydantic schemas for Broker API."""
+
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 MENA_COUNTRIES = {"AE", "SA", "EG", "QA", "KW", "BH", "OM", "JO", "LB", "IQ", "MA", "TN", "DZ"}
-MENA_CURRENCIES = {"AED", "SAR", "EGP", "QAR", "KWD", "BHD", "OMR", "JOD", "LBP", "IQD", "MAD", "TND", "DZD"}
+MENA_CURRENCIES = {
+    "AED",
+    "SAR",
+    "EGP",
+    "QAR",
+    "KWD",
+    "BHD",
+    "OMR",
+    "JOD",
+    "LBP",
+    "IQD",
+    "MAD",
+    "TND",
+    "DZD",
+}
 
 
 class BrokerBase(BaseModel):

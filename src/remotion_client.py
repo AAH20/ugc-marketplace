@@ -1,4 +1,5 @@
 """Python wrapper for Remotion client (mirrors TypeScript interface)."""
+
 from dataclasses import dataclass, field
 from typing import Optional, Any
 
@@ -6,6 +7,7 @@ from typing import Optional, Any
 @dataclass
 class RemotionClientConfig:
     """Remotion client configuration."""
+
     region: str
     functionName: str
     serveUrl: str
@@ -15,6 +17,7 @@ class RemotionClientConfig:
 @dataclass
 class RenderParams:
     """Render parameters."""
+
     composition: str
     inputProps: dict[str, Any]
     format: Optional[str] = None
@@ -30,6 +33,7 @@ class RenderParams:
 @dataclass
 class RenderResult:
     """Render result."""
+
     renderId: str
     bucketName: str
 

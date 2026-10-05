@@ -1,4 +1,5 @@
 """Twitter/X posting wrapper."""
+
 import httpx
 
 API_URL = "https://api.twitter.com/2"
@@ -11,7 +12,7 @@ class TwitterClient:
     def __init__(self, bearer_token: str):
         self.bearer_token = bearer_token
 
-    async def _make_request(self, method: str, endpoint: str, data: dict = None) -> dict:
+    async def _make_request(self, method: str, endpoint: str, data: dict | None = None) -> dict:
         url = f"{API_URL}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.bearer_token}",

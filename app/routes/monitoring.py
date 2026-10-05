@@ -1,4 +1,5 @@
 """Campaign monitoring REST API routes."""
+
 from __future__ import annotations
 
 import logging
@@ -29,6 +30,7 @@ rec_engine = RecommendationEngine()
 
 
 # ── Pydantic Schemas ───────────────────────────────────────────────────
+
 
 class MetricIngestRequest(BaseModel):
     impressions: int = 0
@@ -93,33 +95,51 @@ class DashboardSummary(BaseModel):
 
 # ── Helper: compute campaign summary ──────────────────────────────────
 
+
 def _campaign_summary(db: Session, campaign: Campaign) -> dict:
-    row = db.query(
-        func.sum(CampaignMetric.impressions),
-        func.sum(CampaignMetric.clicks),
-        func.sum(CampaignMetric.conversions),
-        func.sum(CampaignMetric.spend),
-        func.sum(CampaignMetric.revenue),
-    ).filter(CampaignMetric.campaign_id == campaign.id).one_or_none()
+    row = (
+        db.query(
+            func.sum(CampaignMetric.impressions),
+            func.sum(CampaignMetric.clicks),
+            func.sum(CampaignMetric.conversions),
+            func.sum(CampaignMetric.spend),
+            func.sum(CampaignMetric.revenue),
+        )
+        .filter(CampaignMetric.campaign_id == campaign.id)
+        .one_or_none()
+    )
 
     if row and row[0] is not None:
-        agg = metrics_svc.aggregate([{
-            "impressions": row[0] or 0,
-            "clicks": row[1] or 0,
-            "conversions": row[2] or 0,
-            "spend": float(row[3] or 0),
-            "revenue": float(row[4] or 0),
-        }])
+        agg = metrics_svc.aggregate(
+            [
+                {
+                    "impressions": row[0] or 0,
+                    "clicks": row[1] or 0,
+                    "conversions": row[2] or 0,
+                    "spend": float(row[3] or 0),
+                    "revenue": float(row[4] or 0),
+                }
+            ]
+        )
     else:
         agg = {
-            "total_impressions": 0, "total_clicks": 0, "total_conversions": 0,
-            "total_spend": 0.0, "total_revenue": 0.0,
-            "ctr": 0.0, "roas": 0.0, "cpc": 0.0, "cpm": 0.0, "conversion_rate": 0.0,
+            "total_impressions": 0,
+            "total_clicks": 0,
+            "total_conversions": 0,
+            "total_spend": 0.0,
+            "total_revenue": 0.0,
+            "ctr": 0.0,
+            "roas": 0.0,
+            "cpc": 0.0,
+            "cpm": 0.0,
+            "conversion_rate": 0.0,
         }
     return {
         "id": campaign.id,
         "name": campaign.name,
-        "status": campaign.status.value if isinstance(campaign.status, CampaignStatus) else campaign.status,
+        "status": campaign.status.value
+        if isinstance(campaign.status, CampaignStatus)
+        else campaign.status,
         "budget": float(campaign.budget),
         "spent": float(campaign.spent),
         "target_roas": float(campaign.target_roas),
@@ -129,6 +149,7 @@ def _campaign_summary(db: Session, campaign: Campaign) -> dict:
 
 
 # ── Helper: detect anomalies and persist alerts ───────────────────────
+
 
 def _detect_and_alert(db: Session, campaign: Campaign, latest: CampaignMetric) -> list[Alert]:
     history = (
@@ -184,6 +205,7 @@ def _detect_and_alert(db: Session, campaign: Campaign, latest: CampaignMetric) -
 
 # ── Helper: generate and persist recommendations ──────────────────────
 
+
 def _generate_recommendations(db: Session, campaign: Campaign) -> list[Recommendation]:
     metrics = (
         db.query(CampaignMetric)
@@ -195,13 +217,18 @@ def _generate_recommendations(db: Session, campaign: Campaign) -> list[Recommend
     if not metrics:
         return []
 
-    agg = metrics_svc.aggregate([{
-        "impressions": m.impressions,
-        "clicks": m.clicks,
-        "conversions": m.conversions,
-        "spend": float(m.spend),
-        "revenue": float(m.revenue),
-    } for m in metrics])
+    agg = metrics_svc.aggregate(
+        [
+            {
+                "impressions": m.impressions,
+                "clicks": m.clicks,
+                "conversions": m.conversions,
+                "spend": float(m.spend),
+                "revenue": float(m.revenue),
+            }
+            for m in metrics
+        ]
+    )
 
     # Determine spend trend
     if len(metrics) >= 2:
@@ -246,6 +273,7 @@ def _generate_recommendations(db: Session, campaign: Campaign) -> list[Recommend
 
 
 # ── REST Endpoints ────────────────────────────────────────────────────
+
 
 @router.get("/campaigns", response_model=list[dict])
 def list_campaigns(db: Session = Depends(get_db)):
@@ -355,9 +383,7 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 def dashboard_summary(db: Session = Depends(get_db)):
     total_campaigns = db.query(func.count(Campaign.id)).scalar() or 0
     active_campaigns = (
-        db.query(func.count(Campaign.id))
-        .filter(Campaign.status == CampaignStatus.ACTIVE)
-        .scalar()
+        db.query(func.count(Campaign.id)).filter(Campaign.status == CampaignStatus.ACTIVE).scalar()
         or 0
     )
 
@@ -369,9 +395,7 @@ def dashboard_summary(db: Session = Depends(get_db)):
     total_revenue = float(row[1] or 0)
     avg_roas = metrics_svc.compute_roas(total_revenue, total_spend)
 
-    alerts_count = (
-        db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
-    )
+    alerts_count = db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
 
     return DashboardSummary(
         total_campaigns=total_campaigns,

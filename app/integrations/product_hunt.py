@@ -1,4 +1,5 @@
 """Product Hunt integration via GraphQL API."""
+
 from typing import Optional
 
 import httpx
@@ -52,7 +53,7 @@ class ProductHuntIntegration(BaseIntegration):
         if headers:
             request_headers.update(headers)
 
-        payload = {"query": query}
+        payload: dict = {"query": query}
         if variables:
             payload["variables"] = variables
 
@@ -122,7 +123,11 @@ class ProductHuntIntegration(BaseIntegration):
             result = await self._make_request(query)
             if "data" in result:
                 return {"status": "healthy", "platform": self.PLATFORM}
-            return {"status": "unhealthy", "platform": self.PLATFORM, "error": "No data in response"}
+            return {
+                "status": "unhealthy",
+                "platform": self.PLATFORM,
+                "error": "No data in response",
+            }
         except Exception as e:
             return {"status": "unhealthy", "platform": self.PLATFORM, "error": str(e)}
 

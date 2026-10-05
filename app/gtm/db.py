@@ -10,6 +10,7 @@ SQLite even when ``DATABASE_URL`` pointed at Postgres.
 
 ``DATABASE_URL`` is authoritative. SQLite is only the local-dev fallback.
 """
+
 from __future__ import annotations
 
 import os

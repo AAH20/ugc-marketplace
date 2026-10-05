@@ -1,4 +1,5 @@
 """Video generation models."""
+
 import enum
 from datetime import datetime
 from typing import Optional
@@ -22,6 +23,7 @@ from app.models.base import Base, TimestampMixin
 
 class GenerationStatus(str, enum.Enum):
     """Status of a video generation request."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -31,6 +33,7 @@ class GenerationStatus(str, enum.Enum):
 
 class VideoGenerationRequest(Base, TimestampMixin):
     """A request to generate a video."""
+
     __tablename__ = "video_generation_requests"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -58,6 +61,7 @@ class VideoGenerationRequest(Base, TimestampMixin):
 
 class VideoGenerationResult(Base, TimestampMixin):
     """The result of a video generation."""
+
     __tablename__ = "video_generation_results"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -84,6 +88,7 @@ class VideoGenerationResult(Base, TimestampMixin):
 
 class VideoQualityMetrics(Base, TimestampMixin):
     """Quality metrics for a generated video."""
+
     __tablename__ = "video_quality_metrics"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -105,6 +110,7 @@ class VideoQualityMetrics(Base, TimestampMixin):
 
 class VideoTemplate(Base, TimestampMixin):
     """A reusable video generation template."""
+
     __tablename__ = "video_templates"
 
     id: Mapped[int] = mapped_column(primary_key=True)

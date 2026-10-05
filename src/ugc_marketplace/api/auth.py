@@ -1,4 +1,5 @@
 """Authentication API endpoints for UGC Marketplace."""
+
 from __future__ import annotations
 
 import hashlib
@@ -366,7 +367,12 @@ async def login(request: LoginRequest) -> TokenResponse:
     return _create_tokens(user)
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="User registration")
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="User registration",
+)
 async def register(request: RegisterRequest) -> UserResponse:
     """Register a new user.
 

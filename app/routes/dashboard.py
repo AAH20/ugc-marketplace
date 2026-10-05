@@ -1,4 +1,5 @@
 """Dashboard API routes."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,17 +20,17 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     total_brokers = db.query(Broker).count()
     active_brokers = db.query(Broker).filter(Broker.is_active == True).count()
     total_commissions = db.query(CommissionTracking).count()
-    pending_commissions = db.query(CommissionTracking).filter(
-        CommissionTracking.status == CommissionStatus.PENDING
-    ).count()
+    pending_commissions = (
+        db.query(CommissionTracking)
+        .filter(CommissionTracking.status == CommissionStatus.PENDING)
+        .count()
+    )
     total_payouts = db.query(BrokerPayout).count()
-    scheduled_payouts = db.query(BrokerPayout).filter(
-        BrokerPayout.status == PayoutStatus.SCHEDULED
-    ).count()
+    scheduled_payouts = (
+        db.query(BrokerPayout).filter(BrokerPayout.status == PayoutStatus.SCHEDULED).count()
+    )
     total_campaigns = db.query(Campaign).count()
-    active_campaigns = db.query(Campaign).filter(
-        Campaign.status == CampaignStatus.ACTIVE
-    ).count()
+    active_campaigns = db.query(Campaign).filter(Campaign.status == CampaignStatus.ACTIVE).count()
     unresolved_alerts = db.query(Alert).filter(Alert.is_resolved == False).count()
     return {
         "brokers": {
@@ -60,15 +61,11 @@ def get_broker_dashboard(broker_id: int, db: Session = Depends(get_db)):
     broker = db.query(Broker).filter(Broker.id == broker_id).first()
     if not broker:
         raise HTTPException(status_code=404, detail="Broker not found")
-    commissions = db.query(CommissionTracking).filter(
-        CommissionTracking.broker_id == broker_id
-    ).all()
-    payouts = db.query(BrokerPayout).filter(
-        BrokerPayout.broker_id == broker_id
-    ).all()
-    partners = db.query(BrokerPartner).filter(
-        BrokerPartner.broker_id == broker_id
-    ).all()
+    commissions = (
+        db.query(CommissionTracking).filter(CommissionTracking.broker_id == broker_id).all()
+    )
+    payouts = db.query(BrokerPayout).filter(BrokerPayout.broker_id == broker_id).all()
+    partners = db.query(BrokerPartner).filter(BrokerPartner.broker_id == broker_id).all()
     total_commission = sum(float(c.commission_amount) for c in commissions)
     total_payout = sum(float(p.amount) for p in payouts)
     return {
@@ -105,12 +102,11 @@ def get_broker_dashboard(broker_id: int, db: Session = Depends(get_db)):
 def get_campaign_performance(campaign_id: int, db: Session = Depends(get_db)):
     """Get performance metrics for a campaign."""
     from app.models.campaign_metric import CampaignMetric
+
     campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    metrics = db.query(CampaignMetric).filter(
-        CampaignMetric.campaign_id == campaign_id
-    ).all()
+    metrics = db.query(CampaignMetric).filter(CampaignMetric.campaign_id == campaign_id).all()
     total_impressions = sum(m.impressions for m in metrics)
     total_clicks = sum(m.clicks for m in metrics)
     total_conversions = sum(m.conversions for m in metrics)
@@ -136,8 +132,8 @@ def get_campaign_performance(campaign_id: int, db: Session = Depends(get_db)):
 
 @router.get("/alerts")
 def get_alerts(
-    severity: str = None,
-    resolved: bool = None,
+    severity: str | None = None,
+    resolved: bool | None = None,
     db: Session = Depends(get_db),
 ):
     """Get alerts with optional filtering."""

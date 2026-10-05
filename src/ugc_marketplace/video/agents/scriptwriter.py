@@ -58,7 +58,7 @@ class VideoScriptwriterAgent(BaseVideoAgent[VideoGenerationRequest]):
                 f"Format: Hook (0-3s), Problem (3-10s), Solution (10-20s), CTA (20-{request.duration_seconds}s). "
                 f"Keep it concise and engaging."
             )
-            return response.content if hasattr(response, 'content') else str(response)
+            return response.content if hasattr(response, "content") else str(response)
         except Exception:
             pass
 
@@ -87,14 +87,16 @@ class VideoScriptwriterAgent(BaseVideoAgent[VideoGenerationRequest]):
         for i in range(scene_count):
             start = i * scene_duration
             end = (i + 1) * scene_duration
-            scenes.append({
-                "scene_number": i + 1,
-                "start_time": round(start, 1),
-                "end_time": round(end, 1),
-                "duration": round(scene_duration, 1),
-                "narration": f"Scene {i + 1}: {script[:100] if script else 'Visual content'}",
-                "visual_type": "motion_graphics" if i % 2 == 0 else "text_overlay",
-            })
+            scenes.append(
+                {
+                    "scene_number": i + 1,
+                    "start_time": round(start, 1),
+                    "end_time": round(end, 1),
+                    "duration": round(scene_duration, 1),
+                    "narration": f"Scene {i + 1}: {script[:100] if script else 'Visual content'}",
+                    "visual_type": "motion_graphics" if i % 2 == 0 else "text_overlay",
+                }
+            )
 
         return scenes
 

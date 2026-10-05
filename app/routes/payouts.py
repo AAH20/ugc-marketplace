@@ -1,4 +1,7 @@
 """Payout API routes."""
+
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -36,10 +39,14 @@ def list_payouts(broker_id: int | None = None, db: Session = Depends(get_db)):
 @router.get("/summary", response_model=PayoutSummaryResponse)
 def get_payout_summary(broker_id: int, db: Session = Depends(get_db)):
     """Get payout summary for a broker."""
-    result = db.query(
-        func.sum(BrokerPayout.amount).label("total_amount"),
-        func.count(BrokerPayout.id).label("count"),
-    ).filter(BrokerPayout.broker_id == broker_id).first()
+    result = (
+        db.query(
+            func.sum(BrokerPayout.amount).label("total_amount"),
+            func.count(BrokerPayout.id).label("count"),
+        )
+        .filter(BrokerPayout.broker_id == broker_id)
+        .first()
+    )
 
     # Get currency from broker's payouts
     payout = db.query(BrokerPayout).filter(BrokerPayout.broker_id == broker_id).first()
@@ -47,7 +54,7 @@ def get_payout_summary(broker_id: int, db: Session = Depends(get_db)):
 
     return PayoutSummaryResponse(
         broker_id=broker_id,
-        total_amount=result.total_amount or 0,
+        total_amount=Decimal(str(result.total_amount or 0)),
         currency=currency,
         count=result.count or 0,
     )

@@ -1,4 +1,5 @@
 """Cost-optimized model routing system."""
+
 from __future__ import annotations
 
 import hashlib
@@ -61,13 +62,15 @@ class CostTracker:
         output_tokens: int,
         cost: float,
     ) -> None:
-        self._records.append({
-            "model": model_name,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cost": cost,
-            "timestamp": time.time(),
-        })
+        self._records.append(
+            {
+                "model": model_name,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost": cost,
+                "timestamp": time.time(),
+            }
+        )
 
     def get_summary(self) -> dict:
         total_cost = sum(r["cost"] for r in self._records)
@@ -157,8 +160,7 @@ class ModelRouter:
 
     def _compute_cost(self, model: ModelConfig, input_tokens: int, output_tokens: int) -> float:
         return (
-            model.cost_per_input_token * input_tokens
-            + model.cost_per_output_token * output_tokens
+            model.cost_per_input_token * input_tokens + model.cost_per_output_token * output_tokens
         )
 
     def execute(self, prompt: str, task_type: TaskType) -> str:

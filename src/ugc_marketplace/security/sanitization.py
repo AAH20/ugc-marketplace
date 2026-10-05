@@ -1,4 +1,5 @@
 """Input sanitization and output encoding utilities for XSS prevention."""
+
 from __future__ import annotations
 
 import html
@@ -8,8 +9,24 @@ import bleach
 
 # Allowed HTML tags for rich text fields (descriptions, bios, etc.)
 ALLOWED_TAGS = [
-    "p", "br", "strong", "em", "u", "h1", "h2", "h3", "h4", "h5", "h6",
-    "ul", "ol", "li", "a", "blockquote", "code", "pre",
+    "p",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "a",
+    "blockquote",
+    "code",
+    "pre",
 ]
 
 ALLOWED_ATTRIBUTES = {
@@ -56,10 +73,7 @@ def sanitize_dict(data: dict[str, Any], html_fields: set[str] | None = None) -> 
             else:
                 result[key] = sanitize_text(value)
         elif isinstance(value, list):
-            result[key] = [
-                sanitize_text(item) if isinstance(item, str) else item
-                for item in value
-            ]
+            result[key] = [sanitize_text(item) if isinstance(item, str) else item for item in value]
         else:
             result[key] = value
     return result

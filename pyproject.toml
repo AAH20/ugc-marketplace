@@ -69,7 +69,9 @@ line-length = 100
 src = ["src"]
 
 [tool.mypy]
-python_version = "3.11"
+# Must match PYTHON_DEFAULT in .github/workflows/ci.yml (3.12). A mismatch
+# makes mypy parse installed stubs for a newer Python and abort on syntax.
+python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -83,6 +85,18 @@ show_error_codes = true
 namespace_packages = true
 explicit_package_bases = true
 mypy_path = "src"
+
+# `__init_subclass__` deliberately rebinds cls.post and tags the wrapper with
+# an ad-hoc `_retry_wrapped` attribute. Both are valid decorator metaprogramming.
+[[tool.mypy.overrides]]
+module = "app.integrations.base"
+disable_error_code = ["method-assign", "attr-defined"]
+
+# DeclarativeBase is typed as Any under --ignore-missing-imports, so mypy
+# cannot verify the subclassing. The declaration itself is standard SQLAlchemy 2.
+[[tool.mypy.overrides]]
+module = "app.models.base"
+disable_error_code = ["misc"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -104,3 +118,7 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["F821", "F401"]
+# SQLAlchemy relationship()/back_populates() take string class names that are
+# resolved lazily by the mapper, so ruff cannot see them as defined.
+"**/models/*.py" = ["F821"]
+"**/agents/**/*.py" = ["F821"]

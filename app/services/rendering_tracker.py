@@ -1,4 +1,5 @@
 """Rendering status tracking and cost calculation."""
+
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -183,9 +184,7 @@ class RenderTracker:
 
     def clear_completed(self) -> int:
         """Clear all completed renders. Returns count removed."""
-        to_remove = [
-            rid for rid, r in self._renders.items() if r.status == "complete"
-        ]
+        to_remove = [rid for rid, r in self._renders.items() if r.status == "complete"]
         for rid in to_remove:
             del self._renders[rid]
         return len(to_remove)

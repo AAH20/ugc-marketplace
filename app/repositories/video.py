@@ -1,4 +1,5 @@
 """Async CRUD repositories for video generation."""
+
 from typing import Optional
 
 from sqlalchemy import select

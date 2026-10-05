@@ -1,6 +1,6 @@
 """Analytics API endpoints for the UGC Marketplace."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status

@@ -1,4 +1,5 @@
 """Storyboard workflow with approval gates for AI video generation."""
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 class StoryboardStatus(Enum):
     """Status of a storyboard in the workflow."""
+
     DRAFT = "draft"
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
@@ -22,6 +24,7 @@ class StoryboardStatus(Enum):
 
 class ApprovalDecision(Enum):
     """Decision from an approval gate."""
+
     APPROVE = "approve"
     REJECT = "reject"
     REVISE = "revise"
@@ -30,6 +33,7 @@ class ApprovalDecision(Enum):
 @dataclass
 class Scene:
     """A single scene in a storyboard."""
+
     scene_number: int
     description: str
     visual_prompt: str
@@ -41,6 +45,7 @@ class Scene:
 @dataclass
 class Storyboard:
     """A complete storyboard for a video project."""
+
     project_id: str
     title: str
     scenes: List[Scene]
@@ -62,6 +67,7 @@ class Storyboard:
 @dataclass
 class ApprovalGate:
     """An approval gate in the workflow."""
+
     gate_id: str
     name: str
     description: str

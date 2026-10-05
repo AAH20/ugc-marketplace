@@ -1,4 +1,5 @@
 """Hacker News integration via Algolia API."""
+
 from typing import Optional
 
 import httpx
@@ -53,7 +54,9 @@ class HackerNewsIntegration(BaseIntegration):
             if method == "GET":
                 response = await client.get(url, headers=headers, params=params, timeout=30.0)
             elif method == "POST":
-                response = await client.post(url, json=data, headers=headers, params=params, timeout=30.0)
+                response = await client.post(
+                    url, json=data, headers=headers, params=params, timeout=30.0
+                )
             else:
                 raise IntegrationError(f"Unsupported HTTP method: {method}")
 
@@ -97,9 +100,15 @@ class HackerNewsIntegration(BaseIntegration):
     async def health_check(self) -> dict:
         """Check HN API connectivity."""
         try:
-            result = await self._make_request("GET", "search", params={"query": "test", "hitsPerPage": 1})
+            result = await self._make_request(
+                "GET", "search", params={"query": "test", "hitsPerPage": 1}
+            )
             if "hits" in result:
                 return {"status": "healthy", "platform": self.PLATFORM}
-            return {"status": "unhealthy", "platform": self.PLATFORM, "error": "Unexpected response"}
+            return {
+                "status": "unhealthy",
+                "platform": self.PLATFORM,
+                "error": "Unexpected response",
+            }
         except Exception as e:
             return {"status": "unhealthy", "platform": self.PLATFORM, "error": str(e)}

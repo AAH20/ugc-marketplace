@@ -1,4 +1,5 @@
 """HyperFrames cloud rendering API client."""
+
 import json
 import math
 import time

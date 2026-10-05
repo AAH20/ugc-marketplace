@@ -1,4 +1,5 @@
 """SQLAlchemy 2.0 models for the UGC Marketplace."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import DeclarativeBase

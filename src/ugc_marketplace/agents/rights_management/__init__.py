@@ -24,6 +24,7 @@ from ugc_marketplace.agents.rights_management.usage_tracker import UsageTrackerA
 # Alias for backward compatibility with tests that import the old module name
 import sys as _sys
 import types as _types
+
 _rights_management_module = _types.ModuleType("ugc_marketplace.agents._rights_management")
 _rights_management_module.__dict__.update(globals())
 _sys.modules[__name__ + "._rights_management_module"] = _rights_management_module

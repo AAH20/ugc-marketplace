@@ -4,6 +4,7 @@ Minimal scope: Arabic detection, RTL wrapping, template-based marketing
 copy, and a FastAPI endpoint. No dialect awareness, cultural context, or
 typography rules.
 """
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -31,10 +32,7 @@ def is_arabic(text: str) -> bool:
     """Return True if text contains at least one Arabic-script character."""
     if not text:
         return False
-    return any(
-        any(start <= ord(ch) <= end for start, end in _ARABIC_RANGES)
-        for ch in text
-    )
+    return any(any(start <= ord(ch) <= end for start, end in _ARABIC_RANGES) for ch in text)
 
 
 def wrap_rtl(text: str) -> str:

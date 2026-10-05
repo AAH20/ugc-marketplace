@@ -1,4 +1,5 @@
 """VideoClaw CLI client — drives the vclaw CLI via subprocess."""
+
 import json
 import logging
 import subprocess
@@ -18,6 +19,7 @@ class VideoClawCLIError(Exception):
 
 class ExitCode:
     """VideoClaw CLI exit codes."""
+
     SUCCESS = 0
     BAD_INPUT = 1
     SYSTEM_ERROR = 2

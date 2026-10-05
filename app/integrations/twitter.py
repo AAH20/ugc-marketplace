@@ -1,4 +1,5 @@
 """Twitter/X integration using v2 API."""
+
 from typing import Optional
 
 import httpx
@@ -55,7 +56,9 @@ class TwitterIntegration(BaseIntegration):
             if method == "GET":
                 response = await client.get(url, headers=headers, params=params, timeout=30.0)
             elif method == "POST":
-                response = await client.post(url, json=data, headers=headers, params=params, timeout=30.0)
+                response = await client.post(
+                    url, json=data, headers=headers, params=params, timeout=30.0
+                )
             else:
                 raise IntegrationError(f"Unsupported HTTP method: {method}")
 
@@ -92,6 +95,10 @@ class TwitterIntegration(BaseIntegration):
             result = await self._make_request("GET", "users/me")
             if "data" in result:
                 return {"status": "healthy", "platform": self.PLATFORM}
-            return {"status": "unhealthy", "platform": self.PLATFORM, "error": "No data in response"}
+            return {
+                "status": "unhealthy",
+                "platform": self.PLATFORM,
+                "error": "No data in response",
+            }
         except Exception as e:
             return {"status": "unhealthy", "platform": self.PLATFORM, "error": str(e)}
