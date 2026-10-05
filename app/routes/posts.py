@@ -54,12 +54,28 @@ def get_integration(platform: str):
     return integration_class()
 
 
+REQUIRED_FIELDS = {
+    "twitter": ["text"],
+    "product_hunt": ["name", "tagline", "url"],
+    "hacker_news": ["title", "url"],
+    "reddit": ["title", "url", "subreddit"],
+}
+
+
 @router.post("/posts/{platform}", response_model=PostResponse)
 async def create_post(platform: str, content: PostContent):
     """Trigger a post to a social platform."""
+    required = REQUIRED_FIELDS.get(platform, [])
+    missing = [f for f in required if not getattr(content, f, None)]
+    if missing:
+        raise HTTPException(
+            status_code=422, detail=f"Missing required fields: {', '.join(missing)}"
+        )
+
     integration = get_integration(platform)
     try:
         result = await integration.post(content.model_dump(exclude_none=True))
+        result["platform"] = platform
         return PostResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Integration error: {str(e)}")

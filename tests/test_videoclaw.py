@@ -1,6 +1,7 @@
 """Comprehensive tests for VideoClaw client."""
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
+from app import models  # noqa: F401
 from app.services.videoclaw_client import VideoClawClient, VideoClawConfig
 
 

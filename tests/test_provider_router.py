@@ -1,6 +1,8 @@
 """Integration tests for multi-provider routing with fallback."""
 import pytest
 
+from app import models  # noqa: F401
+from app.main import app  # noqa: F401
 from app.services.provider_router import (
     ProviderConfig,
     ProviderRouter,

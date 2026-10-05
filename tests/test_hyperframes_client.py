@@ -6,6 +6,7 @@ import httpx
 import pytest
 from pytest_httpx import HTTPXMock
 
+from app import models  # noqa: F401
 from app.services.hyperframes_client import (
     HyperFramesClient,
     HyperFramesError,

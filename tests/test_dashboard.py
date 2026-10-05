@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app import models  # noqa: F401
+
 
 class TestDashboardSummary:
     """Tests for GET /api/v1/dashboard/summary."""

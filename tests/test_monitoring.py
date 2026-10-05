@@ -61,6 +61,8 @@ def sample_campaign(db_session):
 @pytest.fixture
 def sample_metrics(db_session, sample_campaign):
     """Create 24 hours of hourly metrics with a clear spend spike at hour 20."""
+    from app.routes.monitoring import _detect_and_alert
+
     metrics = []
     base_time = datetime.now(timezone.utc) - timedelta(hours=24)
     for hour in range(24):
@@ -88,6 +90,12 @@ def sample_metrics(db_session, sample_campaign):
         metrics.append(metric)
     db_session.add_all(metrics)
     db_session.commit()
+
+    # Generate alerts and recommendations for the latest metric (spike at hour 20)
+    from app.routes.monitoring import _detect_and_alert, _generate_recommendations
+    _detect_and_alert(db_session, sample_campaign, metrics[-1])
+    _generate_recommendations(db_session, sample_campaign)
+
     return metrics
 
 

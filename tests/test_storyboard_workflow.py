@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app import models  # noqa: F401
 from app.services.storyboard_workflow import (
     ApprovalDecision,
     ApprovalGate,

@@ -2,6 +2,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from app import models  # noqa: F401
 from app.integrations.product_hunt import ProductHuntIntegration, ProductHuntConfig
 
 

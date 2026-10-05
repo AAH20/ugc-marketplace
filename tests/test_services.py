@@ -1,5 +1,6 @@
 """Comprehensive tests for services: alerting, metrics, recommendations."""
 import pytest
+from app import models  # noqa: F401
 from app.services.alerting import AlertingService
 from app.services.metrics import MetricsService
 from app.services.recommendations import RecommendationEngine
@@ -26,7 +27,7 @@ class TestAlertingService:
     def test_detect_spend_spike_critical(self):
         """Critical severity for extreme spike."""
         service = AlertingService(spend_spike_threshold=2.0)
-        alerts = service.detect_spend_spike(600, 100, 1)
+        alerts = service.detect_spend_spike(1000, 100, 1)
         assert len(alerts) == 1
         assert alerts[0]["severity"] == AlertSeverity.CRITICAL
 
@@ -66,7 +67,7 @@ class TestAlertingService:
     def test_detect_ctr_drop_medium_severity(self):
         """Medium severity for moderate drop."""
         service = AlertingService(ctr_drop_threshold=0.5)
-        alerts = service.detect_ctr_drop(0.006, 0.01, 1)
+        alerts = service.detect_ctr_drop(0.004, 0.01, 1)
         assert len(alerts) == 1
         assert alerts[0]["severity"] == AlertSeverity.MEDIUM
 

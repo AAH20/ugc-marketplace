@@ -6,6 +6,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from app import models  # noqa: F401
 from app.routes.hyperframes_webhook import router, verify_webhook_signature
 
 

@@ -1,5 +1,6 @@
 """Integration tests for rendering status tracking and cost calculation."""
 import pytest
+from app import models  # noqa: F401
 from app.services.rendering_tracker import RenderCostCalculator, RenderTracker
 
 

@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import Integer, Numeric, ForeignKey, DateTime, Index
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
@@ -26,6 +26,8 @@ class CampaignMetric(Base):
     conversions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     spend: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False, default=0)
     revenue: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False, default=0)
+
+    campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="metrics")
 
     def __repr__(self):
         return f"<CampaignMetric(id={self.id}, campaign_id={self.campaign_id}, ts='{self.timestamp}')>"

@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app import models  # noqa: F401
+from app.main import app  # noqa: F401
 from app.services.videoclaw_cli import (
     VideoClawCLIClient,
     VideoClawCLIError,
@@ -38,8 +40,9 @@ class TestVideoCLICreate:
         assert result["status"] == "created"
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
-        assert args[0] == "video"
-        assert args[1] == "create"
+        assert args[0] == "vclaw"
+        assert args[1] == "video"
+        assert args[2] == "create"
         assert "My Project" in args
 
     @patch("subprocess.run")
@@ -131,8 +134,9 @@ class TestVideoCLIProduce:
         assert result["job_id"] == "job_456"
         assert result["status"] == "processing"
         args = mock_run.call_args[0][0]
-        assert args[0] == "video"
-        assert args[1] == "produce"
+        assert args[0] == "vclaw"
+        assert args[1] == "video"
+        assert args[2] == "produce"
         assert "proj_123" in args
 
     @patch("subprocess.run")
@@ -180,8 +184,9 @@ class TestVideoCLIAssemble:
         assert result["video_url"] == "https://cdn.example.com/video.mp4"
         assert result["status"] == "ready"
         args = mock_run.call_args[0][0]
-        assert args[0] == "video"
-        assert args[1] == "assemble"
+        assert args[0] == "vclaw"
+        assert args[1] == "video"
+        assert args[2] == "assemble"
         assert "proj_123" in args
 
     @patch("subprocess.run")
@@ -210,7 +215,7 @@ class TestVideoCLITimeout:
         with pytest.raises(VideoClawCLIError) as exc_info:
             client.video_create("Test")
 
-        assert "timeout" in str(exc_info.value).lower()
+        assert "timed out" in str(exc_info.value).lower()
 
 
 class TestVideoCLIRobustness:

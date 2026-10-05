@@ -1,7 +1,9 @@
 """Integration tests for the model routing system."""
 import pytest
 
-from model_router import (
+from app import models  # noqa: F401
+from app.main import app  # noqa: F401
+from src.model_router import (
     CostTracker,
     ContextCache,
     ModelConfig,

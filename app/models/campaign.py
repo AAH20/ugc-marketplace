@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from enum import Enum
 
 from sqlalchemy import String, Numeric, Boolean, Date, DateTime, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
@@ -35,6 +35,10 @@ class Campaign(Base, TimestampMixin):
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    metrics: Mapped[list["CampaignMetric"]] = relationship(
+        "CampaignMetric", back_populates="campaign", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Campaign(id={self.id}, name='{self.name}', status='{self.status}')>"

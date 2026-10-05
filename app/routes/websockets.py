@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.database import get_db
 from app.models.campaign import Campaign
 from app.models.campaign_metric import CampaignMetric
 from app.models.alert import Alert
@@ -48,19 +48,14 @@ manager = ConnectionManager()
 
 
 def _get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    yield from get_db()
 
 
 @ws_router.websocket("/ws/campaigns/{campaign_id}/metrics")
-async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int):
+async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int, db: Session = Depends(get_db)):
     """Stream live metrics for a campaign."""
     channel = f"campaign_{campaign_id}_metrics"
     await manager.connect(channel, websocket)
-    db = next(_get_db())
     try:
         campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
         if not campaign:
@@ -132,11 +127,10 @@ async def ws_campaign_metrics(websocket: WebSocket, campaign_id: int):
 
 
 @ws_router.websocket("/ws/campaigns/{campaign_id}/alerts")
-async def ws_campaign_alerts(websocket: WebSocket, campaign_id: int):
+async def ws_campaign_alerts(websocket: WebSocket, campaign_id: int, db: Session = Depends(get_db)):
     """Stream alerts for a campaign."""
     channel = f"campaign_{campaign_id}_alerts"
     await manager.connect(channel, websocket)
-    db = next(_get_db())
     try:
         campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
         if not campaign:
@@ -204,11 +198,10 @@ async def ws_campaign_alerts(websocket: WebSocket, campaign_id: int):
 
 
 @ws_router.websocket("/ws/dashboard")
-async def ws_dashboard(websocket: WebSocket):
+async def ws_dashboard(websocket: WebSocket, db: Session = Depends(get_db)):
     """Stream dashboard overview."""
     channel = "dashboard"
     await manager.connect(channel, websocket)
-    db = next(_get_db())
     try:
         from sqlalchemy import func
 

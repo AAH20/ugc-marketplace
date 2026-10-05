@@ -8,9 +8,9 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app import models  # noqa: F401
 from app.gtm.api.routes import router
 from app.gtm.db import get_gtm_session
-from app import models  # noqa: F401
 from app.models.base import Base
 
 

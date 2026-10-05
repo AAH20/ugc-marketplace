@@ -3,6 +3,7 @@ import pytest
 import os
 import tempfile
 from unittest.mock import MagicMock, patch, AsyncMock
+from app import models  # noqa: F401
 from app.services.hyperframes_client import HyperFramesClient, HyperFramesError, RenderStatus
 from app.services.rendering_tracker import RenderTracker, RenderCostCalculator, RenderTrackingEntry
 

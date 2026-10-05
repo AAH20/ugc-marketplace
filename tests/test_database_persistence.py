@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app import models  # noqa: F401
 from app.models.base import Base, TimestampMixin
 from app.models.broker import Broker, MENA_COUNTRIES, MENA_CURRENCIES
 from app.models.broker_partner import BrokerPartner
@@ -137,17 +138,14 @@ class TestBrokerModel:
 
     def test_broker_arabic_name_validation(self, db_session):
         """Arabic name must contain Arabic characters."""
-        broker = Broker(
-            name="Test",
-            name_ar="Not Arabic",
-            country="AE",
-            currency="AED",
-            commission_rate=0.05,
-        )
-        db_session.add(broker)
         with pytest.raises(ValueError, match="Arabic name must contain Arabic characters"):
-            db_session.commit()
-        db_session.rollback()
+            Broker(
+                name="Test",
+                name_ar="Not Arabic",
+                country="AE",
+                currency="AED",
+                commission_rate=0.05,
+            )
 
     def test_broker_arabic_name_none_allowed(self, db_session):
         """None Arabic name is allowed."""
