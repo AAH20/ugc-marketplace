@@ -24,9 +24,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 COPY pyproject.toml .
 COPY README.md .
+COPY requirements.txt .
 COPY src/ src/
 COPY app/ app/
 RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt && \
     pip install .
 
 # ---------- Production stage ----------
