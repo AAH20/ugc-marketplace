@@ -55,10 +55,10 @@ UGC Marketplace is a **unified agentic AI platform** that consolidates ten separ
 | **Language** | Python 3.11+ |
 | **Framework** | FastAPI + Uvicorn |
 | **Validation** | Pydantic v2 |
-| **Database** | PostgreSQL 16 (asyncpg) + SQLAlchemy 2.0 |
-| **Cache** | Redis 7 |
-| **Message Queue** | Kafka (aiokafka) |
-| **LLM** | OpenAI GPT-4o (langchain-openai) |
+| **Database** | SQLAlchemy 2.0 (database agnostic) |
+| **Cache** | In-memory (pluggable) |
+| **Message Queue** | In-process (pluggable) |
+| **LLM** | Pluggable (any provider) |
 | **Logging** | structlog |
 | **Testing** | pytest + pytest-asyncio + pytest-cov (573 passing) |
 | **Linting** | ruff + mypy (strict) |
@@ -179,7 +179,7 @@ sequenceDiagram
 
 - **Python** 3.11 or higher
 - **Docker** 24.0+ (for containerized setup)
-- **OpenAI API key** (for LLM-powered features)
+- **LLM API key** (for LLM-powered features, any provider)
 
 ### Option 1: Docker Compose (Recommended)
 
@@ -601,9 +601,9 @@ docker-compose down -v
 | Service | Port | Description |
 |---------|------|-------------|
 | `api` | 8000 | FastAPI application |
-| `db` | 5432 | PostgreSQL 16 |
-| `redis` | 6379 | Redis 7 |
-| `kafka` | 9092 | Kafka (Confluent) |
+| `db` | 5432 | Database (configurable) |
+| `cache` | 6379 | Cache (configurable) |
+| `queue` | 9092 | Message Queue (configurable) |
 | `zookeeper` | 2181 | ZooKeeper (Kafka dependency) |
 
 ### Docker Compose (Production)
@@ -668,10 +668,10 @@ helm uninstall ugc-marketplace --namespace ugc-marketplace
 |----------|---------|-------------|
 | `APP_ENV` | `development` | Environment (development/production) |
 | `LOG_LEVEL` | `INFO` | Logging level |
-| `DATABASE_URL` | `postgresql+asyncpg://...` | PostgreSQL connection |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `OPENAI_API_KEY` | — | OpenAI API key |
+| `DATABASE_URL` | — | Database connection string |
+| `CACHE_URL` | — | Cache connection string |
+| `QUEUE_BROKERS` | — | Message queue brokers |
+| `LLM_API_KEY` | — | LLM provider API key |
 | `SECRET_KEY` | `change-me-in-production` | Application secret |
 | `API_PREFIX` | `/api/v1` | API route prefix |
 | `LLM_MODEL` | `gpt-4o` | LLM model name |
@@ -908,7 +908,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python SDK** — Full-featured client with OAuth2 authentication, automatic retries, and type-safe models
 - **Helm Chart** — Production-ready Kubernetes deployment with HPA, PDB, ingress, and monitoring
 - **CI/CD Pipeline** — GitHub Actions workflows for linting, type checking, testing, security scanning, and deployment
-- **Docker Compose** — Local development environment with PostgreSQL, Redis, and Kafka
+- **Docker Compose** — Local development environment with configurable services
 - **Comprehensive Test Suite** — Unit and integration tests with coverage reporting
 - **API Documentation** — Interactive Swagger UI and ReDoc with full OpenAPI specification
 
