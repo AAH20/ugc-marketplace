@@ -1,10 +1,15 @@
 """CommissionTracking model."""
 
+from typing import TYPE_CHECKING
 from datetime import date
 from sqlalchemy import String, Numeric, ForeignKey, Date, Text, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.models.base import Base, TimestampMixin
+
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from app.models.broker import Broker
 
 
 class CommissionStatus(str, enum.Enum):

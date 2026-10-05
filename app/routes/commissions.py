@@ -1,5 +1,7 @@
 """Commission API routes."""
 
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -23,12 +25,14 @@ def calculate_commission(request: CommissionCalculateRequest, db: Session = Depe
     if not broker:
         raise HTTPException(status_code=404, detail="Broker not found")
 
-    commission_amount = request.deal_amount * broker.commission_rate
+    deal_amount = Decimal(str(request.deal_amount))
+    commission_rate = Decimal(str(broker.commission_rate))
+    commission_amount = deal_amount * commission_rate
 
     return CommissionCalculateResponse(
         broker_id=request.broker_id,
         deal_amount=request.deal_amount,
-        commission_rate=broker.commission_rate,
+        commission_rate=commission_rate,
         commission_amount=commission_amount,
         currency=request.currency,
     )

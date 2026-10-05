@@ -1,11 +1,16 @@
 """CampaignMetric model for time-series metrics."""
 
+from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 
 from sqlalchemy import Integer, Numeric, ForeignKey, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from app.models.campaign import Campaign
 
 
 class CampaignMetric(Base):

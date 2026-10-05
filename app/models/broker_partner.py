@@ -1,8 +1,13 @@
 """BrokerPartner model."""
 
+from typing import TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
+
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from app.models.broker import Broker
 
 
 class BrokerPartner(Base, TimestampMixin):

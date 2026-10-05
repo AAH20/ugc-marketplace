@@ -1,9 +1,16 @@
 """Broker model with MENA-specific fields."""
 
+from typing import TYPE_CHECKING
 import re
 from sqlalchemy import String, Numeric, Boolean, CheckConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
 from app.models.base import Base, TimestampMixin
+
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from app.models.broker_partner import BrokerPartner
+    from app.models.commission_tracking import CommissionTracking
+    from app.models.broker_payout import BrokerPayout
 
 # MENA country codes
 MENA_COUNTRIES = {

@@ -52,11 +52,15 @@ def get_payout_summary(broker_id: int, db: Session = Depends(get_db)):
     payout = db.query(BrokerPayout).filter(BrokerPayout.broker_id == broker_id).first()
     currency = payout.currency if payout else "AED"
 
+    amount = result.total_amount if result is not None else None
+    raw_count = result.count if result is not None else None
+    count = int(raw_count) if isinstance(raw_count, (int, float)) else 0
+
     return PayoutSummaryResponse(
         broker_id=broker_id,
-        total_amount=Decimal(str(result.total_amount or 0)),
+        total_amount=Decimal(str(amount or 0)),
         currency=currency,
-        count=result.count or 0,
+        count=count,
     )
 
 

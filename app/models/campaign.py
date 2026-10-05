@@ -1,5 +1,6 @@
 """Campaign model."""
 
+from typing import TYPE_CHECKING
 from datetime import date, datetime, timezone
 from enum import Enum
 
@@ -7,6 +8,10 @@ from sqlalchemy import String, Numeric, Boolean, Date, DateTime, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from app.models.campaign_metric import CampaignMetric
 
 
 class CampaignStatus(str, Enum):
