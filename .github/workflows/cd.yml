@@ -149,7 +149,7 @@ jobs:
             -e REDIS_URL=redis://localhost:6379/0 \
             -e SECRET_KEY=smoke-test-secret \
             -e LOG_LEVEL=DEBUG \
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:main
+            ghcr.io/aah20/ugc-marketplace:main
 
       - name: Wait for health check
         run: |
