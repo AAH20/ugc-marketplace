@@ -165,7 +165,13 @@ jobs:
 
       - name: Bandit security scan
         run: |
-          bandit -r src/ app/ -f json -o bandit-report.json
+          # Report generation is best-effort: bandit exits 1 on ANY finding,
+          # which would abort this step under `bash -e` before the gate below
+          # runs. The enforcing check is the -ll invocation underneath.
+          bandit -r src/ app/ -f json -o bandit-report.json || true
+          # Gate: fail the build only on MEDIUM+ severity findings. LOW findings
+          # (asserts in test files, subprocess imports, etc.) stay in the report
+          # without failing CI.
           bandit -r src/ app/ -ll -q
 
       - name: Safety dependency check

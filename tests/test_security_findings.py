@@ -26,6 +26,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 
 
+@pytest.fixture(autouse=True)
+def _sqlite_env_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force the SQLite fallback path for every test in this module.
+
+    CI sets ``DATABASE_URL`` to Postgres at workflow level; ``get_database_url``
+    treats that as authoritative over the SQLite fallback these tests pin. The
+    contract under test B108 only applies to the fallback, so remove DATABASE_URL
+    to exercise it deterministically regardless of the ambient environment.
+    """
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+
 # --------------------------------------------------------------------------
 # B108 -- the SQLite fallback directory must not be world-writable
 # --------------------------------------------------------------------------
