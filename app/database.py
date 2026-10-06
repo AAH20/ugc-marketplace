@@ -23,7 +23,7 @@ import stat
 from collections.abc import Generator
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -196,5 +196,20 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Create all tables declared on :class:`Base`."""
-    Base.metadata.create_all(bind=get_engine())
+    """Create all tables declared on :class:`Base`.
+
+    On PostgreSQL this runs inside a transaction holding a transaction-scoped
+    advisory lock. With ``uvicorn --workers N`` every worker executes the
+    startup hook; ``create_all`` is race-safe for tables but NOT for native
+    ENUM types — workers racing on ``CREATE TYPE`` trip
+    ``pg_type_typname_nsp_index`` (UniqueViolation) and abort startup. The
+    advisory lock serialises schema creation across workers and is released
+    automatically when the transaction commits.
+    """
+    engine = get_engine()
+    if engine.url.get_backend_name() == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(text("SELECT pg_advisory_xact_lock(781236401)"))
+            Base.metadata.create_all(bind=conn)
+        return
+    Base.metadata.create_all(bind=engine)
