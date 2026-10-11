@@ -120,6 +120,21 @@ def test_get_broker_not_found(client):
     assert response.status_code == 404
 
 
+def test_update_broker_not_found(client):
+    """PUT /brokers/{id} returns 404 for non-existent broker."""
+    response = client.put(
+        "/api/v1/brokers/9999",
+        json={"commission_rate": 0.08, "is_active": False},
+    )
+    assert response.status_code == 404
+
+
+def test_delete_broker_not_found(client):
+    """DELETE /brokers/{id} returns 404 for non-existent broker."""
+    response = client.delete("/api/v1/brokers/9999")
+    assert response.status_code == 404
+
+
 def test_update_broker(client):
     """PUT /brokers/{id} updates a broker."""
     create_resp = client.post(

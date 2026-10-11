@@ -426,6 +426,45 @@ class TestCampaignAPI:
         resp = client.get("/api/campaigns/99999")
         assert resp.status_code == 404
 
+    def test_get_campaign_metrics_not_found(self, client):
+        """GET /campaigns/{id}/metrics returns 404 for an unknown campaign."""
+        resp = client.get("/api/campaigns/99999/metrics")
+        assert resp.status_code == 404
+
+    def test_get_campaign_metrics_empty_when_none_ingested(self, client, sample_campaign):
+        """GET /campaigns/{id}/metrics returns an empty list for a campaign with no metrics."""
+        resp = client.get(f"/api/campaigns/{sample_campaign.id}/metrics")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_ingest_metric_campaign_not_found(self, client):
+        """POST /campaigns/{id}/metrics returns 404 for an unknown campaign."""
+        resp = client.post(
+            "/api/campaigns/99999/metrics",
+            json={"impressions": 1, "clicks": 1, "conversions": 1, "spend": 1.0, "revenue": 1.0},
+        )
+        assert resp.status_code == 404
+
+    def test_get_campaign_alerts_not_found(self, client):
+        """GET /campaigns/{id}/alerts returns 404 for an unknown campaign."""
+        assert client.get("/api/campaigns/99999/alerts").status_code == 404
+
+    def test_get_campaign_recommendations_not_found(self, client):
+        """GET /campaigns/{id}/recommendations returns 404 for an unknown campaign."""
+        assert client.get("/api/campaigns/99999/recommendations").status_code == 404
+
+    def test_resolve_alert_not_found(self, client):
+        """POST /alerts/{id}/resolve returns 404 for an unknown alert."""
+        assert client.post("/api/alerts/99999/resolve").status_code == 404
+
+    def test_generate_recommendations_without_metrics_returns_empty(
+        self, db_session, sample_campaign
+    ):
+        """_generate_recommendations is a no-op for a campaign with no metrics."""
+        from app.routes.monitoring import _generate_recommendations
+
+        assert _generate_recommendations(db_session, sample_campaign) == []
+
     def test_get_campaign_metrics(self, client, sample_campaign, sample_metrics):
         resp = client.get(f"/api/campaigns/{sample_campaign.id}/metrics")
         assert resp.status_code == 200

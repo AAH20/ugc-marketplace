@@ -351,3 +351,210 @@ class TestVideoResultRoutes:
         data = response.json()
         assert len(data) == 1
         assert data[0]["request_id"] == req1.id
+
+    @pytest.mark.asyncio
+    async def test_get_result_not_found_returns_404(self, client):
+        """GET /api/v1/video/results/{id} returns 404 for non-existent result."""
+        response = await client.get("/api/v1/video/results/99999")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_update_result(self, client, async_session):
+        """PATCH /api/v1/video/results/{id} updates a result."""
+        req = await VideoRequestRepository(async_session).create(
+            {"user_id": "user-1", "prompt": "Test"}
+        )
+        from app.repositories.video import VideoResultRepository
+
+        result_repo = VideoResultRepository(async_session)
+        created = await result_repo.create(
+            {
+                "request_id": req.id,
+                "video_url": "https://cdn.example.com/v.mp4",
+                "duration_seconds": 10.0,
+                "file_size_bytes": 500000,
+                "format": "mp4",
+                "resolution": "1080p",
+            }
+        )
+
+        response = await client.patch(
+            f"/api/v1/video/results/{created.id}",
+            json={"resolution": "4K", "duration_seconds": 12.5},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["resolution"] == "4K"
+        assert data["duration_seconds"] == 12.5
+
+    @pytest.mark.asyncio
+    async def test_update_result_not_found_returns_404(self, client):
+        """PATCH /api/v1/video/results/{id} returns 404 for non-existent result."""
+        response = await client.patch("/api/v1/video/results/99999", json={"resolution": "4K"})
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_result(self, client, async_session):
+        """DELETE /api/v1/video/results/{id} deletes a result."""
+        req = await VideoRequestRepository(async_session).create(
+            {"user_id": "user-1", "prompt": "Test"}
+        )
+        from app.repositories.video import VideoResultRepository
+
+        result_repo = VideoResultRepository(async_session)
+        created = await result_repo.create(
+            {
+                "request_id": req.id,
+                "video_url": "https://cdn.example.com/v.mp4",
+                "duration_seconds": 10.0,
+                "file_size_bytes": 500000,
+                "format": "mp4",
+                "resolution": "1080p",
+            }
+        )
+
+        response = await client.delete(f"/api/v1/video/results/{created.id}")
+        assert response.status_code == 204
+        assert (await client.get(f"/api/v1/video/results/{created.id}")).status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_result_not_found_returns_404(self, client):
+        """DELETE /api/v1/video/results/{id} returns 404 for non-existent result."""
+        response = await client.delete("/api/v1/video/results/99999")
+        assert response.status_code == 404
+
+
+class TestVideoQualityMetricsRoutes:
+    """Tests for video quality-metrics API endpoints (previously untested)."""
+
+    async def _make_result(self, async_session):
+        req = await VideoRequestRepository(async_session).create(
+            {"user_id": "user-1", "prompt": "Test"}
+        )
+        from app.repositories.video import VideoResultRepository
+
+        return await VideoResultRepository(async_session).create(
+            {
+                "request_id": req.id,
+                "video_url": "https://cdn.example.com/v.mp4",
+                "duration_seconds": 10.0,
+                "file_size_bytes": 500000,
+                "format": "mp4",
+                "resolution": "1080p",
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_quality_metrics(self, client, async_session):
+        """POST /api/v1/video/quality-metrics creates metrics for a result."""
+        result = await self._make_result(async_session)
+
+        response = await client.post(
+            "/api/v1/video/quality-metrics",
+            json={
+                "result_id": result.id,
+                "overall_score": 0.9,
+                "visual_quality": 0.8,
+                "audio_quality": 0.85,
+                "coherence_score": 0.95,
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["result_id"] == result.id
+        assert data["overall_score"] == 0.9
+        assert data["visual_quality"] == 0.8
+        assert "id" in data
+
+    @pytest.mark.asyncio
+    async def test_get_quality_metrics(self, client, async_session):
+        """GET /api/v1/video/quality-metrics/{id} retrieves metrics."""
+        result = await self._make_result(async_session)
+        created = (
+            await client.post(
+                "/api/v1/video/quality-metrics",
+                json={
+                    "result_id": result.id,
+                    "overall_score": 0.7,
+                    "visual_quality": 0.7,
+                    "audio_quality": 0.7,
+                    "coherence_score": 0.7,
+                },
+            )
+        ).json()
+
+        response = await client.get(f"/api/v1/video/quality-metrics/{created['id']}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == created["id"]
+        assert data["overall_score"] == 0.7
+
+    @pytest.mark.asyncio
+    async def test_get_quality_metrics_not_found_returns_404(self, client):
+        """GET /api/v1/video/quality-metrics/{id} returns 404 when absent."""
+        response = await client.get("/api/v1/video/quality-metrics/99999")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_quality_metrics_by_result(self, client, async_session):
+        """GET /api/v1/video/quality-metrics/result/{id} finds metrics by result."""
+        result = await self._make_result(async_session)
+        created = (
+            await client.post(
+                "/api/v1/video/quality-metrics",
+                json={
+                    "result_id": result.id,
+                    "overall_score": 0.6,
+                    "visual_quality": 0.6,
+                    "audio_quality": 0.6,
+                    "coherence_score": 0.6,
+                },
+            )
+        ).json()
+
+        response = await client.get(f"/api/v1/video/quality-metrics/result/{result.id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == created["id"]
+        assert data["result_id"] == result.id
+
+    @pytest.mark.asyncio
+    async def test_get_quality_metrics_by_result_not_found_returns_404(self, client):
+        """GET /api/v1/video/quality-metrics/result/{id} returns 404 when absent."""
+        response = await client.get("/api/v1/video/quality-metrics/result/99999")
+        assert response.status_code == 404
+
+
+class TestVideoTemplateNotFoundRoutes:
+    """404-branch coverage for template endpoints plus the active_only filter."""
+
+    @pytest.mark.asyncio
+    async def test_get_template_not_found_returns_404(self, client):
+        response = await client.get("/api/v1/video/templates/99999")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_update_template_not_found_returns_404(self, client):
+        response = await client.patch("/api/v1/video/templates/99999", json={"name": "X"})
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_template_not_found_returns_404(self, client):
+        response = await client.delete("/api/v1/video/templates/99999")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_list_templates_active_only_filters_inactive(self, client, async_session):
+        """GET /api/v1/video/templates?active_only=true hides inactive templates."""
+        from app.repositories.video import VideoTemplateRepository
+
+        repo = VideoTemplateRepository(async_session)
+        await repo.create({"name": "Active", "category": "c"})
+        inactive = await repo.create({"name": "Inactive", "category": "c"})
+        inactive.is_active = False
+        await async_session.commit()
+
+        response = await client.get("/api/v1/video/templates?active_only=true")
+        assert response.status_code == 200
+        names = {t["name"] for t in response.json()}
+        assert names == {"Active"}
