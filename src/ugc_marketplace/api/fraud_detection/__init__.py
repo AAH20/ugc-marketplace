@@ -17,7 +17,7 @@ from ugc_marketplace.agents.fraud_detection import (
 from ugc_marketplace.config.logging_config import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/fraud", tags=["fraud"])
+router = APIRouter(tags=["fraud"])
 
 _pattern_agent: PatternDetectorAgent | None = None
 _anomaly_agent: AnomalyDetectorAgent | None = None

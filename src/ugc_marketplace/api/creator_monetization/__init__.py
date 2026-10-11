@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/monetization", tags=["monetization"])
+router = APIRouter(tags=["monetization"])
 
 
 class MetricRecordRequest(BaseModel):

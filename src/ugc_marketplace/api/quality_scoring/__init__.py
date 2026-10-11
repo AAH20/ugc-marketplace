@@ -6,7 +6,7 @@ from fastapi import APIRouter
 
 from ugc_marketplace.models.schemas import ContentType, DimensionScore, ScoreDimension, ScoreLevel
 
-router = APIRouter(prefix="/quality", tags=["quality"])
+router = APIRouter(tags=["quality"])
 
 
 @router.get("/health")

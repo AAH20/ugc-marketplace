@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, status
 
-router = APIRouter(prefix="/marketplace", tags=["marketplace"])
+router = APIRouter(tags=["marketplace"])
 
 
 def get_listing_agent() -> Any:

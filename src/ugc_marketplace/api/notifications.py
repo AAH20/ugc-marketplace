@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, field_validator
 from ugc_marketplace.security.auth import get_current_user, require_auth
 from ugc_marketplace.security.authorization import Permission, require_permission
 
-router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
+router = APIRouter(tags=["notifications"])
 
 
 # ---------------------------------------------------------------------------

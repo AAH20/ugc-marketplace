@@ -15,7 +15,7 @@ from ugc_marketplace.security.authorization import Permission, require_permissio
 
 from ugc_marketplace.security.sanitization import sanitize_text
 
-router = APIRouter(prefix="/creators", tags=["creators"])
+router = APIRouter(tags=["creators"])
 
 # ---------------------------------------------------------------------------
 # Mock data store

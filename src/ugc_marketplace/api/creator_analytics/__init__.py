@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from ugc_marketplace import __version__
 from ugc_marketplace.models.schemas import HealthResponse
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(tags=["analytics"])
 
 
 @router.get("/health", response_model=HealthResponse)

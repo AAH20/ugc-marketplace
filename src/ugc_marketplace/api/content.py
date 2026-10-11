@@ -13,7 +13,7 @@ from ugc_marketplace.security.auth import get_current_user, require_auth
 from ugc_marketplace.security.authorization import Permission, require_permission
 from ugc_marketplace.security.sanitization import sanitize_text
 
-router = APIRouter(prefix="/api/v1/content", tags=["content"])
+router = APIRouter(tags=["content"])
 
 
 # ─── Mock data store ────────────────────────────────────────────────────────

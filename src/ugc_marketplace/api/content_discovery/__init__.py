@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/discovery", tags=["discovery"])
+router = APIRouter(tags=["discovery"])
 
 
 @router.get("/search")

@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from ugc_marketplace.security.auth import get_current_user, require_auth
 from ugc_marketplace.security.authorization import Permission, require_permission
 
-router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
+router = APIRouter(tags=["categories"])
 
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────

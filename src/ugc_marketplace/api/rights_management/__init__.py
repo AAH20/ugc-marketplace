@@ -14,7 +14,7 @@ from ugc_marketplace.agents.rights_management import (
     UsageTrackerAgent,
 )
 
-router = APIRouter(prefix="/rights", tags=["rights"])
+router = APIRouter(tags=["rights"])
 
 
 def get_storage(request: Request) -> dict:
