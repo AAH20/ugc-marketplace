@@ -1,0 +1,16 @@
+diff --git a/src/ugc_marketplace/api/payments.py b/src/ugc_marketplace/api/payments.py
+--- a/src/ugc_marketplace/api/payments.py
++++ b/src/ugc_marketplace/api/payments.py
+@@ -1,8 +1,8 @@
++
++"""Payment API endpoints for UGC Marketplace."""
++
++from __future__ import annotations
+ from datetime import timezone
+-
+-"""Payment API endpoints for UGC Marketplace."""
+-
+-from __future__ import annotations
+ 
+ from typing import Any
+ from uuid import UUID, uuid4
