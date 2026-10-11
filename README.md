@@ -13,7 +13,7 @@
 
 **Unified agentic AI platform for content marketplace operations, GTM launch management, video generation, and broker channel distribution — built for MENA and emerging markets.**
 
-> **Status:** Production-ready · 513 tests passing · 117 Python files · 23K+ lines of code
+> **Status:** Production-ready · 873 tests passing · 117 Python files · 23K+ lines of code
 
 [Quick Start](#quick-start) · [Features](#features) · [New Modules](#new-modules) · [API Reference](#api-reference) · [Deployment](#deployment) · [Development](#development) · [Contributing](#contributing)
 
@@ -60,7 +60,7 @@ UGC Marketplace is a **unified agentic AI platform** that consolidates ten separ
 | **Message Queue** | In-process (pluggable) |
 | **LLM** | Optional — `requirements.txt` ships no LLM SDK; agent modules import provider SDKs lazily and are skipped when absent |
 | **Logging** | structlog |
-| **Testing** | pytest + pytest-asyncio + pytest-cov (513 passing) |
+| **Testing** | pytest + pytest-asyncio + pytest-cov (873 passing) |
 | **Linting** | ruff + mypy (strict) |
 | **Packaging** | hatchling |
 | **Deployment** | Docker + Helm + Kubernetes |
@@ -260,13 +260,13 @@ Once running, visit:
 | `http://localhost:8000/docs` | Swagger UI (interactive API docs) |
 | `http://localhost:8000/redoc` | ReDoc (alternative API docs) |
 | `http://localhost:8000/openapi.json` | OpenAPI schema |
-| `http://localhost:8000/api/v1/health` | Health check |
+| `http://localhost:8000/health` | Health check |
 
 ### Quick API Test
 
 ```bash
 # Health check
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/health
 
 # Moderate text content
 curl -X POST http://localhost:8000/api/v1/moderation/moderate/text \
@@ -705,45 +705,38 @@ intentionally want to point the compose `app` service at PostgreSQL.
 
 ### Continuous Delivery (GitHub Actions)
 
-The workflows in `.github/workflows/` are **cloud-provider agnostic**. No step
-depends on AWS, GCP, Azure, or any provider SDK, and the default pipeline runs
-green on a fresh clone with zero secrets configured.
+`.github/workflows/cd.yml` is the **cloud-provider agnostic** pipeline: it builds
+and pushes the image to GHCR, generates an SBOM (`anchore/sbom-action`), scans it
+with Trivy, and runs a smoke test that boots the pushed image and asserts
+`GET /health` returns 200. It runs green on a fresh clone with zero secrets
+configured (SBOM generation and the Trivy scan are `continue-on-error: true`).
 
-**`cd.yml` — Build, publish, scan, smoke-test**
+`.github/workflows/deploy.yml` builds the image and then wires deployment jobs
+that target **AWS ECS**; those jobs only run on a manual `workflow_dispatch` and
+require AWS credentials.
 
-| Job | What it does | Needs credentials? |
-|-----|--------------|--------------------|
-| `build-and-push` | Multi-arch build pushed to GHCR, then SBOM (`anchore/sbom-action`) and Trivy scan against the **pushed digest** | No |
-| `smoke-test` | Pulls the exact pushed digest and asserts `GET /health` returns 200 | No |
-
-SBOM generation and the Trivy scan are `continue-on-error: true`: a registry or
-scanner outage degrades the pipeline's reporting, it does not break the release.
-Both resolve the image as `ghcr.io/<repo>@<digest>` rather than by tag, because
-the tag namespace only contains the tags `docker/metadata-action` emits (which
-includes a *short* sha, not the full commit sha).
-
-**`deploy.yml` — Verify always, deploy only when you opt in**
+**`cd.yml`**
 
 | Job | What it does | Needs credentials? |
 |-----|--------------|--------------------|
-| `deploy-enabled` | Resolves deploy intent from repo variables | No |
-| `build-and-verify` | Builds the image and **proves it boots** and serves `/health` | No |
-| `validate-manifests` | `kustomize build` on base + both overlays, `kubeconform -strict` schema validation, `helm lint` + `helm template`, standalone manifests, `terraform fmt` | No |
-| `deploy-cluster` | `kubectl apply` + rollout wait + in-cluster health probe | Yes — opt-in |
+| `build-and-push` | Multi-arch build pushed to GHCR, then SBOM + Trivy scan | No |
+| `smoke-test` | Runs the pushed image and asserts `curl /health` returns 200 | No |
 
-The two always-on jobs are what make the pipeline worth running on a fork or a
-PR: a broken Dockerfile or an invalid manifest fails before anyone deploys.
+**`deploy.yml`**
 
-To enable the real cluster deploy:
+| Job | What it does | Needs credentials? |
+|-----|--------------|--------------------|
+| `build` | Multi-arch build pushed to GHCR | No |
+| `deploy-staging` | Configures AWS creds and runs `aws ecs update-service` on the staging cluster | Yes — `workflow_dispatch` + AWS secrets |
+| `smoke-tests` | Runs the Node smoke-test suite against staging | No (dispatch only) |
+| `deploy-production` | Configures AWS creds, updates the production ECS service, verifies `/health` | Yes — `workflow_dispatch` + AWS secrets |
 
-1. Add a repository **variable** `K8S_DEPLOY_ENABLED` = `true`
-   (or trigger the workflow manually via the `deploy` input)
-2. Add a repository **secret** `K8S_KUBECONFIG` containing a base64-encoded kubeconfig
-3. Optionally set `K8S_CONTEXT`, `K8S_NAMESPACE`, `K8S_ROLLOUT_TIMEOUT`
-
-The deploy job targets any conformant cluster (EKS, GKE, AKS, k3s, kind, …) using
-plain `kubectl` — no provider SDK is involved. If the kubeconfig secret is absent,
-the job logs a notice and skips instead of failing the run.
+The `deploy-staging`, `smoke-tests`, and `deploy-production` jobs are guarded by
+`if: github.event_name == 'workflow_dispatch'`, so a normal push runs only
+`build`. They use `aws-actions/configure-aws-credentials` with
+`secrets.AWS_ACCESS_KEY_ID` / `secrets.AWS_SECRET_ACCESS_KEY` (region
+`us-east-1`) and target the `ugc-marketplace-staging` /
+`ugc-marketplace-production` ECS clusters.
 
 ---
 
@@ -958,7 +951,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Real-Time Monitoring** — WebSocket streaming, alerting, performance optimization
 - **Cost-Optimized Model Routing** — Free/budget/paid tier routing with fallback chains
 - **Webhook Integrations** — Product Hunt, Hacker News, Reddit, Twitter/X
-- **513 tests passing** across 117 Python files
+- **873 tests passing** across 117 Python files
 
 ### [1.0.0] - 2024-01-15
 

@@ -9,7 +9,7 @@ The system follows a layered architecture with clear separation of concerns:
 - **API Layer** — FastAPI routers handling HTTP requests
 - **Agent Layer** — AI agents performing domain-specific tasks
 - **Integration Layer** — External service connectors (storage, payments, social media)
-- **Infrastructure** — PostgreSQL, Redis, Kafka, Kubernetes
+- **Infrastructure** — SQLite (SQLAlchemy), in-process cache/event bus, Kubernetes
 
 ---
 
@@ -221,7 +221,7 @@ sequenceDiagram
 | ORM | SQLAlchemy 2.0 | Async database operations |
 | Migrations | Alembic | Database schema migrations |
 | Cache | Redis 7 | Caching and session storage |
-| Message Queue | Kafka | Event streaming and alerts |
+| Message Queue | In-process event bus | Internal event streaming |
 | AI/LLM | LangChain + OpenAI | Agent orchestration and LLM calls |
 | Agent Framework | DeepAgents | Multi-agent orchestration |
 | Logging | Structlog | Structured logging |
@@ -397,7 +397,7 @@ The system is designed for horizontal scaling:
 - **Stateless API pods** — Any pod can handle any request
 - **Shared state in Redis** — Session and cache data
 - **Database connection pooling** — Async SQLAlchemy with connection pool
-- **Kafka for async processing** — Decouple heavy processing
+- **In-process event bus** — Decouple processing without an external broker
 - **HPA (Horizontal Pod Autoscaler)** — Automatic scaling based on CPU/memory
 - **Read replicas** — Database read scaling (future)
 

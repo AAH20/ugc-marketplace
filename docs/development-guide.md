@@ -142,7 +142,7 @@ ugc-marketplace/
 │   │   ├── creator_monetization/ # Stripe, PayPal, Patreon
 │   │   ├── creator_analytics/  # YouTube, Twitter, Instagram, TikTok
 │   │   ├── content_marketplace/ # Cache, notifications, payments
-│   │   ├── fraud_detection/    # Database, Kafka, Redis
+│   │   ├── fraud_detection/    # Database, in-process event bus
 │   │   ├── quality_scoring/    # Cache, API clients
 │   │   ├── rights_management/  # Storage, notifications
 │   │   └── community_curation/ # Content fetcher
