@@ -531,25 +531,22 @@ class TestModuleLevelHelpers:
 
 
 # ---------------------------------------------------------------------------
-# RED: known src defect — update_listing/delete_listing touch a non-existent
-# repository attribute. InMemoryListingRepository stores under `_storage`,
-# but listing_service accesses `_repo._listings`.
+# Regression guard: update_listing/delete_listing used to touch a non-existent
+# repository attribute (InMemoryListingRepository stores under `_storage`, but
+# listing_service read `_repo._listings`). Fixed in listing_service.py — these
+# tests pin the fix so it cannot silently regress.
 # ---------------------------------------------------------------------------
 
 
 class TestUpdateDeleteRepositoryContract:
-    """Documents a real src defect (reported, not fixed here).
+    """Regression coverage for a real src defect that was found and fixed.
 
-    ``update_listing`` / ``delete_listing`` reach into ``service._repo._listings``
-    which the shipped ``InMemoryListingRepository`` does not define (it uses
-    ``_storage``), so both raise AttributeError against the default service.
+    ``update_listing`` / ``delete_listing`` previously reached into
+    ``service._repo._listings``, which the shipped ``InMemoryListingRepository``
+    does not define (it uses ``_storage``), so both raised AttributeError against
+    the default service. Fixed in ``listing_service.py``.
     """
 
-    @pytest.mark.xfail(
-        reason="src bug: listing_service accesses _repo._listings but "
-               "InMemoryListingRepository uses _storage",
-        strict=True,
-    )
     def test_update_listing_round_trip(self, valid_data):
         created = create_listing(valid_data)
 
@@ -558,11 +555,6 @@ class TestUpdateDeleteRepositoryContract:
         assert updated["id"] == created["id"]
         assert updated["title"] == "Brand New Title"
 
-    @pytest.mark.xfail(
-        reason="src bug: listing_service accesses _repo._listings but "
-               "InMemoryListingRepository uses _storage",
-        strict=True,
-    )
     def test_delete_listing_removes(self, valid_data):
         created = create_listing(valid_data)
 

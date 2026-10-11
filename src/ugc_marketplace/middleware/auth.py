@@ -11,7 +11,7 @@ import logging
 from collections.abc import Callable
 from enum import Enum
 
-import jwt
+from jose import jwt
 from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -141,7 +141,7 @@ class JWTValidationMiddleware(BaseHTTPMiddleware):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Token has expired"},
             )
-        except jwt.InvalidTokenError as exc:
+        except jwt.JWTError as exc:
             logger.warning("Invalid JWT token for %s: %s", request.url.path, exc)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -373,7 +373,7 @@ class CombinedAuthMiddleware(BaseHTTPMiddleware):
         token = auth_header[len(BEARER_PREFIX) :]
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        except (jwt.ExpiredSignatureError, jwt.JWTError):
             return False
 
         request.state.jwt_payload = payload
