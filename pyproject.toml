@@ -107,6 +107,12 @@ addopts = "-q"
 [tool.coverage.run]
 source = ["app"]
 branch = true
+# SQLAlchemy's async integration drives its sync engine through greenlets
+# (``greenlet_spawn``). Without listing ``greenlet`` here, coverage's tracer
+# loses the call stack across every ``await`` on a DB call and silently
+# under-reports all async route/service code (e.g. ``app/routes/video.py``
+# measured ~59% while its tests exercised every branch).
+concurrency = ["thread", "greenlet"]
 
 [tool.coverage.report]
 show_missing = true
