@@ -559,11 +559,15 @@ def update_listing(listing_id: str, data: dict) -> dict:
     merged.update(data)
 
     # Delete and recreate with same ID (in-memory repo limitation)
-    service._repo._listings.pop(listing_id, None)
+    storage = service._repo._storage
+    storage.pop(listing_id, None)
     listing = service.create_listing(merged)
+    # create_listing persists under a fresh random id; drop that key so the
+    # record is only reachable through its original id (no duplicate entry).
+    storage.pop(listing.id, None)
     # Preserve original ID
     listing.id = listing_id
-    service._repo._listings[listing_id] = listing
+    storage[listing_id] = listing
 
     return {
         "id": listing.id,
@@ -598,5 +602,5 @@ def delete_listing(listing_id: str) -> bool:
         service.get_listing(listing_id)
     except ListingNotFoundError:
         return False
-    service._repo._listings.pop(listing_id, None)
+    service._repo._storage.pop(listing_id, None)
     return True

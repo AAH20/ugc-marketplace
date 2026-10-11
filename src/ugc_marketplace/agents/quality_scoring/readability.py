@@ -81,6 +81,15 @@ class ReadabilityScorerAgent(BaseScoringAgent["DimensionScore"]):
         sentences = [s.strip() for s in sentences if s.strip()]
         words = content.split()
 
+        if not words:
+            # Empty / whitespace-only content carries no readability signal;
+            # do not award it a perfect score.
+            return DimensionScore(
+                dimension=ScoreDimension.READABILITY,
+                score=0.0,
+                level=ScoreLevel.LOW,
+            )
+
         total_words = len(words)
         total_sentences = len(sentences)
         total_syllables = sum(self._count_syllables(w) for w in words)
