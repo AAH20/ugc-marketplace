@@ -560,6 +560,34 @@ class TestWebSocketEndpoints:
             except Exception:
                 pass  # Connection closed is also acceptable
 
+    def test_websocket_metrics_get_metrics_action(self, client, sample_campaign, sample_metrics):
+        """The metrics socket answers a 'get_metrics' action with current metrics."""
+        with client.websocket_connect(f"/ws/campaigns/{sample_campaign.id}/metrics") as ws:
+            assert ws.receive_json()["type"] == "initial_metrics"
+            ws.send_json({"action": "get_metrics"})
+            msg = ws.receive_json()
+            assert msg["type"] == "metrics"
+            assert len(msg["metrics"]) == 24
+
+    def test_websocket_alerts_get_alerts_action(self, client, sample_campaign, sample_metrics):
+        """The alerts socket answers a 'get_alerts' action with current alerts."""
+        with client.websocket_connect(f"/ws/campaigns/{sample_campaign.id}/alerts") as ws:
+            assert ws.receive_json()["type"] == "initial_alerts"
+            ws.send_json({"action": "get_alerts"})
+            msg = ws.receive_json()
+            assert msg["type"] == "alerts"
+            assert len(msg["alerts"]) > 0
+
+    def test_websocket_dashboard_get_summary_action(self, client, sample_campaign, sample_metrics):
+        """The dashboard socket answers a 'get_summary' action with a fresh summary."""
+        with client.websocket_connect("/ws/dashboard") as ws:
+            assert ws.receive_json()["type"] == "summary"
+            ws.send_json({"action": "get_summary"})
+            msg = ws.receive_json()
+            assert msg["type"] == "summary"
+            assert msg["summary"]["total_campaigns"] == 1
+            assert msg["summary"]["alerts_count"] > 0
+
 
 # ── End-to-End Integration Tests ──────────────────────────────────────
 
