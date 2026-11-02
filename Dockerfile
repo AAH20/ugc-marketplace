@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Build stage ----------
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 
 # Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -32,7 +32,7 @@ RUN pip install --upgrade pip setuptools wheel && \
     pip install .
 
 # ---------- Production stage ----------
-FROM python:3.12-slim AS production
+FROM python:3.15-slim AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
